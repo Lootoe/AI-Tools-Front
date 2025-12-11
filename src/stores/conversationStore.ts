@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Conversation } from '@/types/conversation';
-import { Message } from '@/types/message';
+import { Message, MessageStatus, MessageErrorType } from '@/types/message';
 import { generateId, generateConversationTitle } from '@/utils/formatters';
 import {
     saveConversation,
@@ -26,6 +26,7 @@ interface ConversationState {
     // 消息操作
     addMessage: (conversationId: string, message: Message) => Promise<void>;
     updateMessage: (conversationId: string, messageId: string, content: string) => Promise<void>;
+    updateMessageStatus: (conversationId: string, messageId: string, status: MessageStatus, errorType?: MessageErrorType, errorMessage?: string) => Promise<void>;
     deleteMessage: (conversationId: string, messageId: string) => Promise<void>;
 
     // 获取当前对话
@@ -146,13 +147,39 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }));
     },
 
-    deleteMessage: async (conversationId: string, messageId: string) => {
+    updateMessageStatus: async (conversationId: string, messageId: string, status: MessageStatus, errorType?: MessageErrorType, errorMessage?: string) => {
         const conversation = await getConversation(conversationId);
         if (!conversation) return;
 
         const updated = {
             ...conversation,
-            messages: conversation.messages.filter((m) => m.id !== messageId),
+            messages: conversation.messages.map((m) =>
+                m.id === messageId ? { ...m, status, errorType, errorMessage } : m
+            ),
+            updatedAt: Date.now(),
+        };
+
+        await saveConversation(updated);
+
+        set((state) => ({
+            conversations: state.conversations.map((c) =>
+                c.id === conversationId ? updated : c
+            ),
+        }));
+    },
+
+    deleteMessage: async (conversationId: string, messageId: string) => {
+        const conversation = await getConversation(conversationId);
+        if (!conversation) return;
+
+        // 找到要删除的消息索引
+        const messageIndex = conversation.messages.findIndex((m) => m.id === messageId);
+        if (messageIndex === -1) return;
+
+        // 删除该消息及其后续所有消息
+        const updated = {
+            ...conversation,
+            messages: conversation.messages.slice(0, messageIndex),
             updatedAt: Date.now(),
         };
 

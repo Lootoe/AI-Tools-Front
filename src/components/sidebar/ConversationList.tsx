@@ -59,33 +59,30 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   };
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-gray-50 to-white">
-      {/* 新建对话按钮 */}
-      <div className="p-3">
-        <button
-          onClick={onCreate}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors duration-200 font-medium"
-        >
-          <MessageSquarePlus size={18} />
-          新建对话
-        </button>
-      </div>
-
-      {/* 对话列表标题和清空按钮 */}
-      {conversations.length > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            对话列表
-          </span>
+      {/* 对话列表标题和操作按钮 */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <span className="text-sm font-semibold text-gray-600 tracking-wide">
+          对话列表
+        </span>
+        <div className="flex items-center gap-2">
           <button
-            onClick={onClearAll}
-            className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 flex items-center gap-1"
-            title="清空所有对话历史"
+            onClick={onCreate}
+            className="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors duration-200"
+            title="新建对话"
           >
-            <Trash size={14} />
-            <span>清空</span>
+            <MessageSquarePlus size={18} />
           </button>
+          {conversations.length > 0 && (
+            <button
+              onClick={onClearAll}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors duration-200"
+              title="清空所有对话历史"
+            >
+              <Trash size={18} />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pt-2">
         {conversations.map((conversation) => (

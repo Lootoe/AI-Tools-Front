@@ -10,6 +10,7 @@ export interface ChatRequest {
     }>;
     parameters: ModelParameters;
     stream?: boolean;
+    signal?: AbortSignal;
 }
 
 // API响应接口
@@ -44,6 +45,7 @@ export async function callOpenAI(request: ChatRequest): Promise<ChatResponse> {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
+            signal: request.signal,
         }
     );
 
@@ -83,6 +85,7 @@ export async function callAnthropic(request: ChatRequest): Promise<ChatResponse>
                 'anthropic-version': '2023-06-01',
                 'Content-Type': 'application/json',
             },
+            signal: request.signal,
         }
     );
 
@@ -120,6 +123,7 @@ export async function callQwen(request: ChatRequest): Promise<ChatResponse> {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
+            signal: request.signal,
         }
     );
 
