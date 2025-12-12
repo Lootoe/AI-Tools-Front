@@ -94,7 +94,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 isUser
                   ? 'bg-blue-500 text-white rounded-tr-sm'
                   : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-sm',
-                (hasError || isInterrupted) && !isUser && '!bg-red-50 dark:!bg-red-900/20'
+                (hasError || isInterrupted) && !isUser && '!bg-orange-100 dark:!bg-orange-900/30'
               )}
             >
               {/* Loading State */}
@@ -114,19 +114,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               {/* Message Content */}
               {message.content && (
                 <p className={cn(
-                  'whitespace-pre-wrap break-words text-[15px] leading-relaxed',
+                  'whitespace-pre-wrap break-words text-sm leading-relaxed',
                   isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'
                 )}>
                   {message.content}
                 </p>
-              )}
-
-              {/* Error State */}
-              {(hasError || isInterrupted) && (
-                <div className="flex items-center gap-2 text-xs mt-3 pt-3 border-t border-red-200 dark:border-red-800/50 text-red-500 dark:text-red-400">
-                  {getStatusIcon()}
-                  <span>{getErrorText()}</span>
-                </div>
               )}
             </div>
             
@@ -197,6 +189,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 {getStatusIcon()}
                 <span>发送中...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {(hasError || isInterrupted) && (
+            <div className="flex items-center gap-2 px-2">
+              <div className="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+                {getStatusIcon()}
+                <span>{getErrorText()}</span>
               </div>
             </div>
           )}

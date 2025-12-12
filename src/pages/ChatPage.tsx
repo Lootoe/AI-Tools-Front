@@ -40,7 +40,7 @@ export const ChatPage: React.FC = () => {
       <Sidebar />
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-[#f7f7f7] dark:bg-[#1c1c1c]">
+      <main className="flex-1 flex flex-col overflow-hidden bg-[#f0f4f8] dark:bg-[#1a1d24]">
         {/* Messages */}
         <div className={`flex-1 overflow-y-auto scrollbar-thin transition-all duration-300 ${editingMessageId ? 'blur-sm pointer-events-none' : ''}`}>
           {messages.length === 0 ? (

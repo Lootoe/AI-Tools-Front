@@ -102,7 +102,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onBlur={handleBlur}
               placeholder={disabled ? '请先选择或创建一个对话...' : isEditing ? '编辑消息...' : '输入消息，开始对话...'}
               disabled={disabled || isGenerating}
-              className="min-h-[56px] max-h-[200px] resize-none border-0 bg-transparent px-6 py-4 text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0"
+              className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent px-6 py-3 text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0"
               rows={1}
             />
             

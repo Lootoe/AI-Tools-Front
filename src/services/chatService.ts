@@ -43,16 +43,13 @@ export function createAssistantMessage(conversationId: string): Message {
 /**
  * 构建发送给 AI 的消息历史
  */
-export function buildMessageHistory(messages: Message[], systemPrompt: string) {
-    return [
-        { role: 'system' as const, content: systemPrompt },
-        ...messages
-            .filter(m => m.status === 'success')
-            .map(m => ({
-                role: m.role as 'user' | 'assistant' | 'system',
-                content: m.content,
-            })),
-    ];
+export function buildMessageHistory(messages: Message[]) {
+    return messages
+        .filter(m => m.status === 'success')
+        .map(m => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content,
+        }));
 }
 
 /**
@@ -86,7 +83,7 @@ export async function generateAIResponse(
     conversationId: string,
     callbacks: ChatServiceCallbacks
 ): Promise<void> {
-    const { currentModel, parameters, systemPrompt } = useModelStore.getState();
+    const { currentModel, parameters } = useModelStore.getState();
     const { addMessage, getCurrentConversation, updateMessageStatus, updateMessage } = useConversationStore.getState();
 
     const conversation = getCurrentConversation();
@@ -102,7 +99,7 @@ export async function generateAIResponse(
     callbacks.onGeneratingChange(true);
 
     try {
-        const messages = buildMessageHistory(conversation.messages, systemPrompt);
+        const messages = buildMessageHistory(conversation.messages);
         await updateMessageStatus(conversationId, assistantMessage.id, 'streaming');
 
         const timeoutId = setTimeout(() => abortController.abort(), AI_RESPONSE_TIMEOUT);
