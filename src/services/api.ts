@@ -32,18 +32,19 @@ export interface ChatResponse {
 // 统一的AI服务调用接口（非流式）
 export async function callAIService(request: ChatRequest): Promise<ChatResponse> {
     try {
+        const requestBody: any = {
+            model: request.model,
+            messages: request.messages,
+            temperature: request.parameters.temperature,
+            top_p: request.parameters.topP,
+            presence_penalty: request.parameters.presencePenalty,
+            frequency_penalty: request.parameters.frequencyPenalty,
+            stream: false,
+        };
+
         const response = await axios.post(
             `${API_BASE_URL}/v1/chat/completions`,
-            {
-                model: request.model,
-                messages: request.messages,
-                temperature: request.parameters.temperature,
-                top_p: request.parameters.topP,
-                max_tokens: request.parameters.maxTokens,
-                presence_penalty: request.parameters.presencePenalty,
-                frequency_penalty: request.parameters.frequencyPenalty,
-                stream: false,
-            },
+            requestBody,
             {
                 headers: {
                     'Authorization': API_TOKEN,
@@ -76,22 +77,23 @@ export async function* callAIServiceStream(
     request: ChatRequest
 ): AsyncGenerator<string, ChatResponse, unknown> {
     try {
+        const requestBody: any = {
+            model: request.model,
+            messages: request.messages,
+            temperature: request.parameters.temperature,
+            top_p: request.parameters.topP,
+            presence_penalty: request.parameters.presencePenalty,
+            frequency_penalty: request.parameters.frequencyPenalty,
+            stream: true,
+        };
+
         const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Authorization': API_TOKEN,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                model: request.model,
-                messages: request.messages,
-                temperature: request.parameters.temperature,
-                top_p: request.parameters.topP,
-                max_tokens: request.parameters.maxTokens,
-                presence_penalty: request.parameters.presencePenalty,
-                frequency_penalty: request.parameters.frequencyPenalty,
-                stream: true,
-            }),
+            body: JSON.stringify(requestBody),
             signal: request.signal,
         });
 

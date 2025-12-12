@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Check, Sparkles, Globe, Brain, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { X, Search, Check, Sparkles, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useModelStore } from '@/stores/modelStore';
 import { AVAILABLE_MODELS } from '@/types/models';
@@ -111,65 +111,6 @@ export const ModelConfigModal: React.FC<ModelConfigModalProps> = ({ isOpen, onCl
           {/* Right - Parameters */}
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
-              {/* Feature Support Status */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">模型能力</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                    currentModel.supportsWebSearch
-                      ? "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-100 dark:border-blue-800/50"
-                      : "bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700/50"
-                  )}>
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center shadow-lg",
-                        currentModel.supportsWebSearch
-                          ? "bg-gradient-to-br from-blue-500 to-cyan-500 shadow-blue-500/25"
-                          : "bg-gray-400 dark:bg-gray-600 shadow-gray-500/25"
-                      )}>
-                        <Globe size={18} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">联网搜索</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">获取最新信息</p>
-                      </div>
-                    </div>
-                    {currentModel.supportsWebSearch ? (
-                      <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
-                    ) : (
-                      <XCircle size={20} className="text-gray-400 flex-shrink-0" />
-                    )}
-                  </div>
-                  <div className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                    currentModel.supportsDeepThinking
-                      ? "bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-100 dark:border-purple-800/50"
-                      : "bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700/50"
-                  )}>
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center shadow-lg",
-                        currentModel.supportsDeepThinking
-                          ? "bg-gradient-to-br from-purple-500 to-pink-500 shadow-purple-500/25"
-                          : "bg-gray-400 dark:bg-gray-600 shadow-gray-500/25"
-                      )}>
-                        <Brain size={18} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">深度思考</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">深入推理分析</p>
-                      </div>
-                    </div>
-                    {currentModel.supportsDeepThinking ? (
-                      <CheckCircle2 size={20} className="text-green-500 flex-shrink-0" />
-                    ) : (
-                      <XCircle size={20} className="text-gray-400 flex-shrink-0" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Model Parameters */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">

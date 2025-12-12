@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Settings, Sparkles, StopCircle } from 'lucide-react';
+import { Send, Paperclip, Settings, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '../ui/Textarea';
 import { ModelConfigModal } from './ModelConfigModal';
@@ -127,7 +127,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </button>
                 {/* Current Model Display */}
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800/50">
-                  <Sparkles size={14} className="text-purple-600 dark:text-purple-400" />
                   <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
                     {currentModel.name}
                   </span>
@@ -160,11 +159,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     size="icon"
                     className="h-10 w-10 rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 hover:from-violet-600 hover:via-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/25 disabled:opacity-40 disabled:shadow-none transition-all duration-200"
                   >
-                    {message.trim() ? (
-                      <Send size={16} className="text-white" />
-                    ) : (
-                      <Sparkles size={16} className="text-white" />
-                    )}
+                    <Send size={16} className="text-white" />
                   </Button>
                 )}
               </div>
