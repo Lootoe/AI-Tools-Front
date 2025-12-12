@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Square, Paperclip, Settings, Sparkles } from 'lucide-react';
+import { Send, Paperclip, Settings, Sparkles, StopCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '../ui/Textarea';
 import { ModelConfigModal } from './ModelConfigModal';
@@ -137,14 +137,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {/* Right Actions */}
               <div className="flex items-center gap-2">
                 {isGenerating ? (
-                  <Button
+                  <button
                     onClick={onStop}
-                    size="icon"
-                    className="h-10 w-10 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-lg shadow-red-500/25 transition-all duration-200"
-                    title="中断生成"
+                    className="group relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 hover:from-red-600 hover:via-rose-600 hover:to-pink-600 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 transition-all duration-300 overflow-hidden"
+                    title="停止生成"
                   >
-                    <Square size={16} className="text-white" />
-                  </Button>
+                    {/* Animated background pulse */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-red-400 via-rose-400 to-pink-400 opacity-0 group-hover:opacity-100 animate-pulse transition-opacity" />
+                    
+                    {/* Rotating border effect */}
+                    <div className="absolute inset-0 rounded-xl opacity-75">
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                    </div>
+                    
+                    {/* Icon */}
+                    <StopCircle size={18} className="relative text-white animate-pulse" />
+                  </button>
                 ) : (
                   <Button
                     onClick={handleSubmit}
