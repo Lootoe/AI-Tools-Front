@@ -249,4 +249,113 @@
             transform: scale(1);
         }
     }
+
+    /* Markdown 样式优化 */
+    .prose {
+        @apply text-sm leading-relaxed;
+    }
+
+    .prose p {
+        @apply my-2;
+    }
+
+    .prose p:first-child {
+        @apply mt-0;
+    }
+
+    .prose p:last-child {
+        @apply mb-0;
+    }
+
+    .prose code {
+        @apply text-sm;
+    }
+
+    .prose pre {
+        @apply my-3 rounded-lg;
+    }
+
+    .prose pre code {
+        @apply text-sm;
+    }
+
+    /* 代码高亮样式 */
+    .prose pre code.hljs {
+        @apply block overflow-x-auto p-4 bg-gray-900 dark:bg-gray-950 rounded-lg;
+    }
+
+    .prose :not(pre) > code.hljs {
+        @apply inline-block px-1.5 py-0.5 rounded;
+    }
+
+    /* 亮色主题代码块 */
+    .prose:not(.prose-invert) pre {
+        @apply bg-gray-900 text-gray-100;
+    }
+
+    /* 暗色主题代码块 */
+    .dark .prose pre {
+        @apply bg-gray-950 text-gray-100;
+    }
+
+    /* 表格样式 */
+    .prose table {
+        @apply w-full border-collapse my-3;
+    }
+
+    .prose th,
+    .prose td {
+        @apply border border-gray-300 dark:border-gray-600 px-3 py-2;
+    }
+
+    .prose th {
+        @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+    }
+
+    /* 引用块样式 */
+    .prose blockquote {
+        @apply border-l-4 border-purple-500 pl-4 my-3 italic text-gray-700 dark:text-gray-300;
+    }
+
+    /* 列表样式 */
+    .prose ul,
+    .prose ol {
+        @apply my-2 pl-6;
+    }
+
+    .prose li {
+        @apply my-1;
+    }
+
+    /* 标题样式 */
+    .prose h1,
+    .prose h2,
+    .prose h3,
+    .prose h4,
+    .prose h5,
+    .prose h6 {
+        @apply font-bold mt-4 mb-2;
+    }
+
+    .prose h1 {
+        @apply text-xl;
+    }
+
+    .prose h2 {
+        @apply text-lg;
+    }
+
+    .prose h3 {
+        @apply text-base;
+    }
+
+    /* 链接样式 */
+    .prose a {
+        @apply text-purple-600 dark:text-purple-400 hover:underline;
+    }
+
+    /* 水平线样式 */
+    .prose hr {
+        @apply my-4 border-gray-300 dark:border-gray-600;
+    }
 }

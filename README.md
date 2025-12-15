@@ -11,6 +11,11 @@
     -   编辑、删除、重新生成消息
     -   对话列表展示
     -   对话历史持久化（本地存储）
+-   **📝 Markdown 支持**：
+    -   完整的 Markdown 语法渲染
+    -   代码高亮显示（支持多种编程语言）
+    -   表格、列表、引用等格式支持
+    -   GFM（GitHub Flavored Markdown）扩展
 -   **🎨 现代 UI**：基于 TailwindCSS 的美观界面
 -   **📱 响应式设计**：适配不同屏幕尺寸
 
@@ -20,7 +25,8 @@
 -   **构建工具**：Vite 6
 -   **状态管理**：Zustand
 -   **UI 组件**：自定义组件 + Radix UI
--   **样式**：TailwindCSS
+-   **样式**：TailwindCSS + @tailwindcss/typography
+-   **Markdown 渲染**：react-markdown + remark-gfm + rehype-highlight
 -   **HTTP 客户端**：Axios
 -   **本地存储**：LocalForage (IndexedDB)
 -   **图标**：Lucide React

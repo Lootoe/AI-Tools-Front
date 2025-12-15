@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import { Message } from '@/types/message';
 import { cn } from '@/utils/cn';
 import { User, Edit2, Trash2, RotateCw, Loader2, AlertCircle, Clock, StopCircle, Copy, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import 'highlight.js/styles/atom-one-dark.css';
 
 interface ChatMessageProps {
   message: Message;
@@ -113,12 +117,91 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
               {/* Message Content */}
               {message.content && (
-                <p className={cn(
-                  'whitespace-pre-wrap break-words text-sm leading-relaxed',
-                  isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'
+                <div className={cn(
+                  'prose prose-sm max-w-none',
+                  isUser 
+                    ? 'prose-invert prose-p:text-white prose-headings:text-white prose-strong:text-white prose-code:text-white prose-pre:bg-white/10' 
+                    : 'prose-gray dark:prose-invert'
                 )}>
-                  {message.content}
-                </p>
+                  {isUser ? (
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed m-0">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        code: ({ inline, className, children, ...props }: any) => {
+                          return !inline ? (
+                            <code className={cn('block', className)} {...props}>
+                              {children}
+                            </code>
+                          ) : (
+                            <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono" {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        pre: ({ children }: any) => (
+                          <pre className="rounded-lg overflow-x-auto my-3 bg-gray-900 dark:bg-gray-950">
+                            {children}
+                          </pre>
+                        ),
+                        p: ({ children }: any) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                        ul: ({ children }: any) => <ul className="my-2 ml-6 list-disc space-y-1">{children}</ul>,
+                        ol: ({ children }: any) => <ol className="my-2 ml-6 list-decimal space-y-1">{children}</ol>,
+                        li: ({ children }: any) => <li className="leading-relaxed">{children}</li>,
+                        h1: ({ children }: any) => <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0">{children}</h1>,
+                        h2: ({ children }: any) => <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0">{children}</h2>,
+                        h3: ({ children }: any) => <h3 className="text-base font-bold mt-2 mb-1 first:mt-0">{children}</h3>,
+                        h4: ({ children }: any) => <h4 className="text-sm font-bold mt-2 mb-1 first:mt-0">{children}</h4>,
+                        blockquote: ({ children }: any) => (
+                          <blockquote className="border-l-4 border-purple-500 dark:border-purple-600 pl-4 my-3 italic text-gray-700 dark:text-gray-300">
+                            {children}
+                          </blockquote>
+                        ),
+                        table: ({ children }: any) => (
+                          <div className="overflow-x-auto my-3 rounded-lg border border-gray-300 dark:border-gray-600">
+                            <table className="min-w-full border-collapse">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }: any) => (
+                          <thead className="bg-gray-100 dark:bg-gray-800">
+                            {children}
+                          </thead>
+                        ),
+                        th: ({ children }: any) => (
+                          <th className="border-b border-gray-300 dark:border-gray-600 px-4 py-2 text-left font-semibold">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }: any) => (
+                          <td className="border-b border-gray-200 dark:border-gray-700 px-4 py-2">
+                            {children}
+                          </td>
+                        ),
+                        a: ({ children, href }: any) => (
+                          <a 
+                            href={href} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-purple-600 dark:text-purple-400 hover:underline"
+                          >
+                            {children}
+                          </a>
+                        ),
+                        hr: () => <hr className="my-4 border-gray-300 dark:border-gray-600" />,
+                        strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+                        em: ({ children }: any) => <em className="italic">{children}</em>,
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  )}
+                </div>
               )}
             </div>
             
