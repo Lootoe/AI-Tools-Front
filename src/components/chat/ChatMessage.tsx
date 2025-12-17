@@ -25,6 +25,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const isUser = message.role === 'user';
 
@@ -36,6 +37,30 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     } catch (error) {
       console.error('复制失败:', error);
     }
+  };
+
+  const handleCodeCopy = async (code: string, codeId: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(codeId);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (error) {
+      console.error('复制代码失败:', error);
+    }
+  };
+
+  // 递归提取 React 元素中的文本内容
+  const extractTextFromChildren = (children: any): string => {
+    if (typeof children === 'string') {
+      return children;
+    }
+    if (Array.isArray(children)) {
+      return children.map(extractTextFromChildren).join('');
+    }
+    if (children?.props?.children) {
+      return extractTextFromChildren(children.props.children);
+    }
+    return '';
   };
 
   const isLoading = message.status === 'loading' || message.status === 'streaming';
@@ -115,6 +140,27 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
 
+              {/* 图片显示 */}
+              {message.images && message.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {message.images.map((img, index) => (
+                    <a 
+                      key={index} 
+                      href={img.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img 
+                        src={img.url} 
+                        alt={`图片 ${index + 1}`}
+                        className="max-w-[200px] max-h-[200px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+
               {/* Message Content */}
               {message.content && (
                 <div className={cn(
@@ -143,11 +189,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             </code>
                           );
                         },
-                        pre: ({ children }: any) => (
-                          <pre className="rounded-lg overflow-x-auto my-3 bg-gray-900 dark:bg-gray-950">
-                            {children}
-                          </pre>
-                        ),
+                        pre: ({ children, ...props }: any) => {
+                          const codeContent = extractTextFromChildren(children);
+                          const codeId = `code-${message.id}-${Math.random().toString(36).substring(2, 11)}`;
+                          const isCopied = copiedCode === codeId;
+                          
+                          return (
+                            <div className="relative group/code my-3">
+                              <pre className="rounded-lg overflow-x-auto bg-gray-900 dark:bg-gray-950" {...props}>
+                                {children}
+                              </pre>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleCodeCopy(codeContent, codeId)}
+                                className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm opacity-0 group-hover/code:opacity-100 transition-opacity"
+                                title="复制代码"
+                              >
+                                {isCopied ? (
+                                  <Check size={14} className="text-green-400" />
+                                ) : (
+                                  <Copy size={14} className="text-gray-300" />
+                                )}
+                              </Button>
+                            </div>
+                          );
+                        },
                         p: ({ children }: any) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                         ul: ({ children }: any) => <ul className="my-2 ml-6 list-disc space-y-1">{children}</ul>,
                         ol: ({ children }: any) => <ol className="my-2 ml-6 list-decimal space-y-1">{children}</ol>,

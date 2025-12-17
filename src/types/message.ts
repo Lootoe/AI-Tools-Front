@@ -20,12 +20,19 @@ export type MessageErrorType =
     | 'interrupted'       // 用户中断
     | 'unknown_error';    // 未知错误
 
+// 图片附件
+export interface ImageAttachment {
+    url: string;
+    previewUrl?: string; // 本地预览用
+}
+
 // 消息接口
 export interface Message {
     id: string;
     conversationId: string;
     role: MessageRole;
     content: string;
+    images?: ImageAttachment[]; // 图片附件
     timestamp: number;
     status: MessageStatus;
     errorType?: MessageErrorType;

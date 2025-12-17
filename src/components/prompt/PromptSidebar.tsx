@@ -73,10 +73,10 @@ export const PromptSidebar: React.FC = () => {
           ) : (
             <div className="space-y-2">
               {prompts.map((prompt) => (
-                <button
+                <div
                   key={prompt.id}
                   onClick={() => handlePromptClick(prompt.id)}
-                  className={`group w-full text-left p-4 rounded-xl transition-all duration-200 border ${
+                  className={`group w-full text-left p-4 rounded-xl transition-all duration-200 border cursor-pointer ${
                     selectedPromptId === prompt.id
                       ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 border-transparent'
                       : 'bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md border-gray-200/50 dark:border-gray-700/50'
@@ -112,7 +112,7 @@ export const PromptSidebar: React.FC = () => {
                       <Edit2 size={14} />
                     </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

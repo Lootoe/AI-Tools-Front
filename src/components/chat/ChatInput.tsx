@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Settings, StopCircle } from 'lucide-react';
+import { Send, Settings, StopCircle, X, Image, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '../ui/Textarea';
 import { ModelConfigModal } from './ModelConfigModal';
 import { useModelStore } from '@/stores/modelStore';
 import { usePromptStore } from '@/stores/promptStore';
+import { uploadImage } from '@/services/api';
+import { ImageAttachment } from '@/types/message';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, images?: ImageAttachment[]) => void;
   onStop?: () => void;
   isGenerating?: boolean;
   disabled?: boolean;
@@ -15,6 +17,15 @@ interface ChatInputProps {
   editingContent?: string;
   onCancelEditing?: () => void;
   onConfirmEdit?: (messageId: string, content: string) => void;
+}
+
+interface PendingImage {
+  id: string;
+  file: File;
+  previewUrl: string;
+  uploadedUrl?: string;
+  uploading: boolean;
+  error?: string;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -29,11 +40,72 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!editingMessageId;
   const { currentModel } = useModelStore();
   const { selectedPromptId, getPromptById, selectPrompt } = usePromptStore();
   const selectedPrompt = selectedPromptId ? getPromptById(selectedPromptId) : null;
+
+  // 处理图片选择
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImages: PendingImage[] = [];
+
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue;
+
+      const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      const previewUrl = URL.createObjectURL(file);
+
+      newImages.push({
+        id,
+        file,
+        previewUrl,
+        uploading: true,
+      });
+    }
+
+    setPendingImages((prev) => [...prev, ...newImages]);
+
+    // 上传图片（直接上传 File）
+    for (const img of newImages) {
+      try {
+        const result = await uploadImage(img.file);
+
+        setPendingImages((prev) =>
+          prev.map((p) => (p.id === img.id ? { ...p, uploadedUrl: result.url, uploading: false } : p))
+        );
+      } catch (error) {
+        setPendingImages((prev) =>
+          prev.map((p) =>
+            p.id === img.id
+              ? { ...p, uploading: false, error: error instanceof Error ? error.message : '上传失败' }
+              : p
+          )
+        );
+      }
+    }
+
+    // 清空 input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // 移除待上传图片
+  const removeImage = (id: string) => {
+    setPendingImages((prev) => {
+      const img = prev.find((p) => p.id === id);
+      if (img) {
+        URL.revokeObjectURL(img.previewUrl);
+      }
+      return prev.filter((p) => p.id !== id);
+    });
+  };
 
   useEffect(() => {
     if (editingMessageId && editingContent) {
@@ -45,11 +117,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [editingMessageId, editingContent]);
 
   const handleSubmit = () => {
-    if (message.trim() && !isGenerating && !disabled) {
+    const hasContent = message.trim() || pendingImages.some(img => img.uploadedUrl);
+    const hasUploadingImages = pendingImages.some(img => img.uploading);
+    
+    if (hasContent && !isGenerating && !disabled && !hasUploadingImages) {
       if (isEditing && onConfirmEdit && editingMessageId) {
         onConfirmEdit(editingMessageId, message.trim());
       } else {
-        onSend(message.trim());
+        // 收集已上传的图片
+        const images: ImageAttachment[] = pendingImages
+          .filter(img => img.uploadedUrl)
+          .map(img => ({
+            url: img.uploadedUrl!,
+            previewUrl: img.previewUrl,
+          }));
+        
+        onSend(message.trim(), images.length > 0 ? images : undefined);
+        
+        // 清理预览 URL
+        pendingImages.forEach(img => URL.revokeObjectURL(img.previewUrl));
+        setPendingImages([]);
       }
       setMessage('');
     }
@@ -99,6 +186,44 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
           
           <div className="relative rounded-2xl border border-gray-200/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-lg shadow-gray-200/50 dark:shadow-gray-900/50 group-focus-within:border-purple-300/80 dark:group-focus-within:border-purple-600/50 group-focus-within:shadow-xl group-focus-within:shadow-purple-500/10 transition-all duration-300">
+            {/* 图片预览区域 */}
+            {pendingImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 px-4 pt-3">
+                {pendingImages.map(img => (
+                  <div key={img.id} className="relative group/img">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                      <img 
+                        src={img.previewUrl} 
+                        alt="预览" 
+                        className="w-full h-full object-cover"
+                      />
+                      {img.uploading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Loader2 size={20} className="text-white animate-spin" />
+                        </div>
+                      )}
+                      {img.error && (
+                        <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center">
+                          <span className="text-white text-xs text-center px-1">失败</span>
+                        </div>
+                      )}
+                      {img.uploadedUrl && !img.uploading && (
+                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeImage(img.id)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
             <Textarea
               ref={textareaRef}
               value={message}
@@ -109,6 +234,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               disabled={disabled || isGenerating}
               className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent px-6 py-3 text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0"
               rows={1}
+            />
+            
+            {/* 隐藏的文件输入 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
             />
             
             {/* Toolbar */}
@@ -123,17 +258,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   <Settings size={18} />
                 </button>
                 <button
+                  onClick={() => fileInputRef.current?.click()}
                   className="p-2.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-xl transition-all duration-200"
-                  title="添加附件"
+                  title="添加图片"
+                  disabled={disabled || isGenerating}
                 >
-                  <Paperclip size={18} />
+                  <Image size={18} />
                 </button>
                 {/* Current Model Display */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800/50">
-                  <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                    {currentModel.name}
-                  </span>
-                </div>
+                {currentModel && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800/50">
+                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                      {currentModel.name}
+                    </span>
+                  </div>
+                )}
                 {/* Selected Prompt Display */}
                 {selectedPrompt && (
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800/50">
@@ -173,7 +312,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 ) : (
                   <Button
                     onClick={handleSubmit}
-                    disabled={!message.trim() || disabled}
+                    disabled={(!message.trim() && !pendingImages.some(img => img.uploadedUrl)) || disabled || pendingImages.some(img => img.uploading)}
                     size="icon"
                     className="h-10 w-10 rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 hover:from-violet-600 hover:via-purple-600 hover:to-indigo-600 shadow-lg shadow-purple-500/25 disabled:opacity-40 disabled:shadow-none transition-all duration-200"
                   >

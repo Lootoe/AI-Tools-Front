@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -6,6 +7,7 @@ import { ChatPage } from '@/pages/ChatPage';
 import { WorkflowPage } from '@/pages/WorkflowPage';
 import { TextToImagePage } from '@/pages/TextToImagePage';
 import { ImageToVideoPage } from '@/pages/ImageToVideoPage';
+import { useModelStore } from '@/stores/modelStore';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +19,11 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const loadModels = useModelStore((state) => state.loadModels);
+
+  useEffect(() => {
+    loadModels();
+  }, [loadModels]);
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

@@ -3,6 +3,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { useConversationStore } from '@/stores/conversationStore';
 import { useEditingStore } from '@/stores/editingStore';
 import { usePromptStore } from '@/stores/promptStore';
+import { ImageAttachment } from '@/types/message';
 import * as chatService from '@/services/chatService';
 
 export function useChat(conversationId: string | null) {
@@ -29,10 +30,10 @@ export function useChat(conversationId: string | null) {
         setAbortController,
     }), [setIsGenerating, setAbortController]);
 
-    const handleSendMessage = useCallback(async (content: string) => {
-        if (!conversationId || !content.trim()) return;
+    const handleSendMessage = useCallback(async (content: string, images?: ImageAttachment[]) => {
+        if (!conversationId || (!content.trim() && (!images || images.length === 0))) return;
         try {
-            await chatService.sendMessage(conversationId, content.trim(), callbacks, systemPrompt);
+            await chatService.sendMessage(conversationId, content.trim(), callbacks, systemPrompt, images);
         } catch (error) {
             console.error('发送消息失败:', error);
         }

@@ -1,5 +1,5 @@
-import { Message } from '@/types/message';
-import { callAIService, callAIServiceStream } from './api';
+import { Message, ImageAttachment } from '@/types/message';
+import { callAIServiceStream } from './api';
 import { generateId } from '@/utils/formatters';
 import { parseError, getStatusFromErrorType } from '@/utils/errorHandler';
 import { useModelStore } from '@/stores/modelStore';
@@ -15,12 +15,13 @@ export interface ChatServiceCallbacks {
 /**
  * 创建用户消息
  */
-export function createUserMessage(conversationId: string, content: string): Message {
+export function createUserMessage(conversationId: string, content: string, images?: ImageAttachment[]): Message {
     return {
         id: generateId(),
         conversationId,
         role: 'user',
         content,
+        images,
         timestamp: Date.now(),
         status: 'pending',
     };
@@ -42,14 +43,27 @@ export function createAssistantMessage(conversationId: string): Message {
 
 /**
  * 构建发送给 AI 的消息历史
+ * 如果消息包含图片，将图片 URL 以 markdown 格式添加到内容中
  */
 export function buildMessageHistory(messages: Message[], systemPrompt?: string) {
     const history = messages
         .filter(m => m.status === 'success')
-        .map(m => ({
-            role: m.role as 'user' | 'assistant' | 'system',
-            content: m.content,
-        }));
+        .map(m => {
+            let content = m.content;
+            
+            // 如果有图片，将图片 URL 添加到消息内容中
+            if (m.images && m.images.length > 0) {
+                const imageUrls = m.images.map(img => img.url).join('\n');
+                content = content 
+                    ? `${content}\n\n[图片]:\n${imageUrls}`
+                    : `[图片]:\n${imageUrls}`;
+            }
+            
+            return {
+                role: m.role as 'user' | 'assistant' | 'system',
+                content,
+            };
+        });
     
     // 如果有系统提示词，添加到消息历史的开头
     if (systemPrompt) {
@@ -69,11 +83,12 @@ export async function sendMessage(
     conversationId: string,
     content: string,
     callbacks: ChatServiceCallbacks,
-    systemPrompt?: string
+    systemPrompt?: string,
+    images?: ImageAttachment[]
 ): Promise<void> {
     const { addMessage, updateMessageStatus } = useConversationStore.getState();
 
-    const userMessage = createUserMessage(conversationId, content);
+    const userMessage = createUserMessage(conversationId, content, images);
     await addMessage(conversationId, userMessage);
 
     try {
@@ -101,6 +116,10 @@ export async function generateAIResponse(
     const conversation = getCurrentConversation();
     if (!conversation) {
         throw new Error('对话不存在');
+    }
+
+    if (!currentModel) {
+        throw new Error('请先选择模型');
     }
 
     const assistantMessage = createAssistantMessage(conversationId);

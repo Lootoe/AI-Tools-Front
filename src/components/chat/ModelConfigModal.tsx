@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Check, Sparkles, RotateCcw } from 'lucide-react';
+import { X, Search, Check, Sparkles, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useModelStore } from '@/stores/modelStore';
-import { AVAILABLE_MODELS } from '@/types/models';
 import { cn } from '@/lib/utils';
 
 interface ModelConfigModalProps {
@@ -12,12 +11,18 @@ interface ModelConfigModalProps {
 }
 
 export const ModelConfigModal: React.FC<ModelConfigModalProps> = ({ isOpen, onClose }) => {
-  const { currentModel, setModel, parameters, setParameters, resetParameters } = useModelStore();
+  const { models, currentModel, setModel, parameters, setParameters, resetParameters, loading, loadModels } = useModelStore();
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (isOpen && models.length === 0) {
+      loadModels();
+    }
+  }, [isOpen, models.length, loadModels]);
 
   if (!isOpen) return null;
 
-  const filteredModels = AVAILABLE_MODELS.filter(
+  const filteredModels = models.filter(
     (model) =>
       model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       model.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -65,46 +70,52 @@ export const ModelConfigModal: React.FC<ModelConfigModalProps> = ({ isOpen, onCl
               </div>
             </div>
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 pb-4">
-              <div className="space-y-1.5">
-                {filteredModels.map((model) => (
-                  <div
-                    key={model.id}
-                    className={cn(
-                      'p-3 rounded-xl cursor-pointer transition-all duration-200 border',
-                      currentModel.id === model.id
-                        ? 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-purple-300 dark:border-purple-700 shadow-sm'
-                        : 'bg-white dark:bg-gray-800 border-gray-200/50 dark:border-gray-700/50 hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-md'
-                    )}
-                    onClick={() => setModel(model)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className={cn(
-                          "text-xs font-medium truncate",
-                          currentModel.id === model.id ? "text-purple-700 dark:text-purple-300" : "text-gray-800 dark:text-gray-200"
-                        )}>
-                          {model.name}
-                        </h4>
-                        {model.description && (
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                            {model.description}
-                          </p>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredModels.map((model) => (
+                    <div
+                      key={model.id}
+                      className={cn(
+                        'p-3 rounded-xl cursor-pointer transition-all duration-200 border',
+                        currentModel?.id === model.id
+                          ? 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-purple-300 dark:border-purple-700 shadow-sm'
+                          : 'bg-white dark:bg-gray-800 border-gray-200/50 dark:border-gray-700/50 hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-md'
+                      )}
+                      onClick={() => setModel(model)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className={cn(
+                            "text-xs font-medium truncate",
+                            currentModel?.id === model.id ? "text-purple-700 dark:text-purple-300" : "text-gray-800 dark:text-gray-200"
+                          )}>
+                            {model.name}
+                          </h4>
+                          {model.description && (
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                              {model.description}
+                            </p>
+                          )}
+                        </div>
+                        {currentModel?.id === model.id && (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25 flex-shrink-0">
+                            <Check size={12} className="text-white" />
+                          </div>
                         )}
                       </div>
-                      {currentModel.id === model.id && (
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25 flex-shrink-0">
-                          <Check size={12} className="text-white" />
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
-                {filteredModels.length === 0 && (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
-                    没有找到匹配的模型
-                  </div>
-                )}
-              </div>
+                  ))}
+                  {filteredModels.length === 0 && !loading && (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
+                      没有找到匹配的模型
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
