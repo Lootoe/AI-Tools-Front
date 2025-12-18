@@ -49,7 +49,7 @@ function App() {
               </main>
             } />
             <Route path="/text-to-image" element={
-              <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
+              <main className="flex-1 px-4 py-4 overflow-hidden relative">
                 <TextToImagePage />
               </main>
             } />
