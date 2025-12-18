@@ -18,11 +18,15 @@ import {
   Upload,
   Plus,
   FolderPlus,
-  PlusCircle
+  PlusCircle,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { generateImage, uploadBase64Image } from '@/services/api';
+import { ImageHistoryPanel } from '@/components/image/ImageHistoryPanel';
+import { useImageHistoryStore, ImageHistoryItem } from '@/stores/imageHistoryStore';
 
 // 自定义下拉组件
 interface CustomSelectProps {
@@ -234,6 +238,10 @@ export const TextToImagePage: React.FC = () => {
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // 历史记录面板状态
+  const [showHistory, setShowHistory] = useState(true);
+  const { addHistory } = useImageHistoryStore();
+
   // 标签分类状态（支持自定义）
   const [tagCategories, setTagCategories] = useState<TagCategory[]>(() =>
     loadTagCategories(STORAGE_KEY_TAGS, DEFAULT_TAG_CATEGORIES)
@@ -252,8 +260,20 @@ export const TextToImagePage: React.FC = () => {
   // 参考图上传 ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 生成的图片列表（模拟数据）
+  // 生成的图片列表
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+
+  // 加载历史记录参数
+  const handleLoadHistory = useCallback((item: ImageHistoryItem) => {
+    setPrompt(item.prompt);
+    setSelectedTags(item.positiveTags);
+    setSelectedNegativeTags(item.negativeTags);
+    setSelectedModel(item.model);
+    setSelectedRatio(item.aspectRatio);
+    setSelectedImageSize(item.imageSize);
+    setReferenceImages(item.referenceImages);
+    setGeneratedImages(item.generatedImages);
+  }, []);
 
   // 新建正向分类
   const handleAddCategory = useCallback(() => {
@@ -399,6 +419,18 @@ export const TextToImagePage: React.FC = () => {
         // 将新生成的图片添加到列表前面
         const newImages = response.images.map((img) => img.url);
         setGeneratedImages((prev) => [...newImages, ...prev]);
+
+        // 保存到历史记录
+        addHistory({
+          prompt: prompt.trim(),
+          positiveTags: selectedTags,
+          negativeTags: selectedNegativeTags,
+          model: selectedModel,
+          aspectRatio: selectedRatio,
+          imageSize: selectedImageSize,
+          referenceImages: imageUrls || [],
+          generatedImages: newImages,
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '图片生成失败');
@@ -409,8 +441,34 @@ export const TextToImagePage: React.FC = () => {
 
   return (
     <div className="h-full flex gap-4 overflow-hidden">
+      {/* 最左侧：历史记录面板 */}
+      <div
+        className={`flex-shrink-0 bg-white/80 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 flex flex-col overflow-hidden transition-all duration-300 ${
+          showHistory ? 'w-[280px]' : 'w-0 border-0 p-0'
+        }`}
+      >
+        {showHistory && <ImageHistoryPanel onLoadHistory={handleLoadHistory} />}
+      </div>
+
       {/* 左侧：输入区域（两列布局 + 底部按钮） */}
       <div className="w-[720px] flex-shrink-0 flex flex-col gap-3 overflow-hidden">
+        {/* 历史记录切换按钮 */}
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="self-start flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors"
+        >
+          {showHistory ? (
+            <>
+              <PanelLeftClose size={14} />
+              隐藏历史
+            </>
+          ) : (
+            <>
+              <PanelLeftOpen size={14} />
+              显示历史
+            </>
+          )}
+        </button>
         {/* 上部两列区域 */}
         <div className="flex gap-3 flex-1 min-h-0">
           {/* 第一列：标签、负面标签 */}
