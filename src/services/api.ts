@@ -3,6 +3,73 @@ import { AIModel, ModelParameters } from '@/types/models';
 // 后端API地址
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
+// ============ 图片生成相关 ============
+
+// 图片生成请求
+export interface ImageGenerationRequest {
+    model?: string;
+    prompt: string;           // 用户输入的提示词
+    positiveTags?: string[];  // 正面标签数组
+    negativeTags?: string[];  // 负面标签数组
+    aspect_ratio?: string;    // 宽高比：4:3, 3:4, 16:9, 9:16, 2:3, 3:2, 1:1, 4:5, 5:4, 21:9
+    image_size?: string;      // 清晰度：1K, 2K, 4K（仅 nano-banana-2 系列支持）
+    referenceImages?: string[]; // 参考图数组（URL 或 base64），有值时走图生图
+}
+
+// 图片生成响应
+export interface ImageGenerationResponse {
+    success: boolean;
+    images: Array<{
+        url: string;
+        revisedPrompt?: string;
+    }>;
+}
+
+// 生成图片（自动判断文生图/图生图）
+export async function generateImage(request: ImageGenerationRequest): Promise<ImageGenerationResponse> {
+    const token = getAuthToken();
+    
+    // 根据是否有参考图选择接口
+    const hasReferenceImages = request.referenceImages && request.referenceImages.length > 0;
+    const endpoint = hasReferenceImages
+        ? `${BACKEND_URL}/api/images/edits`
+        : `${BACKEND_URL}/api/images/generations`;
+    
+    const baseBody: Record<string, unknown> = {
+        model: request.model || 'nano-banana-2-4k',
+        prompt: request.prompt,
+        positiveTags: request.positiveTags || [],
+        negativeTags: request.negativeTags || [],
+        aspect_ratio: request.aspect_ratio || '1:1',
+        response_format: 'url',
+    };
+
+    // 仅 nano-banana-2 系列支持 image_size
+    if (request.image_size && request.model?.includes('nano-banana-2')) {
+        baseBody.image_size = request.image_size;
+    }
+
+    const body = hasReferenceImages
+        ? { ...baseBody, image: request.referenceImages }
+        : baseBody;
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`图片生成失败: ${error.error || error.message || response.statusText}`);
+    }
+
+    return response.json();
+}
+
 // 图片上传响应
 export interface ImageUploadResponse {
     success: boolean;
@@ -30,6 +97,25 @@ export async function uploadImage(file: File): Promise<ImageUploadResponse> {
     }
 
     return response.json();
+}
+
+// 将 base64 转换为 File 对象
+function base64ToFile(base64: string, filename: string): File {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+}
+
+// 上传 base64 图片到图床
+export async function uploadBase64Image(base64: string): Promise<ImageUploadResponse> {
+    const file = base64ToFile(base64, `image_${Date.now()}.png`);
+    return uploadImage(file);
 }
 
 // 获取存储的 token (移到前面以便 uploadImage 使用)

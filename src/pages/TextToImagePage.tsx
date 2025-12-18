@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
+import { generateImage, uploadBase64Image } from '@/services/api';
 
 // 自定义下拉组件
 interface CustomSelectProps {
@@ -194,32 +195,44 @@ const saveTagCategories = (key: string, categories: TagCategory[]) => {
   }
 };
 
-// 图片尺寸选项
-const IMAGE_SIZES = [
-  { label: '1:1 (1024×1024)', value: '1024x1024', ratio: '1:1' },
-  { label: '16:9 (1920×1080)', value: '1920x1080', ratio: '16:9' },
-  { label: '9:16 (1080×1920)', value: '1080x1920', ratio: '9:16' },
-  { label: '4:3 (1024×768)', value: '1024x768', ratio: '4:3' },
-  { label: '3:4 (768×1024)', value: '768x1024', ratio: '3:4' }
+// 宽高比选项
+const ASPECT_RATIOS = [
+  { label: '1:1 正方形', value: '1:1' },
+  { label: '4:3 横屏', value: '4:3' },
+  { label: '3:4 竖屏', value: '3:4' },
+  { label: '16:9 宽屏', value: '16:9' },
+  { label: '9:16 手机屏', value: '9:16' },
+  { label: '2:3 海报', value: '2:3' },
+  { label: '3:2 照片', value: '3:2' },
+  { label: '4:5 社交', value: '4:5' },
+  { label: '5:4 打印', value: '5:4' },
+  { label: '21:9 超宽', value: '21:9' },
 ];
 
 // 模型选项
 const MODELS = [
-  { label: 'DALL-E 3', value: 'dall-e-3' },
-  { label: 'Stable Diffusion XL', value: 'sdxl' },
-  { label: 'Midjourney Style', value: 'midjourney' }
+  { label: 'Nano Banana 2 4K', value: 'nano-banana-2-4k' },
+  { label: '豆包 Seedream 4.0', value: 'doubao-seedream-4-0-250828' },
+];
+
+// 清晰度选项（仅 nano-banana-2 系列支持）
+const IMAGE_SIZES = [
+  { label: '1K', value: '1K' },
+  { label: '2K', value: '2K' },
+  { label: '4K', value: '4K' },
 ];
 
 export const TextToImagePage: React.FC = () => {
   // 状态管理
   const [prompt, setPrompt] = useState('');
-  const [selectedSize, setSelectedSize] = useState(IMAGE_SIZES[0].value);
+  const [selectedRatio, setSelectedRatio] = useState(ASPECT_RATIOS[0].value);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].value);
-  const [imageCount, setImageCount] = useState(1);
+  const [selectedImageSize, setSelectedImageSize] = useState(IMAGE_SIZES[1].value); // 默认2K
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedNegativeTags, setSelectedNegativeTags] = useState<string[]>([]);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // 标签分类状态（支持自定义）
   const [tagCategories, setTagCategories] = useState<TagCategory[]>(() =>
@@ -351,16 +364,47 @@ export const TextToImagePage: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!prompt.trim() && selectedTags.length === 0) return;
+
     setIsGenerating(true);
-    // TODO: 实际调用API生成图片
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      // 如果有参考图，先上传到图床获取URL
+      let imageUrls: string[] | undefined;
+      if (referenceImages.length > 0) {
+        const uploadPromises = referenceImages.map((img) => {
+          // 如果是 base64，上传到图床；如果已经是 URL，直接使用
+          if (img.startsWith('data:')) {
+            return uploadBase64Image(img).then((res) => res.url);
+          }
+          return Promise.resolve(img);
+        });
+        imageUrls = await Promise.all(uploadPromises);
+      }
+
+      // 调用API生成图片，分开传递提示词、正面标签、负面标签
+      const response = await generateImage({
+        model: selectedModel,
+        prompt: prompt.trim(),
+        positiveTags: selectedTags,
+        negativeTags: selectedNegativeTags,
+        aspect_ratio: selectedRatio,
+        // 仅 nano-banana-2 系列传递清晰度
+        image_size: selectedImageSize,
+        // 传递上传后的图片URL数组
+        referenceImages: imageUrls,
+      });
+
+      if (response.success && response.images.length > 0) {
+        // 将新生成的图片添加到列表前面
+        const newImages = response.images.map((img) => img.url);
+        setGeneratedImages((prev) => [...newImages, ...prev]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '图片生成失败');
+    } finally {
       setIsGenerating(false);
-      // 模拟生成的图片
-      setGeneratedImages((prev) => [
-        'https://picsum.photos/1024/1024?random=' + Date.now(),
-        ...prev
-      ]);
-    }, 2000);
+    }
   };
 
   return (
@@ -501,60 +545,51 @@ export const TextToImagePage: React.FC = () => {
               </div>
             </div>
 
-            {/* 模型和尺寸行 */}
-            <div className="flex gap-3">
-              {/* 模型选择 */}
-              <div className="flex-1 bg-white dark:bg-gray-800/50 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50">
-                <CustomSelect
-                  value={selectedModel}
-                  onChange={setSelectedModel}
-                  options={MODELS}
-                  icon={<Cpu className="w-3.5 h-3.5 mr-1.5 text-orange-500" />}
-                  label="模型"
-                />
-              </div>
-
-              {/* 尺寸选择 */}
-              <div className="flex-1 bg-white dark:bg-gray-800/50 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50">
-                <CustomSelect
-                  value={selectedSize}
-                  onChange={setSelectedSize}
-                  options={IMAGE_SIZES}
-                  icon={
-                    <RatioIcon className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
-                  }
-                  label="尺寸"
-                />
-              </div>
-            </div>
-
-            {/* 生成数量 */}
+            {/* 模型选择 */}
             <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  生成数量
-                </label>
-                <span className="text-xs font-semibold text-orange-500">
-                  {imageCount} 张
-                </span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="4"
-                value={imageCount}
-                onChange={(e) => setImageCount(Number(e.target.value))}
-                className="w-full h-2 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-full appearance-none cursor-pointer accent-orange-500"
+              <CustomSelect
+                value={selectedModel}
+                onChange={setSelectedModel}
+                options={MODELS}
+                icon={<Cpu className="w-3.5 h-3.5 mr-1.5 text-orange-500" />}
+                label="模型"
               />
-              <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
-                <span>1</span>
-                <span>2</span>
-                <span>3</span>
-                <span>4</span>
-              </div>
             </div>
+
+            {/* 宽高比选择 */}
+            <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50">
+              <CustomSelect
+                value={selectedRatio}
+                onChange={setSelectedRatio}
+                options={ASPECT_RATIOS}
+                icon={
+                  <RatioIcon className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
+                }
+                label="宽高比"
+              />
+            </div>
+
+            {/* 清晰度选择 */}
+            <div className="bg-white dark:bg-gray-800/50 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50">
+              <CustomSelect
+                value={selectedImageSize}
+                onChange={setSelectedImageSize}
+                options={IMAGE_SIZES}
+                icon={<ImageIcon className="w-3.5 h-3.5 mr-1.5 text-orange-500" />}
+                label="清晰度"
+              />
+            </div>
+
+
           </div>
         </div>
+
+        {/* 错误提示 */}
+        {error && (
+          <div className="flex-shrink-0 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
+            {error}
+          </div>
+        )}
 
         {/* 底部生成按钮（独占一行） */}
         <Button
