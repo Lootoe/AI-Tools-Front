@@ -3,6 +3,80 @@ import { AIModel, ModelParameters } from '@/types/models';
 // 后端API地址
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
+// ============ Sora2 视频生成相关 ============
+
+// Sora2 视频生成请求
+export interface Sora2VideoRequest {
+  prompt: string;
+  model?: 'sora-2';
+  aspect_ratio?: '16:9' | '9:16';
+  duration?: '10' | '15';
+  private?: boolean;
+  reference_image?: string; // 参考图 URL
+}
+
+// Sora2 视频生成响应
+export interface Sora2VideoResponse {
+  success: boolean;
+  data: {
+    task_id?: string;
+    status?: 'NOT_START' | 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE';
+    fail_reason?: string;
+    progress?: string;
+    data?: {
+      output?: string; // 视频URL
+    };
+    [key: string]: unknown;
+  };
+}
+
+// 生成 Sora2 视频
+export async function generateSora2Video(request: Sora2VideoRequest): Promise<Sora2VideoResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/generations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      prompt: request.prompt,
+      model: request.model || 'sora-2',
+      aspect_ratio: request.aspect_ratio || '9:16',
+      duration: request.duration || '10',
+      private: request.private ?? true,
+      ...(request.reference_image ? { reference_image: request.reference_image } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`视频生成失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// 查询视频生成状态
+export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/generations/${taskId}`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`查询状态失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
 // ============ 图片生成相关 ============
 
 // 图片生成请求

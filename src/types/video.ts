@@ -7,6 +7,7 @@ export interface Character {
   description: string;
   videoUrl?: string;       // sora2 生成的角色视频
   thumbnailUrl?: string;   // 缩略图
+  taskId?: string;         // sora2 任务ID，用于恢复轮询
   status: 'pending' | 'generating' | 'completed' | 'failed';
   createdAt: number;
 }
