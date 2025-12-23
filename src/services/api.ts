@@ -77,6 +77,42 @@ export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse
   return response.json();
 }
 
+// 分镜生成视频请求
+export interface StoryboardToVideoRequest {
+  prompt: string;
+  model?: 'sora-2';
+  aspect_ratio?: '16:9' | '9:16';
+  duration?: '10' | '15';
+  private?: boolean;
+}
+
+// 分镜生成视频
+export async function generateStoryboardVideo(request: StoryboardToVideoRequest): Promise<Sora2VideoResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/storyboard-to-video`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      prompt: request.prompt,
+      model: request.model || 'sora-2',
+      aspect_ratio: request.aspect_ratio || '9:16',
+      duration: request.duration || '15',
+      private: request.private ?? true,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`分镜视频生成失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
 // Sora2 创建角色请求
 export interface CreateCharacterRequest {
   timestamps: string; // 例如 '1,2' 表示视频的1～2秒，范围差值最大3秒最小1秒

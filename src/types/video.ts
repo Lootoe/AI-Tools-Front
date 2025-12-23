@@ -27,6 +27,10 @@ export interface Storyboard {
   characterIds: string[];  // 参与的角色ID
   videoUrl?: string;       // sora2 生成的视频
   thumbnailUrl?: string;
+  taskId?: string;         // sora2 任务ID，用于恢复轮询
+  progress?: string;       // 生成进度百分比
+  aspectRatio?: '16:9' | '9:16'; // 视频比例
+  duration?: '10' | '15';  // 视频时长（秒）
   status: 'pending' | 'generating' | 'completed' | 'failed';
   createdAt: number;
 }

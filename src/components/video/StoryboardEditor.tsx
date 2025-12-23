@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { Plus, Play, Loader2, RefreshCw, Trash2, Video, Users, X, FileText, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Play, Loader2, RefreshCw, Trash2, Video, Users, X, FileText, AlertTriangle, Settings } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
-import { Episode } from '@/types/video';
+import { Character, Episode, Storyboard } from '@/types/video';
 import { Button } from '@/components/ui/Button';
 import { CharacterSelectModal } from './CharacterSelectModal';
 import { StoryboardScriptModal } from './StoryboardScriptModal';
+import { generateStoryboardVideo, getVideoStatus } from '@/services/api';
+import { cn } from '@/utils/cn';
 
 interface StoryboardEditorProps {
   episode: Episode;
@@ -14,10 +16,104 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
   const { getCurrentScript, addStoryboard, updateStoryboard, deleteStoryboard, clearStoryboards } = useVideoStore();
   const script = getCurrentScript();
 
-  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [characterModalStoryboardId, setCharacterModalStoryboardId] = useState<string | null>(null);
   const [scriptModalStoryboardId, setScriptModalStoryboardId] = useState<string | null>(null);
+  const [settingsModalStoryboardId, setSettingsModalStoryboardId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  
+  // 轮询定时器引用
+  const pollingTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  // 轮询查询分镜状态
+  const pollStoryboardStatus = useCallback(async (storyboard: Storyboard) => {
+    if (!script || !storyboard.taskId) return;
+
+    try {
+      const response = await getVideoStatus(storyboard.taskId);
+      const { status, progress, data } = response.data;
+
+      if (status === 'SUCCESS') {
+        // 生成成功
+        updateStoryboard(script.id, episode.id, storyboard.id, {
+          status: 'completed',
+          videoUrl: data?.output,
+          progress: '100',
+        });
+        // 清除定时器
+        const timer = pollingTimersRef.current.get(storyboard.id);
+        if (timer) {
+          clearInterval(timer);
+          pollingTimersRef.current.delete(storyboard.id);
+        }
+      } else if (status === 'FAILURE') {
+        // 生成失败
+        updateStoryboard(script.id, episode.id, storyboard.id, {
+          status: 'failed',
+          progress: undefined,
+        });
+        // 清除定时器
+        const timer = pollingTimersRef.current.get(storyboard.id);
+        if (timer) {
+          clearInterval(timer);
+          pollingTimersRef.current.delete(storyboard.id);
+        }
+      } else {
+        // 进行中，更新进度
+        updateStoryboard(script.id, episode.id, storyboard.id, {
+          progress: progress || '0',
+        });
+      }
+    } catch (error) {
+      console.error('查询分镜状态失败:', error);
+    }
+  }, [script, episode.id, updateStoryboard]);
+
+  // 启动轮询
+  const startPolling = useCallback((storyboard: Storyboard) => {
+    // 如果已有定时器，先清除
+    const existingTimer = pollingTimersRef.current.get(storyboard.id);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+    }
+
+    // 保存当前的 taskId，确保轮询使用正确的 taskId
+    const currentTaskId = storyboard.taskId;
+    if (!currentTaskId) return;
+
+    // 立即查询一次
+    pollStoryboardStatus(storyboard);
+
+    // 每10秒轮询一次
+    const timer = setInterval(() => {
+      const currentStoryboard = episode.storyboards.find(sb => sb.id === storyboard.id);
+      // 检查 taskId 是否匹配，如果不匹配说明已经重新生成了，停止当前轮询
+      if (!currentStoryboard || currentStoryboard.taskId !== currentTaskId) {
+        clearInterval(timer);
+        pollingTimersRef.current.delete(storyboard.id);
+        return;
+      }
+      if (currentStoryboard.taskId) {
+        pollStoryboardStatus(currentStoryboard);
+      }
+    }, 10000);
+
+    pollingTimersRef.current.set(storyboard.id, timer);
+  }, [episode.storyboards, pollStoryboardStatus]);
+
+  // 组件挂载时，恢复生成中的分镜轮询
+  useEffect(() => {
+    episode.storyboards.forEach((storyboard) => {
+      if (storyboard.status === 'generating' && storyboard.taskId) {
+        startPolling(storyboard);
+      }
+    });
+
+    // 组件卸载时清除所有定时器
+    return () => {
+      pollingTimersRef.current.forEach((timer) => clearInterval(timer));
+      pollingTimersRef.current.clear();
+    };
+  }, [episode.id]); // 只在 episode 变化时重新检查
 
   const handleAddStoryboard = () => {
     if (!script) return;
@@ -56,21 +152,77 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
   const handleGenerateVideo = async (storyboardId: string) => {
     if (!script) return;
 
-    setGeneratingIds((prev) => new Set(prev).add(storyboardId));
-    updateStoryboard(script.id, episode.id, storyboardId, { status: 'generating' });
+    const storyboard = episode.storyboards.find((sb) => sb.id === storyboardId);
+    if (!storyboard || !storyboard.description) {
+      alert('请先填写分镜脚本');
+      return;
+    }
 
-    setTimeout(() => {
+    // 重新生成时，先停止旧的轮询
+    const existingTimer = pollingTimersRef.current.get(storyboardId);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+      pollingTimersRef.current.delete(storyboardId);
+    }
+
+    updateStoryboard(script.id, episode.id, storyboardId, { 
+      status: 'generating',
+      progress: '0',
+      taskId: undefined, // 清除旧的 taskId
+    });
+
+    try {
+      // 构建全局设定
+      const globalSettings: string[] = [];
+      
+      // 1. 风格设定
+      globalSettings.push('风格：日漫风格');
+      
+      // 2. 角色参演设定
+      const selectedCharacters = storyboard.characterIds
+        .map((id) => script.characters.find((c) => c.id === id))
+        .filter((char): char is Character => !!char && !!char.username);
+      
+      if (selectedCharacters.length > 0) {
+        const characterSettings = selectedCharacters
+          .map((char) => `${char.name}：@${char.username}`)
+          .join('，');
+        globalSettings.push(`角色参演：${characterSettings}`);
+      }
+      
+      // 组合最终 prompt：全局设定 + 分镜脚本
+      const finalPrompt = globalSettings.length > 0
+        ? `【全局设定】${globalSettings.join('；')}。\n\n${storyboard.description}`
+        : storyboard.description;
+
+      const response = await generateStoryboardVideo({
+        prompt: finalPrompt,
+        aspect_ratio: storyboard.aspectRatio || '9:16',
+        duration: storyboard.duration || '15',
+      });
+
+      if (response.success && response.data.task_id) {
+        // 保存 taskId 并开始轮询
+        updateStoryboard(script.id, episode.id, storyboardId, {
+          taskId: response.data.task_id,
+        });
+        
+        // 获取更新后的 storyboard
+        const updatedStoryboard = {
+          ...storyboard,
+          taskId: response.data.task_id,
+        };
+        startPolling(updatedStoryboard);
+      } else {
+        throw new Error('未获取到任务ID');
+      }
+    } catch (error) {
+      console.error('分镜视频生成失败:', error);
       updateStoryboard(script.id, episode.id, storyboardId, {
-        status: 'completed',
-        videoUrl: 'https://example.com/storyboard-video.mp4',
-        thumbnailUrl: 'https://picsum.photos/400/225?random=' + storyboardId + Date.now(),
+        status: 'failed',
+        progress: undefined,
       });
-      setGeneratingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(storyboardId);
-        return next;
-      });
-    }, 4000);
+    }
   };
 
   const handleClearStoryboards = () => {
@@ -147,13 +299,13 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
               >
                 {/* 视频预览 */}
-                <div className="aspect-video bg-gray-100 dark:bg-gray-700 relative">
+                <div className="aspect-video bg-gray-800 dark:bg-gray-900 relative">
                   {storyboard.videoUrl ? (
                     <video
-                      src={storyboard.videoUrl}
-                      poster={storyboard.thumbnailUrl}
+                      src={`${storyboard.videoUrl}#t=0.1`}
                       className="w-full h-full object-cover"
                       controls
+                      preload="metadata"
                     />
                   ) : storyboard.thumbnailUrl ? (
                     <img
@@ -168,11 +320,11 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                   )}
 
                   {/* 生成中遮罩 */}
-                  {generatingIds.has(storyboard.id) && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  {storyboard.status === 'generating' && (
+                    <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                       <div className="text-center text-white">
                         <Loader2 size={24} className="animate-spin mx-auto mb-1" />
-                        <span className="text-xs">生成中...</span>
+                        <span className="text-xs">生成中 {storyboard.progress ? `${storyboard.progress.replace('%', '')}%` : '...'}</span>
                       </div>
                     </div>
                   )}
@@ -182,13 +334,21 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                     #{index + 1}
                   </div>
 
-                  {/* 删除按钮 */}
-                  <button
-                    onClick={() => handleDeleteStoryboard(storyboard.id)}
-                    className="absolute top-2 right-2 p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-red-500 hover:text-white transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {/* 右上角按钮组 */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1">
+                    <button
+                      onClick={() => setSettingsModalStoryboardId(storyboard.id)}
+                      className="p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-purple-500 hover:text-white transition-colors"
+                    >
+                      <Settings size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStoryboard(storyboard.id)}
+                      className="p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-red-500 hover:text-white transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* 内容区 */}
@@ -248,29 +408,29 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                       角色
                     </button>
 
-                    {storyboard.status === 'pending' || storyboard.status === 'failed' ? (
+                    {storyboard.status === 'generating' ? (
+                      <button
+                        disabled
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg opacity-50 cursor-not-allowed"
+                      >
+                        <Loader2 size={12} className="animate-spin" />
+                        生成中
+                      </button>
+                    ) : storyboard.status === 'completed' ? (
                       <button
                         onClick={() => handleGenerateVideo(storyboard.id)}
-                        disabled={generatingIds.has(storyboard.id)}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                       >
-                        {generatingIds.has(storyboard.id) ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <>
-                            <Play size={12} />
-                            生成
-                          </>
-                        )}
+                        <RefreshCw size={12} />
+                        重新生成
                       </button>
                     ) : (
                       <button
                         onClick={() => handleGenerateVideo(storyboard.id)}
-                        disabled={generatingIds.has(storyboard.id)}
-                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg transition-colors"
                       >
-                        <RefreshCw size={12} />
-                        重新生成
+                        <Play size={12} />
+                        生成
                       </button>
                     )}
                   </div>
@@ -299,6 +459,120 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
           onClose={() => setScriptModalStoryboardId(null)}
         />
       )}
+
+      {/* 视频设置弹框 */}
+      {settingsModalStoryboardId && (() => {
+        const storyboard = episode.storyboards.find(sb => sb.id === settingsModalStoryboardId);
+        if (!storyboard) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-scale-in">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                  视频设置
+                </h3>
+                <button
+                  onClick={() => setSettingsModalStoryboardId(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* 比例选择 */}
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  视频比例
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (!script) return;
+                      updateStoryboard(script.id, episode.id, storyboard.id, { aspectRatio: '9:16' });
+                    }}
+                    className={cn(
+                      'flex-1 py-3 rounded-xl border-2 transition-colors flex flex-col items-center justify-center gap-1',
+                      (storyboard.aspectRatio || '9:16') === '9:16'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-300'
+                    )}
+                  >
+                    <div className="h-10 flex items-center justify-center">
+                      <div className="w-6 h-10 border-2 border-current rounded" />
+                    </div>
+                    <span className="text-xs font-medium">9:16</span>
+                    <span className="text-xs text-gray-400">竖屏</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!script) return;
+                      updateStoryboard(script.id, episode.id, storyboard.id, { aspectRatio: '16:9' });
+                    }}
+                    className={cn(
+                      'flex-1 py-3 rounded-xl border-2 transition-colors flex flex-col items-center justify-center gap-1',
+                      storyboard.aspectRatio === '16:9'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-300'
+                    )}
+                  >
+                    <div className="h-10 flex items-center justify-center">
+                      <div className="w-10 h-6 border-2 border-current rounded" />
+                    </div>
+                    <span className="text-xs font-medium">16:9</span>
+                    <span className="text-xs text-gray-400">横屏</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 时长选择 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  视频时长
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (!script) return;
+                      updateStoryboard(script.id, episode.id, storyboard.id, { duration: '10' });
+                    }}
+                    className={cn(
+                      'flex-1 py-3 rounded-xl border-2 transition-colors text-center',
+                      storyboard.duration === '10'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-300'
+                    )}
+                  >
+                    <span className="text-lg font-bold">10</span>
+                    <span className="text-xs ml-1">秒</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!script) return;
+                      updateStoryboard(script.id, episode.id, storyboard.id, { duration: '15' });
+                    }}
+                    className={cn(
+                      'flex-1 py-3 rounded-xl border-2 transition-colors text-center',
+                      (storyboard.duration || '15') === '15'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-300'
+                    )}
+                  >
+                    <span className="text-lg font-bold">15</span>
+                    <span className="text-xs ml-1">秒</span>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSettingsModalStoryboardId(null)}
+                className="w-full py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-xl transition-colors"
+              >
+                完成
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 清空分镜确认弹框 */}
       {showClearConfirm && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Users, Plus, Trash2, Clapperboard } from 'lucide-react';
+import { Film, Users, Plus, Trash2, Clapperboard, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { ResourceTab, Character } from '@/types/video';
 import { cn } from '@/utils/cn';
@@ -17,7 +17,10 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
   const [activeTab, setActiveTab] = useState<ResourceTab>('episodes');
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
-  const { getCurrentScript, addEpisode, deleteEpisode, addCharacter, updateCharacter, deleteCharacter } = useVideoStore();
+  const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'episode' | 'character'; id: string; name: string } | null>(null);
+  const { getCurrentScript, addEpisode, deleteEpisode, updateEpisode, addCharacter, updateCharacter, deleteCharacter } = useVideoStore();
   
   const script = getCurrentScript();
 
@@ -35,9 +38,64 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
   const handleDeleteEpisode = (e: React.MouseEvent, episodeId: string) => {
     e.stopPropagation();
     if (!script) return;
-    deleteEpisode(script.id, episodeId);
-    if (selectedEpisodeId === episodeId) {
-      onSelectEpisode(null);
+    const episode = script.episodes.find(ep => ep.id === episodeId);
+    if (episode) {
+      setDeleteConfirm({ type: 'episode', id: episodeId, name: episode.title });
+    }
+  };
+
+  const handleDeleteCharacter = (e: React.MouseEvent, characterId: string) => {
+    e.stopPropagation();
+    if (!script) return;
+    const character = script.characters.find(c => c.id === characterId);
+    if (character) {
+      setDeleteConfirm({ type: 'character', id: characterId, name: character.name });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!script || !deleteConfirm) return;
+    if (deleteConfirm.type === 'episode') {
+      deleteEpisode(script.id, deleteConfirm.id);
+      if (selectedEpisodeId === deleteConfirm.id) {
+        onSelectEpisode(null);
+      }
+    } else {
+      deleteCharacter(script.id, deleteConfirm.id);
+    }
+    setDeleteConfirm(null);
+  };
+
+  const handleStartRename = (e: React.MouseEvent, episodeId: string, currentTitle: string) => {
+    e.stopPropagation();
+    setEditingEpisodeId(episodeId);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleSaveRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!script || !editingEpisodeId || !editingTitle.trim()) return;
+    updateEpisode(script.id, editingEpisodeId, { title: editingTitle.trim() });
+    setEditingEpisodeId(null);
+    setEditingTitle('');
+  };
+
+  const handleCancelRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingEpisodeId(null);
+    setEditingTitle('');
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!script || !editingEpisodeId || !editingTitle.trim()) return;
+      updateEpisode(script.id, editingEpisodeId, { title: editingTitle.trim() });
+      setEditingEpisodeId(null);
+      setEditingTitle('');
+    } else if (e.key === 'Escape') {
+      setEditingEpisodeId(null);
+      setEditingTitle('');
     }
   };
 
@@ -125,31 +183,69 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Clapperboard size={14} className={cn(
+                        'flex-shrink-0',
                         selectedEpisodeId === episode.id
                           ? 'text-purple-500 dark:text-purple-400'
                           : 'text-gray-400 dark:text-gray-500'
                       )} />
-                      <span className={cn(
-                        'text-sm font-medium',
-                        selectedEpisodeId === episode.id
-                          ? 'text-purple-700 dark:text-purple-300'
-                          : 'text-gray-700 dark:text-gray-300'
-                      )}>
-                        {episode.title}
-                      </span>
+                      {editingEpisodeId === episode.id ? (
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={handleRenameKeyDown}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="flex-1 text-sm font-medium bg-white dark:bg-gray-700 border border-purple-300 dark:border-purple-600 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        />
+                      ) : (
+                        <span className={cn(
+                          'text-sm font-medium truncate',
+                          selectedEpisodeId === episode.id
+                            ? 'text-purple-700 dark:text-purple-300'
+                            : 'text-gray-700 dark:text-gray-300'
+                        )}>
+                          {episode.title}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <span className="text-xs text-gray-400 dark:text-gray-500">
                         {episode.storyboards.length} 分镜
                       </span>
-                      <button
-                        onClick={(e) => handleDeleteEpisode(e, episode.id)}
-                        className="p-1 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      {editingEpisodeId === episode.id ? (
+                        <>
+                          <button
+                            onClick={handleSaveRename}
+                            className="p-1 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-all"
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button
+                            onClick={handleCancelRename}
+                            className="p-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-all"
+                          >
+                            <X size={12} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => handleStartRename(e, episode.id, episode.title)}
+                            className="p-1 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteEpisode(e, episode.id)}
+                            className="p-1 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {episode.content && (
@@ -200,10 +296,7 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
                             {character.name}
                           </span>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteCharacter(script.id, character.id);
-                            }}
+                            onClick={(e) => handleDeleteCharacter(e, character.id)}
                             className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
                           >
                             <Trash2 size={12} />
@@ -253,6 +346,39 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
           onUpdate={handleUpdateCharacter}
           onClose={handleCloseCharacterModal}
         />
+      )}
+
+      {/* 删除确认弹框 */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-scale-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                确认删除
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              确定要删除{deleteConfirm.type === 'episode' ? '剧集' : '角色'} "{deleteConfirm.name}" 吗？此操作不可撤销。
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
