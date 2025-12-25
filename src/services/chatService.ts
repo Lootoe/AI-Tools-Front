@@ -5,7 +5,8 @@ import { parseError, getStatusFromErrorType } from '@/utils/errorHandler';
 import { useModelStore } from '@/stores/modelStore';
 import { useConversationStore } from '@/stores/conversationStore';
 
-const AI_RESPONSE_TIMEOUT = 30000;
+// 单次数据块超时时间（如果超过这个时间没收到新数据，才认为超时）
+const CHUNK_TIMEOUT = 180000; // 3分钟
 
 export interface ChatServiceCallbacks {
     onGeneratingChange: (isGenerating: boolean) => void;
@@ -134,7 +135,18 @@ export async function generateAIResponse(
         const messages = buildMessageHistory(conversation.messages, systemPrompt);
         await updateMessageStatus(conversationId, assistantMessage.id, 'streaming');
 
-        const timeoutId = setTimeout(() => abortController.abort(), AI_RESPONSE_TIMEOUT);
+        // 使用可重置的超时机制：每次收到数据时重置计时器
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        
+        const resetTimeout = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                abortController.abort();
+            }, CHUNK_TIMEOUT);
+        };
+        
+        // 初始化超时
+        resetTimeout();
 
         let fullContent = '';
         const stream = callAIServiceStream({
@@ -145,11 +157,13 @@ export async function generateAIResponse(
         });
 
         for await (const chunk of stream) {
+            // 每次收到数据时重置超时计时器
+            resetTimeout();
             fullContent += chunk;
             await updateMessage(conversationId, assistantMessage.id, fullContent);
         }
 
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
         await updateMessageStatus(conversationId, assistantMessage.id, 'success');
     } catch (error) {
         const { errorType, errorMessage } = parseError(error);
