@@ -25,6 +25,7 @@ export interface Storyboard {
   sceneNumber: number;
   description: string;
   characterIds: string[];  // 参与的角色ID
+  referenceImageUrls?: string[]; // 参考图URL数组（支持多张）
   videoUrl?: string;       // sora2 生成的视频
   thumbnailUrl?: string;
   taskId?: string;         // sora2 任务ID，用于恢复轮询

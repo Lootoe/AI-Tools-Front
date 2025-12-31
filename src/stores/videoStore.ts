@@ -49,6 +49,7 @@ interface VideoState {
   updateStoryboard: (scriptId: string, episodeId: string, storyboardId: string, updates: Partial<Storyboard>) => void;
   deleteStoryboard: (scriptId: string, episodeId: string, storyboardId: string) => void;
   clearStoryboards: (scriptId: string, episodeId: string) => void;
+  reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => void;
 
   // 获取当前剧本
   getCurrentScript: () => Script | null;
@@ -297,6 +298,36 @@ export const useVideoStore = create<VideoState>((set, get) => ({
                   }
                 : e
             ),
+            updatedAt: Date.now(),
+          }
+        : s
+    );
+    saveScripts(scripts);
+    set({ scripts });
+  },
+
+  reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => {
+    const scripts = get().scripts.map((s) =>
+      s.id === scriptId
+        ? {
+            ...s,
+            episodes: s.episodes.map((e) => {
+              if (e.id === episodeId) {
+                const storyboards = [...e.storyboards];
+                const [movedItem] = storyboards.splice(fromIndex, 1);
+                storyboards.splice(toIndex, 0, movedItem);
+                // 更新 sceneNumber
+                storyboards.forEach((sb, idx) => {
+                  sb.sceneNumber = idx + 1;
+                });
+                return {
+                  ...e,
+                  storyboards,
+                  updatedAt: Date.now(),
+                };
+              }
+              return e;
+            }),
             updatedAt: Date.now(),
           }
         : s
