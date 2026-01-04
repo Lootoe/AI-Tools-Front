@@ -45,7 +45,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
   
   // 获取 store 方法，用于在后台更新角色状态
-  const { getCurrentScript, updateCharacter } = useVideoStore();
+  const { getCurrentScript } = useVideoStore();
   const script = getCurrentScript();
   
   // 高级设置
@@ -292,19 +292,11 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
     setIsCreatingCharacter(true);
     setError(null);
 
-    // 保存必要的引用，以便在请求完成后使用（即使弹框已关闭）
-    const scriptId = script.id;
-    const characterId = character.id;
-    
-    // 先更新 store 中的状态为"正在创建"
-    updateCharacter(scriptId, characterId, {
-      isCreatingCharacter: true,
-    });
-
     try {
-      // 从视频中提取角色（使用视频的1-8秒）
-      const requestData: { timestamps: string; from_task?: string; url?: string } = {
-        timestamps: '1,3', // 使用视频的1-3秒
+      // 从视频中提取角色（使用视频的1-3秒）
+      const requestData: { characterId: string; timestamps: string; from_task?: string; url?: string } = {
+        characterId: character.id, // 传入数据库角色ID
+        timestamps: '1,3',
       };
 
       // 优先使用 from_task，如果没有则使用 url
@@ -314,32 +306,21 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
         requestData.url = videoUrl;
       }
 
+      // 调用后端接口，后端会自动更新数据库
       const response = await createSora2Character(requestData);
 
       if (response.success && response.data) {
-        const { id, username, permalink, profile_picture_url } = response.data;
-        
-        // 直接使用 store 更新角色信息（不依赖弹框状态）
-        updateCharacter(scriptId, characterId, {
-          characterId: id,
-          username,
-          permalink,
-          profilePictureUrl: profile_picture_url,
-          isCreatingCharacter: false, // 创建完成
-        });
+        // 后端已更新数据库，刷新前端 store 数据
+        await useVideoStore.getState().refreshScript(script.id);
         
         // 更新本地状态（如果弹框还开着）
-        setThumbnailUrl(profile_picture_url);
+        setThumbnailUrl(response.data.profilePictureUrl);
       } else {
         throw new Error('创建角色失败');
       }
     } catch (err) {
       console.error('创建角色失败:', err);
       setError(err instanceof Error ? err.message : '创建角色失败，请重试');
-      // 创建失败，清除状态
-      updateCharacter(scriptId, characterId, {
-        isCreatingCharacter: false,
-      });
     } finally {
       setIsCreatingCharacter(false);
     }

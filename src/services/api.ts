@@ -115,23 +115,26 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
 
 // Sora2 创建角色请求
 export interface CreateCharacterRequest {
+  characterId: string; // 数据库中的角色ID
   timestamps: string; // 例如 '1,2' 表示视频的1～2秒，范围差值最大3秒最小1秒
   url?: string; // 视频URL（包含需要创建的角色，视频必须有声音、有角色）
   from_task?: string; // 任务ID（根据已生成的任务创建角色）
 }
 
-// Sora2 创建角色响应
+// Sora2 创建角色响应（返回更新后的数据库角色）
 export interface CreateCharacterResponse {
   success: boolean;
   data: {
-    id: string; // 角色ID，例如 "ch_691155df38588191b3ae5f2d390a4359"
-    username: string; // 角色用户名
-    permalink: string; // 角色主页链接
-    profile_picture_url: string; // 角色头像URL
+    id: string;
+    characterId: string; // Sora2 角色ID
+    username: string;
+    permalink: string;
+    profilePictureUrl: string;
+    isCreatingCharacter: boolean;
   };
 }
 
-// 创建 Sora2 角色
+// 创建 Sora2 角色（注册角色）
 export async function createSora2Character(request: CreateCharacterRequest): Promise<CreateCharacterResponse> {
   const token = getAuthToken();
 
@@ -147,6 +150,7 @@ export async function createSora2Character(request: CreateCharacterRequest): Pro
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
+      characterId: request.characterId,
       timestamps: request.timestamps,
       ...(request.url ? { url: request.url } : {}),
       ...(request.from_task ? { from_task: request.from_task } : {}),

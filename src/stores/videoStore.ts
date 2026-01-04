@@ -1,339 +1,376 @@
 import { create } from 'zustand';
 import { Script, Character, Episode, Storyboard, VideoPhase } from '@/types/video';
-
-const generateId = () => Math.random().toString(36).substring(2, 15);
-
-// localStorage key
-const STORAGE_KEY = 'ai-tools-video-scripts';
-
-// 从 localStorage 加载
-const loadScripts = (): Script[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-// 保存到 localStorage
-const saveScripts = (scripts: Script[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
-};
+import * as api from '@/services/scriptApi';
 
 interface VideoState {
   scripts: Script[];
   currentScriptId: string | null;
   isLoading: boolean;
+  error: string | null;
 
   // 剧本操作
-  loadScripts: () => void;
-  createScript: (title?: string) => string;
+  loadScripts: () => Promise<void>;
+  createScript: (title?: string) => Promise<string>;
   selectScript: (id: string) => void;
-  deleteScript: (id: string) => void;
-  renameScript: (id: string, title: string) => void;
-  updateScriptPhase: (id: string, phase: VideoPhase) => void;
+  deleteScript: (id: string) => Promise<void>;
+  renameScript: (id: string, title: string) => Promise<void>;
+  updateScriptPhase: (id: string, phase: VideoPhase) => Promise<void>;
 
   // 角色操作
-  addCharacter: (scriptId: string, character: Omit<Character, 'id' | 'status' | 'createdAt'>) => string;
-  updateCharacter: (scriptId: string, characterId: string, updates: Partial<Character>) => void;
-  deleteCharacter: (scriptId: string, characterId: string) => void;
+  addCharacter: (scriptId: string, character: Omit<Character, 'id' | 'status' | 'createdAt'>) => Promise<string>;
+  updateCharacter: (scriptId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
+  deleteCharacter: (scriptId: string, characterId: string) => Promise<void>;
 
   // 剧集操作
-  addEpisode: (scriptId: string, episode: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'createdAt' | 'updatedAt'>) => string;
-  updateEpisode: (scriptId: string, episodeId: string, updates: Partial<Episode>) => void;
-  deleteEpisode: (scriptId: string, episodeId: string) => void;
+  addEpisode: (scriptId: string, episode: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  updateEpisode: (scriptId: string, episodeId: string, updates: Partial<Episode>) => Promise<void>;
+  deleteEpisode: (scriptId: string, episodeId: string) => Promise<void>;
 
   // 分镜操作
-  addStoryboard: (scriptId: string, episodeId: string, storyboard: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt'>) => string;
-  updateStoryboard: (scriptId: string, episodeId: string, storyboardId: string, updates: Partial<Storyboard>) => void;
-  deleteStoryboard: (scriptId: string, episodeId: string, storyboardId: string) => void;
-  clearStoryboards: (scriptId: string, episodeId: string) => void;
-  reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => void;
+  addStoryboard: (scriptId: string, episodeId: string, storyboard: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt'>) => Promise<string>;
+  updateStoryboard: (scriptId: string, episodeId: string, storyboardId: string, updates: Partial<Storyboard>) => Promise<void>;
+  deleteStoryboard: (scriptId: string, episodeId: string, storyboardId: string) => Promise<void>;
+  clearStoryboards: (scriptId: string, episodeId: string) => Promise<void>;
+  reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => Promise<void>;
 
   // 获取当前剧本
   getCurrentScript: () => Script | null;
+  
+  // 内部方法：刷新单个剧本
+  refreshScript: (scriptId: string) => Promise<void>;
 }
-
 
 export const useVideoStore = create<VideoState>((set, get) => ({
   scripts: [],
   currentScriptId: null,
   isLoading: false,
+  error: null,
 
-  loadScripts: () => {
-    const scripts = loadScripts();
-    // 自动选择第1个剧本
-    const currentScriptId = scripts.length > 0 ? scripts[0].id : null;
-    set({ scripts, currentScriptId });
+  loadScripts: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const scripts = await api.fetchScripts();
+      const currentScriptId = scripts.length > 0 ? scripts[0].id : null;
+      set({ scripts, currentScriptId, isLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+    }
   },
 
-  createScript: (title?: string) => {
-    const newScript: Script = {
-      id: generateId(),
-      title: title || '新剧本',
-      characters: [],
-      episodes: [],
-      currentPhase: 'storyboard',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const scripts = [newScript, ...get().scripts];
-    saveScripts(scripts);
-    set({ scripts, currentScriptId: newScript.id });
-    return newScript.id;
+  createScript: async (title?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const newScript = await api.createScript(title);
+      set((state) => ({
+        scripts: [newScript, ...state.scripts],
+        currentScriptId: newScript.id,
+        isLoading: false,
+      }));
+      return newScript.id;
+    } catch (error) {
+      set({ error: (error as Error).message, isLoading: false });
+      throw error;
+    }
   },
 
   selectScript: (id: string) => {
     set({ currentScriptId: id });
   },
 
-  deleteScript: (id: string) => {
-    const scripts = get().scripts.filter((s) => s.id !== id);
-    saveScripts(scripts);
-    set({
-      scripts,
-      currentScriptId: get().currentScriptId === id ? null : get().currentScriptId,
-    });
+  deleteScript: async (id: string) => {
+    try {
+      await api.deleteScript(id);
+      set((state) => ({
+        scripts: state.scripts.filter((s) => s.id !== id),
+        currentScriptId: state.currentScriptId === id ? null : state.currentScriptId,
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
-  renameScript: (id: string, title: string) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === id ? { ...s, title, updatedAt: Date.now() } : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
+  renameScript: async (id: string, title: string) => {
+    try {
+      await api.updateScript(id, { title });
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === id ? { ...s, title, updatedAt: new Date().toISOString() } : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
-  updateScriptPhase: (id: string, phase: VideoPhase) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === id ? { ...s, currentPhase: phase, updatedAt: Date.now() } : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
+  updateScriptPhase: async (id: string, phase: VideoPhase) => {
+    try {
+      await api.updateScript(id, { currentPhase: phase });
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === id ? { ...s, currentPhase: phase, updatedAt: new Date().toISOString() } : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
-  addCharacter: (scriptId: string, character) => {
-    const charId = generateId();
-    const newCharacter: Character = {
-      ...character,
-      id: charId,
-      status: 'pending',
-      createdAt: Date.now(),
-    };
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? { ...s, characters: [...s.characters, newCharacter], updatedAt: Date.now() }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-    return charId;
+
+  refreshScript: async (scriptId: string) => {
+    try {
+      const script = await api.fetchScript(scriptId);
+      set((state) => ({
+        scripts: state.scripts.map((s) => (s.id === scriptId ? script : s)),
+      }));
+    } catch (error) {
+      console.error('刷新剧本失败:', error);
+    }
   },
 
-  updateCharacter: (scriptId: string, characterId: string, updates) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            characters: s.characters.map((c) =>
-              c.id === characterId ? { ...c, ...updates } : c
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
+  addCharacter: async (scriptId: string, character) => {
+    try {
+      const newCharacter = await api.createCharacter(scriptId, character);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? { ...s, characters: [...s.characters, newCharacter] }
+            : s
+        ),
+      }));
+      return newCharacter.id;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
-  deleteCharacter: (scriptId: string, characterId: string) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            characters: s.characters.filter((c) => c.id !== characterId),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  addEpisode: (scriptId: string, episode) => {
-    const epId = generateId();
-    const newEpisode: Episode = {
-      ...episode,
-      id: epId,
-      scriptId,
-      storyboards: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? { ...s, episodes: [...s.episodes, newEpisode], updatedAt: Date.now() }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-    return epId;
-  },
-
-  updateEpisode: (scriptId: string, episodeId: string, updates) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) =>
-              e.id === episodeId ? { ...e, ...updates, updatedAt: Date.now() } : e
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  deleteEpisode: (scriptId: string, episodeId: string) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.filter((e) => e.id !== episodeId),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  addStoryboard: (scriptId: string, episodeId: string, storyboard) => {
-    const sbId = generateId();
-    const newStoryboard: Storyboard = {
-      ...storyboard,
-      id: sbId,
-      episodeId,
-      status: 'pending',
-      createdAt: Date.now(),
-    };
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) =>
-              e.id === episodeId
-                ? { ...e, storyboards: [...e.storyboards, newStoryboard], updatedAt: Date.now() }
-                : e
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-    return sbId;
-  },
-
-  updateStoryboard: (scriptId: string, episodeId: string, storyboardId: string, updates) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) =>
-              e.id === episodeId
-                ? {
-                    ...e,
-                    storyboards: e.storyboards.map((sb) =>
-                      sb.id === storyboardId ? { ...sb, ...updates } : sb
-                    ),
-                    updatedAt: Date.now(),
-                  }
-                : e
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  deleteStoryboard: (scriptId: string, episodeId: string, storyboardId: string) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) =>
-              e.id === episodeId
-                ? {
-                    ...e,
-                    storyboards: e.storyboards.filter((sb) => sb.id !== storyboardId),
-                    updatedAt: Date.now(),
-                  }
-                : e
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  clearStoryboards: (scriptId: string, episodeId: string) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) =>
-              e.id === episodeId
-                ? {
-                    ...e,
-                    storyboards: [],
-                    updatedAt: Date.now(),
-                  }
-                : e
-            ),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
-  },
-
-  reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => {
-    const scripts = get().scripts.map((s) =>
-      s.id === scriptId
-        ? {
-            ...s,
-            episodes: s.episodes.map((e) => {
-              if (e.id === episodeId) {
-                const storyboards = [...e.storyboards];
-                const [movedItem] = storyboards.splice(fromIndex, 1);
-                storyboards.splice(toIndex, 0, movedItem);
-                // 更新 sceneNumber
-                storyboards.forEach((sb, idx) => {
-                  sb.sceneNumber = idx + 1;
-                });
-                return {
-                  ...e,
-                  storyboards,
-                  updatedAt: Date.now(),
-                };
+  updateCharacter: async (scriptId: string, characterId: string, updates) => {
+    try {
+      await api.updateCharacter(scriptId, characterId, updates);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                characters: s.characters.map((c) =>
+                  c.id === characterId ? { ...c, ...updates } : c
+                ),
               }
-              return e;
-            }),
-            updatedAt: Date.now(),
-          }
-        : s
-    );
-    saveScripts(scripts);
-    set({ scripts });
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  deleteCharacter: async (scriptId: string, characterId: string) => {
+    try {
+      await api.deleteCharacter(scriptId, characterId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? { ...s, characters: s.characters.filter((c) => c.id !== characterId) }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  addEpisode: async (scriptId: string, episode) => {
+    try {
+      const newEpisode = await api.createEpisode(scriptId, episode);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? { ...s, episodes: [...s.episodes, newEpisode] }
+            : s
+        ),
+      }));
+      return newEpisode.id;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  updateEpisode: async (scriptId: string, episodeId: string, updates) => {
+    try {
+      await api.updateEpisode(scriptId, episodeId, updates);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId ? { ...e, ...updates } : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  deleteEpisode: async (scriptId: string, episodeId: string) => {
+    try {
+      await api.deleteEpisode(scriptId, episodeId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? { ...s, episodes: s.episodes.filter((e) => e.id !== episodeId) }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  addStoryboard: async (scriptId: string, episodeId: string, storyboard) => {
+    try {
+      const newStoryboard = await api.createStoryboard(scriptId, episodeId, storyboard);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? { ...e, storyboards: [...e.storyboards, newStoryboard] }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+      return newStoryboard.id;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  updateStoryboard: async (scriptId: string, episodeId: string, storyboardId: string, updates) => {
+    try {
+      await api.updateStoryboard(scriptId, episodeId, storyboardId, updates);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? {
+                        ...e,
+                        storyboards: e.storyboards.map((sb) =>
+                          sb.id === storyboardId ? { ...sb, ...updates } : sb
+                        ),
+                      }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  deleteStoryboard: async (scriptId: string, episodeId: string, storyboardId: string) => {
+    try {
+      await api.deleteStoryboard(scriptId, episodeId, storyboardId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? { ...e, storyboards: e.storyboards.filter((sb) => sb.id !== storyboardId) }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  clearStoryboards: async (scriptId: string, episodeId: string) => {
+    try {
+      await api.clearStoryboards(scriptId, episodeId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId ? { ...e, storyboards: [] } : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  reorderStoryboards: async (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => {
+    const state = get();
+    const script = state.scripts.find((s) => s.id === scriptId);
+    const episode = script?.episodes.find((e) => e.id === episodeId);
+    if (!episode) return;
+
+    const storyboards = [...episode.storyboards];
+    const [movedItem] = storyboards.splice(fromIndex, 1);
+    storyboards.splice(toIndex, 0, movedItem);
+    
+    // 更新 sceneNumber
+    storyboards.forEach((sb, idx) => {
+      sb.sceneNumber = idx + 1;
+    });
+
+    // 先乐观更新 UI
+    set((state) => ({
+      scripts: state.scripts.map((s) =>
+        s.id === scriptId
+          ? {
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId ? { ...e, storyboards } : e
+              ),
+            }
+          : s
+      ),
+    }));
+
+    try {
+      await api.reorderStoryboards(scriptId, episodeId, storyboards.map((sb) => sb.id));
+    } catch (error) {
+      // 失败时重新加载
+      await get().refreshScript(scriptId);
+      set({ error: (error as Error).message });
+      throw error;
+    }
   },
 
   getCurrentScript: () => {

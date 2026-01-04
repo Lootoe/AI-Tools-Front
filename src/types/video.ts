@@ -9,7 +9,7 @@ export interface Character {
   thumbnailUrl?: string;   // 缩略图
   taskId?: string;         // sora2 任务ID，用于恢复轮询
   status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: number;
+  createdAt: number | string;
   // Sora2 角色信息
   characterId?: string;    // Sora2 角色ID（例如 ch_xxx）
   username?: string;       // Sora2 角色用户名
@@ -33,7 +33,7 @@ export interface Storyboard {
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
   status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: number;
+  createdAt: number | string;
 }
 
 // 剧集
@@ -44,8 +44,8 @@ export interface Episode {
   title: string;
   content: string;         // 剧集内容
   storyboards: Storyboard[];
-  createdAt: number;
-  updatedAt: number;
+  createdAt: number | string;
+  updatedAt: number | string;
 }
 
 // 剧本
@@ -57,8 +57,8 @@ export interface Script {
   characters: Character[];
   episodes: Episode[];
   currentPhase: VideoPhase;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: number | string;
+  updatedAt: number | string;
 }
 
 // 视频生成阶段
