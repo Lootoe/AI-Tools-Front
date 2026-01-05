@@ -6,21 +6,13 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Character } from '@/types/video';
 import { generateSora2Video, getVideoStatus, uploadImage, createSora2Character } from '@/services/api';
 import { useVideoStore } from '@/stores/videoStore';
+import { POLL_INTERVAL, CHARACTER_TIMESTAMPS, DURATION_OPTIONS } from '@/config/video';
 
 // 高级设置类型
 interface AdvancedSettings {
   duration: '10' | '15';
   referenceImage: string | null;
 }
-
-// 时长选项
-const DURATION_OPTIONS = [
-  { value: '10', label: '10秒' },
-  { value: '15', label: '15秒' },
-] as const;
-
-// 轮询间隔（毫秒）
-const POLL_INTERVAL = 7000;
 
 interface CharacterModalProps {
   character?: Character;
@@ -293,10 +285,10 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
     setError(null);
 
     try {
-      // 从视频中提取角色（使用视频的1-3秒）
+      // 从视频中提取角色
       const requestData: { characterId: string; timestamps: string; from_task?: string; url?: string } = {
         characterId: character.id, // 传入数据库角色ID
-        timestamps: '1,3',
+        timestamps: CHARACTER_TIMESTAMPS,
       };
 
       // 优先使用 from_task，如果没有则使用 url

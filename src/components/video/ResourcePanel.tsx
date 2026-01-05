@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Film, Users, Plus, Trash2, Clapperboard, Pencil, Check, X, AlertTriangle } from 'lucide-react';
+import { Film, Users, Plus, Trash2, Clapperboard, Pencil, Check, X } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { ResourceTab, Character } from '@/types/video';
 import { cn } from '@/utils/cn';
+import { getCharacterStatusLabel, getCharacterStatusClasses } from '@/utils/characterStatus';
 import { CharacterModal } from './CharacterModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface ResourcePanelProps {
   selectedEpisodeId: string | null;
@@ -307,20 +309,12 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
                             {character.description}
                           </p>
                         )}
-                        {/* 状态标签 - 根据是否有 characterId 判断是否已认证 */}
+                        {/* 状态标签 */}
                         <span className={cn(
                           'inline-block text-xs px-1.5 py-0.5 rounded mt-1',
-                          character.characterId && 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-                          !character.characterId && character.status === 'completed' && 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
-                          character.status === 'generating' && 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-                          character.status === 'pending' && 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
-                          character.status === 'failed' && 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                          getCharacterStatusClasses(character)
                         )}>
-                          {character.characterId && '已认证'}
-                          {!character.characterId && character.status === 'completed' && '待认证'}
-                          {character.status === 'generating' && '生成中'}
-                          {character.status === 'pending' && '待生成'}
-                          {character.status === 'failed' && '失败'}
+                          {getCharacterStatusLabel(character)}
                         </span>
                       </div>
                     </div>
@@ -349,37 +343,15 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
       )}
 
       {/* 删除确认弹框 */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-scale-in">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <AlertTriangle size={20} className="text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                确认删除
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              确定要删除{deleteConfirm.type === 'episode' ? '剧集' : '角色'} "{deleteConfirm.name}" 吗？此操作不可撤销。
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
-              >
-                确认删除
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="确认删除"
+        message={deleteConfirm ? `确定要删除${deleteConfirm.type === 'episode' ? '剧集' : '角色'} "${deleteConfirm.name}" 吗？此操作不可撤销。` : ''}
+        type="danger"
+        confirmText="确认删除"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   );
 };

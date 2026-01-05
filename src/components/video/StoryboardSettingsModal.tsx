@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, FileText, Users, Settings, Image, Upload, ChevronDown, Plus } from 'lucide-react';
+import { X, Save, FileText, Users, Settings, Image, Upload, ChevronDown, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Character } from '@/types/video';
 import { cn } from '@/utils/cn';
+import { uploadImage } from '@/services/api';
 
 interface StoryboardSettingsModalProps {
   description: string;
@@ -39,6 +40,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   const [dur, setDur] = useState(duration);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCharacterDropdown, setShowCharacterDropdown] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 使用 ref 来追踪上一次的 props，避免数组引用导致的无限循环
@@ -98,24 +100,34 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
     };
   }, [showCharacterDropdown]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const newUrls: string[] = [];
-      Array.from(files).forEach((file) => {
-        const url = URL.createObjectURL(file);
-        newUrls.push(url);
+    if (!files || files.length === 0) return;
+
+    setIsUploadingImages(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const result = await uploadImage(file);
+        if (result.success && result.url) {
+          return result.url;
+        }
+        throw new Error('上传失败');
       });
-      setRefImageUrls([...refImageUrls, ...newUrls]);
-      // TODO: 实际项目中需要上传到服务器并获取真实URL
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setRefImageUrls([...refImageUrls, ...uploadedUrls]);
+    } catch (err) {
+      console.error('上传参考图失败:', err);
+    } finally {
+      setIsUploadingImages(false);
+      // 清空 input，允许重复选择同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleRemoveImage = (index: number) => {
-    const urlToRemove = refImageUrls[index];
-    if (urlToRemove) {
-      URL.revokeObjectURL(urlToRemove);
-    }
     setRefImageUrls(refImageUrls.filter((_, i) => i !== index));
   };
 
@@ -341,13 +353,24 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                   multiple
                   onChange={handleImageUpload}
                   className="hidden"
+                  disabled={isUploadingImages}
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors"
+                  disabled={isUploadingImages}
+                  className="w-full h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Upload size={16} />
-                  <span className="text-xs">点击上传参考图</span>
+                  {isUploadingImages ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-xs">上传中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      <span className="text-xs">点击上传参考图</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
