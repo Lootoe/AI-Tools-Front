@@ -32,7 +32,7 @@ export interface Storyboard {
   progress?: string;       // 生成进度百分比
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
-  status: 'pending' | 'generating' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
   createdAt: number | string;
 }
 

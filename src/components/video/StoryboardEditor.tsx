@@ -4,7 +4,7 @@ import { useVideoStore } from '@/stores/videoStore';
 import { Character, Episode, Storyboard } from '@/types/video';
 import { Button } from '@/components/ui/Button';
 import { StoryboardSettingsModal } from './StoryboardSettingsModal';
-import { generateStoryboardVideo, getVideoStatus } from '@/services/api';
+import { generateStoryboardVideo, getVideoStatus, remixVideo } from '@/services/api';
 
 interface StoryboardEditorProps {
   episode: Episode;
@@ -23,50 +23,6 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
   // 轮询定时器引用
   const pollingTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
-  // 轮询查询分镜状态
-  const pollStoryboardStatus = useCallback(async (storyboard: Storyboard) => {
-    if (!script || !storyboard.taskId) return;
-
-    try {
-      const response = await getVideoStatus(storyboard.taskId);
-      const { status, progress, data } = response.data;
-
-      if (status === 'SUCCESS') {
-        // 生成成功
-        updateStoryboard(script.id, episode.id, storyboard.id, {
-          status: 'completed',
-          videoUrl: data?.output,
-          progress: '100',
-        });
-        // 清除定时器
-        const timer = pollingTimersRef.current.get(storyboard.id);
-        if (timer) {
-          clearInterval(timer);
-          pollingTimersRef.current.delete(storyboard.id);
-        }
-      } else if (status === 'FAILURE') {
-        // 生成失败
-        updateStoryboard(script.id, episode.id, storyboard.id, {
-          status: 'failed',
-          progress: undefined,
-        });
-        // 清除定时器
-        const timer = pollingTimersRef.current.get(storyboard.id);
-        if (timer) {
-          clearInterval(timer);
-          pollingTimersRef.current.delete(storyboard.id);
-        }
-      } else {
-        // 进行中，更新进度
-        updateStoryboard(script.id, episode.id, storyboard.id, {
-          progress: progress || '0',
-        });
-      }
-    } catch (error) {
-      console.error('查询分镜状态失败:', error);
-    }
-  }, [script, episode.id, updateStoryboard]);
-
   // 启动轮询
   const startPolling = useCallback((storyboard: Storyboard) => {
     // 如果已有定时器，先清除
@@ -79,8 +35,83 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
     const currentTaskId = storyboard.taskId;
     if (!currentTaskId) return;
 
+    // 定义轮询函数，直接使用传入的 storyboard 信息
+    const doPoll = async () => {
+      if (!script) return;
+      
+      try {
+        const response = await getVideoStatus(currentTaskId);
+        const responseData = response.data as {
+          status?: string;
+          progress?: string | number;
+          data?: { 
+            output?: string;
+            video_url?: string;  // remix 接口返回的字段
+            status?: string;     // 内层状态
+          };
+          output?: { url?: string };
+        };
+        // 优先使用外层 status，如果是 NOT_START 则检查内层 data.status
+        const outerStatus = responseData.status;
+        const innerStatus = responseData.data?.status;
+        const progress = responseData.progress;
+        // 兼容多种视频 URL 字段：data.video_url, data.output, output.url
+        const videoUrl = responseData.data?.video_url || responseData.data?.output || responseData.output?.url;
+
+        // 判断是否排队中：外层 NOT_START 且内层 queued
+        const isQueued = outerStatus === 'NOT_START' || innerStatus === 'queued';
+        const isSuccess = outerStatus === 'SUCCESS' || outerStatus === 'completed' || innerStatus === 'completed';
+        const isFailed = outerStatus === 'FAILURE' || outerStatus === 'failed' || innerStatus === 'failed';
+        const isInProgress = outerStatus === 'IN_PROGRESS' || innerStatus === 'pending';
+
+        if (isSuccess) {
+          updateStoryboard(script.id, episode.id, storyboard.id, {
+            status: 'completed',
+            videoUrl: videoUrl,
+            progress: '100',
+          });
+          const timer = pollingTimersRef.current.get(storyboard.id);
+          if (timer) {
+            clearInterval(timer);
+            pollingTimersRef.current.delete(storyboard.id);
+          }
+        } else if (isFailed) {
+          updateStoryboard(script.id, episode.id, storyboard.id, {
+            status: 'failed',
+            progress: undefined,
+          });
+          const timer = pollingTimersRef.current.get(storyboard.id);
+          if (timer) {
+            clearInterval(timer);
+            pollingTimersRef.current.delete(storyboard.id);
+          }
+        } else if (isQueued) {
+          // 排队中状态
+          updateStoryboard(script.id, episode.id, storyboard.id, {
+            status: 'queued',
+            progress: '0',
+          });
+        } else if (isInProgress) {
+          // 生成中状态
+          const progressValue = typeof progress === 'number' ? String(progress) : (progress || '0');
+          updateStoryboard(script.id, episode.id, storyboard.id, {
+            status: 'generating',
+            progress: progressValue,
+          });
+        } else {
+          // 其他状态，保持生成中
+          const progressValue = typeof progress === 'number' ? String(progress) : (progress || '0');
+          updateStoryboard(script.id, episode.id, storyboard.id, {
+            progress: progressValue,
+          });
+        }
+      } catch (error) {
+        console.error('查询分镜状态失败:', error);
+      }
+    };
+
     // 立即查询一次
-    pollStoryboardStatus(storyboard);
+    doPoll();
 
     // 每10秒轮询一次
     const timer = setInterval(() => {
@@ -91,18 +122,16 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
         pollingTimersRef.current.delete(storyboard.id);
         return;
       }
-      if (currentStoryboard.taskId) {
-        pollStoryboardStatus(currentStoryboard);
-      }
+      doPoll();
     }, 10000);
 
     pollingTimersRef.current.set(storyboard.id, timer);
-  }, [episode.storyboards, pollStoryboardStatus]);
+  }, [script, episode.id, episode.storyboards, updateStoryboard]);
 
-  // 组件挂载时，恢复生成中的分镜轮询
+  // 组件挂载时，恢复生成中或排队中的分镜轮询
   useEffect(() => {
     episode.storyboards.forEach((storyboard) => {
-      if (storyboard.status === 'generating' && storyboard.taskId) {
+      if ((storyboard.status === 'generating' || storyboard.status === 'queued') && storyboard.taskId) {
         startPolling(storyboard);
       }
     });
@@ -196,22 +225,57 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
         ? `【全局设定】${globalSettings.join('；')}。\n\n${storyboard.description}`
         : storyboard.description;
 
-      const response = await generateStoryboardVideo({
-        prompt: finalPrompt,
-        aspect_ratio: storyboard.aspectRatio || '9:16',
-        duration: storyboard.duration || '15',
-      });
+      // 判断是否是第一个分镜
+      const storyboardIndex = episode.storyboards.findIndex((sb) => sb.id === storyboardId);
+      const isFirstStoryboard = storyboardIndex === 0;
+      
+      // 查找上一个已完成的分镜（用于 remix）
+      let previousTaskId: string | undefined;
+      if (!isFirstStoryboard) {
+        // 从当前分镜往前找，找到第一个有 taskId 且已完成的分镜
+        for (let i = storyboardIndex - 1; i >= 0; i--) {
+          const prevStoryboard = episode.storyboards[i];
+          if (prevStoryboard.taskId && prevStoryboard.status === 'completed') {
+            previousTaskId = prevStoryboard.taskId;
+            break;
+          }
+        }
+      }
 
-      if (response.success && response.data.task_id) {
+      let response;
+      
+      if (isFirstStoryboard || !previousTaskId) {
+        // 第一个分镜或找不到上一个已完成的分镜，使用普通生成接口
+        response = await generateStoryboardVideo({
+          prompt: finalPrompt,
+          aspect_ratio: storyboard.aspectRatio || '9:16',
+          duration: storyboard.duration || '15',
+          characterIds: storyboard.characterIds,
+        });
+      } else {
+        // 后续分镜，使用 remix 接口，并在提示词前添加衔接语
+        const remixPrompt = `接上个视频结尾，以下是后续剧情。\n\n${finalPrompt}`;
+        response = await remixVideo({
+          taskId: previousTaskId,
+          prompt: remixPrompt,
+          aspect_ratio: storyboard.aspectRatio || '9:16',
+          duration: storyboard.duration || '15',
+          characterIds: storyboard.characterIds,
+        });
+      }
+
+      // 兼容两种响应格式：task_id 或 id
+      const taskId = response.data.task_id || (response.data as { id?: string }).id;
+      if (response.success && taskId) {
         // 保存 taskId 并开始轮询
         updateStoryboard(script.id, episode.id, storyboardId, {
-          taskId: response.data.task_id,
+          taskId: taskId,
         });
         
         // 获取更新后的 storyboard
         const updatedStoryboard = {
           ...storyboard,
-          taskId: response.data.task_id,
+          taskId: taskId,
         };
         startPolling(updatedStoryboard);
       } else {
@@ -324,6 +388,12 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
             const isDragging = draggedIndex === index;
             const isDropTarget = dragOverIndex === index && draggedIndex !== null && draggedIndex !== index;
             
+            // 检查前面是否有正在生成中或排队中的分镜
+            const hasPreviousGenerating = episode.storyboards
+              .slice(0, index)
+              .some((sb) => sb.status === 'generating' || sb.status === 'queued');
+            const isGenerateDisabled = hasPreviousGenerating && storyboard.status !== 'generating' && storyboard.status !== 'queued';
+            
             return (
               <div
                 key={storyboard.id}
@@ -370,12 +440,17 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                     </div>
                   )}
 
-                  {/* 生成中遮罩 */}
-                  {storyboard.status === 'generating' && (
+                  {/* 生成中/排队中遮罩 */}
+                  {(storyboard.status === 'generating' || storyboard.status === 'queued') && (
                     <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                       <div className="text-center text-white">
                         <Loader2 size={24} className="animate-spin mx-auto mb-1" />
-                        <span className="text-xs">生成中 {storyboard.progress ? `${storyboard.progress.replace('%', '')}%` : '...'}</span>
+                        <span className="text-xs">
+                          {storyboard.status === 'queued' 
+                            ? '排队中...' 
+                            : `生成中 ${storyboard.progress ? `${storyboard.progress.replace('%', '')}%` : '...'}`
+                          }
+                        </span>
                       </div>
                     </div>
                   )}
@@ -415,13 +490,22 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
                     </button>
 
                     {/* 生成按钮 - 50% 宽度 */}
-                    {storyboard.status === 'generating' ? (
+                    {storyboard.status === 'generating' || storyboard.status === 'queued' ? (
                       <button
                         disabled
                         className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg opacity-50 cursor-not-allowed"
                       >
                         <Loader2 size={12} className="animate-spin" />
-                        生成中
+                        {storyboard.status === 'queued' ? '排队中' : '生成中'}
+                      </button>
+                    ) : isGenerateDisabled ? (
+                      <button
+                        disabled
+                        title="为了确保一致性，请等待上一个视频生成完毕"
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-white bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg opacity-50 cursor-not-allowed"
+                      >
+                        <Play size={12} />
+                        {storyboard.status === 'completed' ? '重新生成' : '生成'}
                       </button>
                     ) : storyboard.status === 'completed' ? (
                       <button

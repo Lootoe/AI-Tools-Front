@@ -192,38 +192,41 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
               {selectedCharacters.length > 0 && (
                 <div className="max-h-[320px] overflow-y-auto mb-2.5 pr-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                   <div className="grid grid-cols-3 gap-1.5">
-                    {selectedCharacters.map((char) => (
-                      <div
-                        key={char.id}
-                        className="relative flex flex-col items-center gap-1 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
-                      >
-                        {/* 删除按钮 */}
-                        <button
-                          onClick={() => handleRemoveCharacter(char.id)}
-                          className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-red-500 transition-colors bg-white dark:bg-gray-800 rounded-full"
+                    {selectedCharacters.map((char) => {
+                      const avatarUrl = char.profilePictureUrl || char.thumbnailUrl;
+                      return (
+                        <div
+                          key={char.id}
+                          className="relative flex flex-col items-center gap-1 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
                         >
-                          <X size={10} />
-                        </button>
+                          {/* 删除按钮 */}
+                          <button
+                            onClick={() => handleRemoveCharacter(char.id)}
+                            className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-red-500 transition-colors bg-white dark:bg-gray-800 rounded-full"
+                          >
+                            <X size={10} />
+                          </button>
 
-                        {/* 头像 */}
-                        {char.thumbnailUrl ? (
-                          <img
-                            src={char.thumbnailUrl}
-                            alt={char.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium">
-                            {char.name.charAt(0)}
-                          </div>
-                        )}
+                          {/* 头像 */}
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={char.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium">
+                              {char.name.charAt(0)}
+                            </div>
+                          )}
 
-                        {/* 名字 */}
-                        <span className="text-xs text-gray-700 dark:text-gray-300 text-center truncate w-full px-1">
-                          {char.name}
-                        </span>
-                      </div>
-                    ))}
+                          {/* 名字 */}
+                          <span className="text-xs text-gray-700 dark:text-gray-300 text-center truncate w-full px-1">
+                            {char.name}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -255,29 +258,32 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                   {/* 下拉列表 */}
                   {showCharacterDropdown && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-hide">
-                      {availableCharacters.map((char) => (
-                        <button
-                          key={char.id}
-                          onClick={() => handleAddCharacter(char.id)}
-                          className="w-full px-3 py-2 text-xs text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                        >
-                          {/* 头像 */}
-                          {char.thumbnailUrl ? (
-                            <img
-                              src={char.thumbnailUrl}
-                              alt={char.name}
-                              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                              {char.name.charAt(0)}
-                            </div>
-                          )}
-                          <span className="text-gray-700 dark:text-gray-300 truncate">
-                            {char.name}
-                          </span>
-                        </button>
-                      ))}
+                      {availableCharacters.map((char) => {
+                        const avatarUrl = char.profilePictureUrl || char.thumbnailUrl;
+                        return (
+                          <button
+                            key={char.id}
+                            onClick={() => handleAddCharacter(char.id)}
+                            className="w-full px-3 py-2 text-xs text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                          >
+                            {/* 头像 */}
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={char.name}
+                                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                {char.name.charAt(0)}
+                              </div>
+                            )}
+                            <span className="text-gray-700 dark:text-gray-300 truncate">
+                              {char.name}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

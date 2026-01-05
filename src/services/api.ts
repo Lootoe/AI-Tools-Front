@@ -45,7 +45,7 @@ export async function generateSora2Video(request: Sora2VideoRequest): Promise<So
       model: request.model || 'sora-2',
       aspect_ratio: request.aspect_ratio || '9:16',
       duration: request.duration || '10',
-      private: request.private ?? true,
+      private: request.private ?? false,
       ...(request.reference_image ? { reference_image: request.reference_image } : {}),
     }),
   });
@@ -84,6 +84,7 @@ export interface StoryboardToVideoRequest {
   aspect_ratio?: '16:9' | '9:16';
   duration?: '10' | '15';
   private?: boolean;
+  characterIds?: string[]; // 关联的角色ID数组
 }
 
 // 分镜生成视频
@@ -101,13 +102,53 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       model: request.model || 'sora-2',
       aspect_ratio: request.aspect_ratio || '9:16',
       duration: request.duration || '15',
-      private: request.private ?? true,
+      private: request.private ?? false,
+      ...(request.characterIds ? { characterIds: request.characterIds } : {}),
     }),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`分镜视频生成失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Remix 视频请求（基于已有视频生成后续内容）
+export interface RemixVideoRequest {
+  taskId: string; // 上一个视频的任务ID
+  prompt: string;
+  model?: 'sora-2';
+  aspect_ratio?: '16:9' | '9:16';
+  duration?: '10' | '15';
+  private?: boolean;
+  characterIds?: string[];
+}
+
+// Remix 视频生成
+export async function remixVideo(request: RemixVideoRequest): Promise<Sora2VideoResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/remix/${request.taskId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      prompt: request.prompt,
+      model: request.model || 'sora-2',
+      aspect_ratio: request.aspect_ratio || '9:16',
+      duration: request.duration || '15',
+      private: request.private ?? false,
+      ...(request.characterIds ? { characterIds: request.characterIds } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Remix视频生成失败: ${error.error || error.message || response.statusText}`);
   }
 
   return response.json();

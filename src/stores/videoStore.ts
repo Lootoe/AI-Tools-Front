@@ -50,6 +50,12 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const scripts = await api.fetchScripts();
+      // 确保分镜按 sceneNumber 排序
+      scripts.forEach((script) => {
+        script.episodes.forEach((episode) => {
+          episode.storyboards.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        });
+      });
       const currentScriptId = scripts.length > 0 ? scripts[0].id : null;
       set({ scripts, currentScriptId, isLoading: false });
     } catch (error) {
@@ -122,6 +128,10 @@ export const useVideoStore = create<VideoState>((set, get) => ({
   refreshScript: async (scriptId: string) => {
     try {
       const script = await api.fetchScript(scriptId);
+      // 确保分镜按 sceneNumber 排序
+      script.episodes.forEach((episode) => {
+        episode.storyboards.sort((a, b) => a.sceneNumber - b.sceneNumber);
+      });
       set((state) => ({
         scripts: state.scripts.map((s) => (s.id === scriptId ? script : s)),
       }));
