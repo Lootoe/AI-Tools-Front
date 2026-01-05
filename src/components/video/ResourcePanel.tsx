@@ -26,10 +26,10 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({
   
   const script = getCurrentScript();
 
-  const handleAddEpisode = () => {
+  const handleAddEpisode = async () => {
     if (!script) return;
     const episodeNumber = script.episodes.length + 1;
-    const newId = addEpisode(script.id, {
+    const newId = await addEpisode(script.id, {
       episodeNumber,
       title: `第 ${episodeNumber} 集`,
       content: '',
