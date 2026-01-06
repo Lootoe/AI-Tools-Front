@@ -19,15 +19,15 @@ interface StoryboardEditorProps {
 }
 
 export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) => {
-  const { 
-    getCurrentScript, 
-    addStoryboard, 
-    updateStoryboard, 
-    deleteStoryboard, 
-    clearStoryboards, 
-    reorderStoryboards 
+  const {
+    getCurrentScript,
+    addStoryboard,
+    updateStoryboard,
+    deleteStoryboard,
+    clearStoryboards,
+    reorderStoryboards
   } = useVideoStore();
-  
+
   const script = getCurrentScript();
 
   const [settingsModalStoryboardId, setSettingsModalStoryboardId] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
   // 轮询状态变更回调
   const handleStatusChange = useCallback((taskId: string, result: PollResult) => {
     if (!script) return;
-    
+
     // 找到对应的分镜
     const storyboard = episode.storyboards.find(sb => sb.taskId === taskId);
     if (!storyboard) return;
@@ -93,13 +93,13 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
 
   const handleDeleteStoryboard = (storyboardId: string) => {
     if (!script) return;
-    
+
     // 停止该分镜的轮询
     const storyboard = episode.storyboards.find(sb => sb.id === storyboardId);
     if (storyboard?.taskId) {
       stopPolling(storyboard.taskId);
     }
-    
+
     deleteStoryboard(script.id, episode.id, storyboardId);
     setDeleteConfirmStoryboardId(null);
   };
@@ -196,12 +196,12 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
 
   const handleClearStoryboards = () => {
     if (!script) return;
-    
+
     // 停止所有分镜的轮询
     episode.storyboards.forEach(sb => {
       if (sb.taskId) stopPolling(sb.taskId);
     });
-    
+
     clearStoryboards(script.id, episode.id);
     setShowClearConfirm(false);
   };
@@ -314,8 +314,8 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
             const hasPreviousGenerating = episode.storyboards
               .slice(0, index)
               .some((sb) => sb.status === 'generating' || sb.status === 'queued');
-            const isGenerateDisabled = hasPreviousGenerating && 
-              storyboard.status !== 'generating' && 
+            const isGenerateDisabled = hasPreviousGenerating &&
+              storyboard.status !== 'generating' &&
               storyboard.status !== 'queued';
 
             return (
@@ -350,6 +350,7 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
           aspectRatio={currentSettingsStoryboard.aspectRatio}
           duration={currentSettingsStoryboard.duration}
           mode={currentSettingsStoryboard.mode}
+          taskId={currentSettingsStoryboard.taskId}
           onSave={(data) => handleSaveSettings(settingsModalStoryboardId, data)}
           onClose={() => setSettingsModalStoryboardId(null)}
         />
@@ -383,20 +384,20 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
 // 辅助函数：构建 prompt
 function buildPrompt(description: string, characterIds: string[], characters: Character[]): string {
   const globalSettings: string[] = [];
-  
+
   globalSettings.push(`风格：${DEFAULT_STYLE}`);
-  
+
   const selectedCharacters = characterIds
     .map((id) => characters.find((c) => c.id === id))
     .filter((char): char is Character => !!char && !!char.username);
-  
+
   if (selectedCharacters.length > 0) {
     const characterSettings = selectedCharacters
       .map((char) => `${char.name}：@${char.username}`)
       .join('，');
     globalSettings.push(`角色参演：${characterSettings}`);
   }
-  
+
   return globalSettings.length > 0
     ? `【全局设定】${globalSettings.join('；')}。\n\n${description}`
     : description;

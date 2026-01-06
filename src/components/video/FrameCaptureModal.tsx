@@ -15,6 +15,17 @@ export const FrameCaptureModal: React.FC<FrameCaptureModalProps> = ({
   onClose,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // 将阿里云 OSS URL 转换为代理 URL，绕过 CORS
+  const getProxiedUrl = (url: string) => {
+    const ossPattern = /^https:\/\/mycdn-gg\.oss-us-west-1\.aliyuncs\.com\//;
+    if (ossPattern.test(url)) {
+      return url.replace(ossPattern, '/oss-video/');
+    }
+    return url;
+  };
+
+  const proxiedVideoUrl = getProxiedUrl(videoUrl);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -118,7 +129,7 @@ export const FrameCaptureModal: React.FC<FrameCaptureModalProps> = ({
               <div className="bg-gray-900 rounded-xl overflow-hidden aspect-video">
                 <video
                   ref={videoRef}
-                  src={videoUrl}
+                  src={proxiedVideoUrl}
                   className="w-full h-full object-contain"
                   controls
                   crossOrigin="anonymous"

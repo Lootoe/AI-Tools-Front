@@ -12,5 +12,13 @@ export default defineConfig({
     },
     server: {
         host: true,
+        proxy: {
+            // 代理阿里云 OSS 视频请求，绕过 CORS
+            '/oss-video': {
+                target: 'https://mycdn-gg.oss-us-west-1.aliyuncs.com',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/oss-video/, ''),
+            },
+        },
     },
 })

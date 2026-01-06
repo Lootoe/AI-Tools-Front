@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, FileText, Users, Settings, Image, Upload, ChevronDown, Plus, Loader2 } from 'lucide-react';
+import { X, Save, FileText, Users, Settings, Image, Upload, ChevronDown, Plus, Loader2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Character } from '@/types/video';
@@ -14,6 +14,7 @@ interface StoryboardSettingsModalProps {
   aspectRatio?: string;
   duration?: string;
   mode?: string;
+  taskId?: string;
   onSave: (data: {
     description: string;
     characterIds: string[];
@@ -33,6 +34,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   aspectRatio = '9:16',
   duration = '15',
   mode = 'normal',
+  taskId,
   onSave,
   onClose,
 }) => {
@@ -46,6 +48,19 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   const [showCharacterDropdown, setShowCharacterDropdown] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  // 复制视频ID到剪贴板
+  const handleCopyTaskId = async () => {
+    if (!taskId) return;
+    try {
+      await navigator.clipboard.writeText(taskId);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
 
   // 当切换到 remix 模式时，清空参考图
   const handleModeChange = (newMode: string) => {
@@ -150,7 +165,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
     onSave({
       description: text.trim(),
       characterIds: selectedIds,
-      referenceImageUrls: refImageUrls.length > 0 ? refImageUrls : undefined,
+      referenceImageUrls: refImageUrls, // 始终传递数组，空数组表示清空参考图
       aspectRatio: ratio,
       duration: dur,
       mode: selectedMode,
@@ -200,6 +215,23 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
             <p className="text-xs text-gray-400 mt-2">
               提示：详细的分镜描述有助于生成更准确的视频
             </p>
+
+            {/* 视频ID显示 */}
+            {taskId && (
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">视频ID:</span>
+                <code className="flex-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 truncate">
+                  {taskId}
+                </code>
+                <button
+                  onClick={handleCopyTaskId}
+                  className="p-1 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
+                  title="复制视频ID"
+                >
+                  {isCopied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 中间 - 关联角色 */}
@@ -358,8 +390,8 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                 </button>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                {selectedMode === 'normal' 
-                  ? '独立生成视频，支持上传参考图' 
+                {selectedMode === 'normal'
+                  ? '独立生成视频，支持上传参考图'
                   : 'Remix模式会基于上一个分镜生成连续视频'}
               </p>
             </div>
@@ -520,6 +552,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
           </Button>
         </div>
       </div>
-    </div>
+    </div >
   );
 };

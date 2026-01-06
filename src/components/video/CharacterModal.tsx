@@ -21,11 +21,11 @@ interface CharacterModalProps {
   onClose: () => void;
 }
 
-export const CharacterModal: React.FC<CharacterModalProps> = ({ 
-  character, 
-  onSave, 
+export const CharacterModal: React.FC<CharacterModalProps> = ({
+  character,
+  onSave,
   onUpdate,
-  onClose 
+  onClose
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -35,11 +35,11 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [isCreatingCharacter, setIsCreatingCharacter] = useState(false);
-  
+
   // 获取 store 方法，用于在后台更新角色状态
   const { getCurrentScript } = useVideoStore();
   const script = getCurrentScript();
-  
+
   // 高级设置
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>({
     duration: '10',
@@ -65,13 +65,13 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
   const pollTaskStatus = useCallback(async (taskId: string) => {
     try {
       const response = await getVideoStatus(taskId);
-      
+
       if (!response.success || !response.data) {
         throw new Error('查询状态失败');
       }
 
       const { status, fail_reason, progress: taskProgress, data } = response.data;
-      
+
       // 更新进度（progress 是 1-100 的数字）
       if (taskProgress !== undefined && taskProgress !== null) {
         const progressNum = typeof taskProgress === 'string' ? parseInt(taskProgress, 10) : taskProgress;
@@ -85,7 +85,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
           setVideoUrl(newVideoUrl);
           setIsGenerating(false);
           setProgress(0);
-          
+
           if (isEditing && onUpdate && newVideoUrl) {
             onUpdate({
               videoUrl: newVideoUrl,
@@ -102,7 +102,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
           setIsGenerating(false);
           setProgress(0);
           setError(fail_reason || '视频生成失败，请重试');
-          
+
           if (isEditing && onUpdate) {
             onUpdate({
               status: 'failed',
@@ -147,11 +147,11 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       setDescription(character.description);
       setVideoUrl(character.videoUrl);
       setThumbnailUrl(character.profilePictureUrl || character.thumbnailUrl);
-      
+
       if (character.taskId) {
         taskIdRef.current = character.taskId;
       }
-      
+
       if (character.isCreatingCharacter) {
         setIsCreatingCharacter(true);
       }
@@ -164,10 +164,10 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
     if (character?.id === initializedCharacterIdRef.current) {
       return;
     }
-    
+
     // 先清理之前的轮询
     clearPolling();
-    
+
     if (character && character.taskId && character.status === 'generating') {
       // 标记当前角色已初始化轮询
       initializedCharacterIdRef.current = character.id;
@@ -192,12 +192,12 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
-    
+
     clearPolling();
     setIsGenerating(true);
     setError(null);
     setProgress(0);
-    
+
     // 清空旧的视频数据
     setVideoUrl(undefined);
     setThumbnailUrl(undefined);
@@ -206,7 +206,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       const response = await generateSora2Video({
         prompt: description.trim(),
         model: 'sora-2',
-        aspect_ratio: '9:16', // 固定使用竖屏
+        aspect_ratio: '16:9', // 固定使用横屏
         duration: advancedSettings.duration,
         private: true,
         reference_image: advancedSettings.referenceImage || undefined,
@@ -216,7 +216,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
         const taskId = response.data.task_id;
         taskIdRef.current = taskId;
         setProgress(0);
-        
+
         if (isEditing && onUpdate) {
           // 清空旧的角色认证信息和视频数据
           onUpdate({
@@ -230,7 +230,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
             profilePictureUrl: undefined,
           });
         }
-        
+
         pollTimerRef.current = window.setTimeout(() => {
           pollTaskStatus(taskId);
         }, POLL_INTERVAL);
@@ -274,7 +274,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       setError('请先生成角色视频');
       return;
     }
-    
+
     // 需要有 script 和 character 才能更新
     if (!script || !character) {
       setError('角色信息不完整');
@@ -304,7 +304,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
       if (response.success && response.data) {
         // 后端已更新数据库，刷新前端 store 数据
         await useVideoStore.getState().refreshScript(script.id);
-        
+
         // 更新本地状态（如果弹框还开着）
         setThumbnailUrl(response.data.profilePictureUrl);
       } else {
@@ -347,8 +347,8 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
           <div className="w-80 p-6 border-r border-gray-100 dark:border-gray-700">
             {/* 视频预览区域 - 固定高度容器 */}
             <div className="h-64 flex items-center justify-center mb-5">
-              <div 
-                className="relative bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden flex items-center justify-center transition-all duration-300 w-36 h-64"
+              <div
+                className="relative bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden flex items-center justify-center transition-all duration-300 w-full h-48"
               >
                 {isGenerating ? (
                   <div className="flex flex-col items-center justify-center text-center p-6 w-full h-full bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-blue-900/20">
@@ -387,7 +387,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                           </linearGradient>
                         </defs>
                       </svg>
-                      
+
                       {/* 中心内容 */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-2xl font-bold bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
@@ -395,13 +395,13 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* 文字提示 */}
                     <div className="flex flex-col items-center gap-1.5">
                       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">生成中</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">预计 1-3 分钟</span>
                     </div>
-                    
+
                     {/* 底部装饰点 */}
                     <div className="flex gap-1.5 mt-4">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -435,7 +435,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-600 to-transparent"></div>
               </div>
-              
+
               {/* 时长和尺寸 */}
               <div className="space-y-3">
                 {/* 时长 */}
@@ -449,11 +449,10 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                         key={option.value}
                         type="button"
                         onClick={() => setAdvancedSettings(prev => ({ ...prev, duration: option.value }))}
-                        className={`flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-colors ${
-                          advancedSettings.duration === option.value
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
-                        }`}
+                        className={`flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-colors ${advancedSettings.duration === option.value
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                          }`}
                       >
                         {option.label}
                       </button>
@@ -538,7 +537,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                     </>
                   )}
                 </Button>
-                
+
                 {/* 确认形象按钮 - 根据状态显示不同按钮 */}
                 {character?.characterId ? (
                   // 已认证
@@ -605,7 +604,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                 {character?.characterId && (
                   <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1 shadow-md">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 )}
@@ -641,7 +640,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                 placeholder="描述角色的外貌、服装、动作等特征，用于生成角色视频..."
                 className="flex-1 min-h-[160px] resize-none mb-2"
               />
-              
+
               {/* Sora2 用户名 - 在描述下方显示 */}
               {character?.username && (
                 <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -653,7 +652,7 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
                   </span>
                 </div>
               )}
-              
+
               {/* 警告提示 - 仅在未确认形象时显示 */}
               {!character?.characterId && (
                 <div className="flex items-start gap-2 p-2.5 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-lg">
@@ -669,8 +668,8 @@ export const CharacterModal: React.FC<CharacterModalProps> = ({
 
         {/* 底部操作 */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleClose}
             className="border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
           >

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Loader2, RefreshCw, Trash2, Video, Settings, Camera } from 'lucide-react';
+import { Play, Loader2, RefreshCw, Trash2, Video, Settings, Camera, UserPlus } from 'lucide-react';
 import { Storyboard } from '@/types/video';
 import { FrameCaptureModal } from './FrameCaptureModal';
+import { CreateCharacterFromStoryboardModal } from './CreateCharacterFromStoryboardModal';
 
 interface StoryboardCardProps {
   storyboard: Storyboard;
@@ -36,10 +37,16 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
 }) => {
   const isGenerating = storyboard.status === 'generating' || storyboard.status === 'queued';
   const [showCaptureModal, setShowCaptureModal] = useState(false);
+  const [showCreateCharacterModal, setShowCreateCharacterModal] = useState(false);
 
   const handleCaptureFrame = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowCaptureModal(true);
+  };
+
+  const handleCreateCharacter = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCreateCharacterModal(true);
   };
 
   return (
@@ -50,13 +57,12 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, index)}
       onDragEnd={onDragEnd}
-      className={`relative bg-white dark:bg-gray-800 rounded-xl border-2 overflow-hidden shadow-sm transition-all ${
-        isDragging
-          ? 'opacity-30 cursor-grabbing'
-          : isDropTarget
+      className={`relative bg-white dark:bg-gray-800 rounded-xl border-2 overflow-hidden shadow-sm transition-all ${isDragging
+        ? 'opacity-30 cursor-grabbing'
+        : isDropTarget
           ? 'border-purple-500 shadow-lg ring-2 ring-purple-300 dark:ring-purple-600'
           : 'border-gray-200 dark:border-gray-700 cursor-grab hover:shadow-md'
-      }`}
+        }`}
     >
       {/* 拖拽目标指示器 */}
       {isDropTarget && (
@@ -109,6 +115,16 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
 
         {/* 右上角操作按钮 */}
         <div className="absolute top-2 right-2 flex gap-1">
+          {/* 创建角色按钮 - 仅在有视频时显示 */}
+          {storyboard.videoUrl && (
+            <button
+              onClick={handleCreateCharacter}
+              className="p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-green-500 hover:text-white transition-colors"
+              title="从视频创建角色"
+            >
+              <UserPlus size={14} />
+            </button>
+          )}
           {/* 截取关键帧按钮 - 仅在有视频时显示 */}
           {storyboard.videoUrl && (
             <button
@@ -192,6 +208,16 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
           videoUrl={storyboard.videoUrl}
           storyboardIndex={index}
           onClose={() => setShowCaptureModal(false)}
+        />
+      )}
+
+      {/* 创建角色弹窗 */}
+      {showCreateCharacterModal && storyboard.videoUrl && (
+        <CreateCharacterFromStoryboardModal
+          videoUrl={storyboard.videoUrl}
+          taskId={storyboard.taskId}
+          storyboardIndex={index}
+          onClose={() => setShowCreateCharacterModal(false)}
         />
       )}
     </div>
