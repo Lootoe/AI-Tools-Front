@@ -1,6 +1,7 @@
-import React from 'react';
-import { Play, Loader2, RefreshCw, Trash2, Video, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, Loader2, RefreshCw, Trash2, Video, Settings, Camera } from 'lucide-react';
 import { Storyboard } from '@/types/video';
+import { FrameCaptureModal } from './FrameCaptureModal';
 
 interface StoryboardCardProps {
   storyboard: Storyboard;
@@ -34,6 +35,12 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
   onGenerate,
 }) => {
   const isGenerating = storyboard.status === 'generating' || storyboard.status === 'queued';
+  const [showCaptureModal, setShowCaptureModal] = useState(false);
+
+  const handleCaptureFrame = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCaptureModal(true);
+  };
 
   return (
     <div
@@ -100,11 +107,23 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
           #{index + 1}
         </div>
 
-        {/* 右上角删除按钮 */}
-        <div className="absolute top-2 right-2">
+        {/* 右上角操作按钮 */}
+        <div className="absolute top-2 right-2 flex gap-1">
+          {/* 截取关键帧按钮 - 仅在有视频时显示 */}
+          {storyboard.videoUrl && (
+            <button
+              onClick={handleCaptureFrame}
+              className="p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-purple-500 hover:text-white transition-colors"
+              title="截取关键帧"
+            >
+              <Camera size={14} />
+            </button>
+          )}
+          {/* 删除按钮 */}
           <button
             onClick={() => onDelete(storyboard.id)}
             className="p-1.5 rounded-md bg-black/40 text-white/80 hover:bg-red-500 hover:text-white transition-colors"
+            title="删除分镜"
           >
             <Trash2 size={14} />
           </button>
@@ -166,6 +185,15 @@ export const StoryboardCard: React.FC<StoryboardCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* 关键帧截取弹窗 */}
+      {showCaptureModal && storyboard.videoUrl && (
+        <FrameCaptureModal
+          videoUrl={storyboard.videoUrl}
+          storyboardIndex={index}
+          onClose={() => setShowCaptureModal(false)}
+        />
+      )}
     </div>
   );
 };

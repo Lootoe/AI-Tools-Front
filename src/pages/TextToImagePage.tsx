@@ -715,10 +715,18 @@ export const TextToImagePage: React.FC = () => {
                   />
                   {/* 悬浮操作栏 */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors">
+                    <a
+                      href={image}
+                      download={`generated-image-${index + 1}.png`}
+                      className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
+                      title="下载图片"
+                    >
                       <Download className="w-4 h-4 text-white" />
-                    </button>
-                    <button className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors">
+                    </a>
+                    <button 
+                      className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-colors"
+                      title="重新生成"
+                    >
                       <RefreshCw className="w-4 h-4 text-white" />
                     </button>
                     <button
@@ -728,6 +736,7 @@ export const TextToImagePage: React.FC = () => {
                         )
                       }
                       className="p-2 bg-white/20 hover:bg-red-500/80 rounded-lg backdrop-blur-sm transition-colors"
+                      title="删除"
                     >
                       <Trash2 className="w-4 h-4 text-white" />
                     </button>

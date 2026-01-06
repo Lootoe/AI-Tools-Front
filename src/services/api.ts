@@ -126,7 +126,7 @@ export interface RemixVideoRequest {
   duration?: '10' | '15';
   private?: boolean;
   characterIds?: string[];
-  referenceImageUrls?: string[]; // 参考图URL数组
+  // remix 模式不支持参考图
 }
 
 // Remix 视频生成
@@ -146,7 +146,7 @@ export async function remixVideo(request: RemixVideoRequest): Promise<Sora2Video
       duration: request.duration || '15',
       private: request.private ?? false,
       ...(request.characterIds ? { characterIds: request.characterIds } : {}),
-      ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
+      // remix 模式不支持参考图
     }),
   });
 

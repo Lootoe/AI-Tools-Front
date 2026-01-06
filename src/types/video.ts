@@ -32,6 +32,7 @@ export interface Storyboard {
   progress?: string;       // 生成进度百分比
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
+  mode?: 'normal' | 'remix'; // 生成模式：普通模式/remix模式
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
   createdAt: string;
 }

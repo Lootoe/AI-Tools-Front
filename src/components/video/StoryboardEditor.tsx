@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Video } from 'lucide-react';
+import { Plus, Trash2, Video, Download } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { Character, Episode } from '@/types/video';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { StoryboardSettingsModal } from './StoryboardSettingsModal';
 import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
 import { useStoryboardDrag } from '@/hooks/useStoryboardDrag';
 import { generateStoryboardVideo, remixVideo } from '@/services/api';
+import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 
 // 默认风格设定
 const DEFAULT_STYLE = '日漫风格';
@@ -32,6 +33,8 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
   const [settingsModalStoryboardId, setSettingsModalStoryboardId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deleteConfirmStoryboardId, setDeleteConfirmStoryboardId] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number; filename: string } | null>(null);
 
   // 轮询状态变更回调
   const handleStatusChange = useCallback((taskId: string, result: PollResult) => {
@@ -109,6 +112,7 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       referenceImageUrls?: string[];
       aspectRatio: string;
       duration: string;
+      mode: string;
     }
   ) => {
     if (!script) return;
@@ -118,6 +122,7 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       referenceImageUrls: data.referenceImageUrls,
       aspectRatio: data.aspectRatio as '9:16' | '16:9',
       duration: data.duration as '10' | '15',
+      mode: data.mode as 'normal' | 'remix',
     });
   };
 
@@ -145,24 +150,27 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       // 构建 prompt
       const finalPrompt = buildPrompt(storyboard.description, storyboard.characterIds, script.characters);
 
-      // 判断是否需要 remix
+      // 根据用户选择的模式决定是否使用 remix
+      const useRemixMode = storyboard.mode === 'remix';
       const storyboardIndex = episode.storyboards.findIndex((sb) => sb.id === storyboardId);
       const previousTaskId = findPreviousCompletedTaskId(episode.storyboards, storyboardIndex);
 
       let response;
-      if (storyboardIndex === 0 || !previousTaskId) {
-        response = await generateStoryboardVideo({
-          prompt: finalPrompt,
-          aspect_ratio: storyboard.aspectRatio || '9:16',
-          duration: storyboard.duration || '15',
-          characterIds: storyboard.characterIds,
-          referenceImageUrls: storyboard.referenceImageUrls,
-        });
-      } else {
+      if (useRemixMode && previousTaskId) {
+        // 用户选择了 remix 模式且有上一个完成的视频
         const remixPrompt = `接上个视频结尾，以下是后续剧情。\n\n${finalPrompt}`;
         response = await remixVideo({
           taskId: previousTaskId,
           prompt: remixPrompt,
+          aspect_ratio: storyboard.aspectRatio || '9:16',
+          duration: storyboard.duration || '15',
+          characterIds: storyboard.characterIds,
+          // remix 模式不支持参考图
+        });
+      } else {
+        // 普通模式或没有上一个视频
+        response = await generateStoryboardVideo({
+          prompt: finalPrompt,
           aspect_ratio: storyboard.aspectRatio || '9:16',
           duration: storyboard.duration || '15',
           characterIds: storyboard.characterIds,
@@ -198,6 +206,39 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
     setShowClearConfirm(false);
   };
 
+  const handleDownloadAll = async () => {
+    // 检查是否有可下载的视频
+    const completedCount = episode.storyboards.filter(
+      sb => sb.status === 'completed' && sb.videoUrl
+    ).length;
+
+    if (completedCount === 0) {
+      alert('暂无可下载的视频');
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadProgress({ current: 0, total: completedCount, filename: '' });
+
+    try {
+      const result = await downloadEpisodeVideos(episode, (current, total, filename) => {
+        setDownloadProgress({ current, total, filename });
+      });
+
+      if (result.failed > 0) {
+        alert(`下载完成！成功：${result.success} 个，失败：${result.failed} 个`);
+      } else {
+        alert(`成功下载 ${result.success} 个视频！`);
+      }
+    } catch (error) {
+      console.error('批量下载失败:', error);
+      alert(error instanceof Error ? error.message : '下载失败');
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
+
   if (!script) return null;
 
   const currentSettingsStoryboard = settingsModalStoryboardId
@@ -222,15 +263,29 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
         </div>
         <div className="flex items-center gap-2">
           {episode.storyboards.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowClearConfirm(true)}
-              className="text-red-500 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-            >
-              <Trash2 size={14} className="mr-1.5" />
-              清空分镜
-            </Button>
+            <>
+              {episode.storyboards.some(sb => sb.status === 'completed' && sb.videoUrl) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAll}
+                  disabled={isDownloading}
+                  className="text-blue-500 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20"
+                >
+                  <Download size={14} className="mr-1.5" />
+                  {isDownloading ? `下载中 ${downloadProgress?.current}/${downloadProgress?.total}` : '批量下载'}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowClearConfirm(true)}
+                className="text-red-500 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+              >
+                <Trash2 size={14} className="mr-1.5" />
+                清空分镜
+              </Button>
+            </>
           )}
           <Button size="sm" onClick={handleAddStoryboard}>
             <Plus size={14} className="mr-1.5" />
@@ -294,6 +349,7 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
           referenceImageUrls={currentSettingsStoryboard.referenceImageUrls}
           aspectRatio={currentSettingsStoryboard.aspectRatio}
           duration={currentSettingsStoryboard.duration}
+          mode={currentSettingsStoryboard.mode}
           onSave={(data) => handleSaveSettings(settingsModalStoryboardId, data)}
           onClose={() => setSettingsModalStoryboardId(null)}
         />

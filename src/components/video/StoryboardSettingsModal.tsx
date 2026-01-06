@@ -13,12 +13,14 @@ interface StoryboardSettingsModalProps {
   referenceImageUrls?: string[];
   aspectRatio?: string;
   duration?: string;
+  mode?: string;
   onSave: (data: {
     description: string;
     characterIds: string[];
     referenceImageUrls?: string[];
     aspectRatio: string;
     duration: string;
+    mode: string;
   }) => void;
   onClose: () => void;
 }
@@ -30,6 +32,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   referenceImageUrls = [],
   aspectRatio = '9:16',
   duration = '15',
+  mode = 'normal',
   onSave,
   onClose,
 }) => {
@@ -38,10 +41,19 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   const [refImageUrls, setRefImageUrls] = useState<string[]>(referenceImageUrls);
   const [ratio, setRatio] = useState(aspectRatio);
   const [dur, setDur] = useState(duration);
+  const [selectedMode, setSelectedMode] = useState(mode);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCharacterDropdown, setShowCharacterDropdown] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 当切换到 remix 模式时，清空参考图
+  const handleModeChange = (newMode: string) => {
+    setSelectedMode(newMode);
+    if (newMode === 'remix') {
+      setRefImageUrls([]);
+    }
+  };
 
   // 使用 ref 来追踪上一次的 props，避免数组引用导致的无限循环
   const prevPropsRef = useRef({
@@ -50,6 +62,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
     referenceImageUrls: JSON.stringify(referenceImageUrls),
     aspectRatio,
     duration,
+    mode,
   });
 
   useEffect(() => {
@@ -59,6 +72,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       referenceImageUrls: JSON.stringify(referenceImageUrls),
       aspectRatio,
       duration,
+      mode,
     };
 
     // 只在 props 真正改变时才更新状态
@@ -68,9 +82,10 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       setRefImageUrls(referenceImageUrls);
       setRatio(aspectRatio);
       setDur(duration);
+      setSelectedMode(mode);
       prevPropsRef.current = currentProps;
     }
-  }, [description, selectedCharacterIds, referenceImageUrls, aspectRatio, duration]);
+  }, [description, selectedCharacterIds, referenceImageUrls, aspectRatio, duration, mode]);
 
   const handleAddCharacter = (characterId: string) => {
     if (characterId && !selectedIds.includes(characterId)) {
@@ -138,6 +153,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       referenceImageUrls: refImageUrls.length > 0 ? refImageUrls : undefined,
       aspectRatio: ratio,
       duration: dur,
+      mode: selectedMode,
     });
     onClose();
   };
@@ -308,71 +324,44 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
           </div>
 
           {/* 右侧 - 参考图和视频设置 */}
-          <div className="w-72 overflow-y-auto p-5 bg-white dark:bg-gray-800 space-y-4">
-            {/* 参考图上传 */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <Image size={14} className="text-purple-500" />
-                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    参考图
-                  </h4>
-                  {refImageUrls.length > 0 && (
-                    <span className="text-xs text-gray-400">({refImageUrls.length})</span>
-                  )}
-                </div>
+          <div className="w-72 overflow-y-auto p-5 bg-white dark:bg-gray-800 space-y-4 scrollbar-hide">
+            {/* 生成模式选择 */}
+            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings size={14} className="text-purple-500" />
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  生成模式
+                </h4>
               </div>
-
-              {/* 已上传图片网格 */}
-              {refImageUrls.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  {refImageUrls.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`参考图 ${index + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 上传按钮 */}
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={isUploadingImages}
-                />
+              <div className="flex gap-2">
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingImages}
-                  className="w-full h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploadingImages ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span className="text-xs">上传中...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={16} />
-                      <span className="text-xs">点击上传参考图</span>
-                    </>
+                  onClick={() => handleModeChange('normal')}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg border transition-colors text-xs font-medium',
+                    selectedMode === 'normal'
+                      ? 'border-purple-500 bg-purple-500 text-white'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-400'
                   )}
+                >
+                  普通模式
+                </button>
+                <button
+                  onClick={() => handleModeChange('remix')}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg border transition-colors text-xs font-medium',
+                    selectedMode === 'remix'
+                      ? 'border-purple-500 bg-purple-500 text-white'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-400'
+                  )}
+                >
+                  Remix模式
                 </button>
               </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {selectedMode === 'normal' 
+                  ? '独立生成视频，支持上传参考图' 
+                  : 'Remix模式会基于上一个分镜生成连续视频'}
+              </p>
             </div>
 
             {/* 视频设置 */}
@@ -444,6 +433,77 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                     15秒
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* 参考图上传 - 移到最下方 */}
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Image size={14} className="text-purple-500" />
+                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    参考图
+                  </h4>
+                  {refImageUrls.length > 0 && (
+                    <span className="text-xs text-gray-400">({refImageUrls.length})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 已上传图片网格 */}
+              {refImageUrls.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  {refImageUrls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`参考图 ${index + 1}`}
+                        className="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                      />
+                      {selectedMode !== 'remix' && (
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 上传按钮 */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={isUploadingImages || selectedMode === 'remix'}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingImages || selectedMode === 'remix'}
+                  className="w-full h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={selectedMode === 'remix' ? 'Remix模式不支持上传参考图' : ''}
+                >
+                  {isUploadingImages ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-xs">上传中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      <span className="text-xs">
+                        {selectedMode === 'remix' ? 'Remix模式不支持参考图' : '点击上传参考图'}
+                      </span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
