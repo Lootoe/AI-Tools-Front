@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Navbar } from '@/components/layout/Navbar';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HomePage } from '@/pages/HomePage';
 import { ChatPage } from '@/pages/ChatPage';
 import { TextToImagePage } from '@/pages/TextToImagePage';
-import { VideoGenerationPage } from '@/pages/VideoGenerationPage';
+import { ScriptListPage } from '@/pages/ScriptListPage';
+import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
 import { useModelStore } from '@/stores/modelStore';
 
 const queryClient = new QueryClient({
@@ -26,17 +26,34 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-purple-950/20">
-          {/* 背景装饰 */}
+        <div className="flex flex-col h-screen" style={{ backgroundColor: '#0a0a12' }}>
+          {/* 赛博朋克背景 */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 -left-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl" />
+            {/* 动态霓虹光晕 */}
+            <div 
+              className="absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full blur-[120px] animate-glow-1"
+              style={{ backgroundColor: 'rgba(0, 245, 255, 0.25)' }} 
+            />
+            <div 
+              className="absolute top-1/4 -left-20 w-[400px] h-[400px] rounded-full blur-[100px] animate-glow-2"
+              style={{ backgroundColor: 'rgba(255, 0, 255, 0.2)' }} 
+            />
+            <div 
+              className="absolute -bottom-20 right-1/4 w-[450px] h-[450px] rounded-full blur-[110px] animate-glow-3"
+              style={{ backgroundColor: 'rgba(138, 43, 226, 0.2)' }} 
+            />
+            <div 
+              className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full blur-[80px] animate-glow-4"
+              style={{ backgroundColor: 'rgba(0, 191, 255, 0.15)' }} 
+            />
           </div>
           
-          <Navbar />
+          {/* 导航栏已移除，默认显示AI漫剧页面 */}
           <Routes>
-            <Route path="/" element={
+            {/* 根路径重定向到AI漫剧页面 */}
+            <Route path="/" element={<Navigate to="/video" replace />} />
+            {/* 保留其他路由，但暂时不通过导航访问 */}
+            <Route path="/home" element={
               <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
                 <HomePage />
               </main>
@@ -47,9 +64,15 @@ function App() {
                 <TextToImagePage />
               </main>
             } />
-            <Route path="/ai-comic" element={
-              <main className="flex-1 px-4 py-4 overflow-hidden relative">
-                <VideoGenerationPage />
+            <Route path="/ai-comic" element={<Navigate to="/video" replace />} />
+            <Route path="/video" element={
+              <main className="flex-1 overflow-hidden relative">
+                <ScriptListPage />
+              </main>
+            } />
+            <Route path="/video/script/:scriptId" element={
+              <main className="flex-1 overflow-hidden relative">
+                <ScriptEditorPage />
               </main>
             } />
           </Routes>

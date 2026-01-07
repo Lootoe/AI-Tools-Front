@@ -1,5 +1,5 @@
 // 剧本相关 API 服务
-import { Script, Character, Episode, Storyboard, VideoPhase } from '@/types/video';
+import { Script, Episode, Storyboard, StoryboardVariant, VideoPhase } from '@/types/video';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -61,33 +61,6 @@ export async function deleteScript(id: string): Promise<void> {
 }
 
 
-// ============ 角色 API ============
-
-export async function createCharacter(
-  scriptId: string,
-  data: Omit<Character, 'id' | 'status' | 'createdAt'>
-): Promise<Character> {
-  return request<Character>(`/api/scripts/${scriptId}/characters`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateCharacter(
-  scriptId: string,
-  characterId: string,
-  data: Partial<Character>
-): Promise<Character> {
-  return request<Character>(`/api/scripts/${scriptId}/characters/${characterId}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteCharacter(scriptId: string, characterId: string): Promise<void> {
-  await request<void>(`/api/scripts/${scriptId}/characters/${characterId}`, { method: 'DELETE' });
-}
-
 // ============ 剧集 API ============
 
 export async function createEpisode(
@@ -120,7 +93,7 @@ export async function deleteEpisode(scriptId: string, episodeId: string): Promis
 export async function createStoryboard(
   scriptId: string,
   episodeId: string,
-  data: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt'>
+  data: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt' | 'variants'>
 ): Promise<Storyboard> {
   return request<Storyboard>(`/api/scripts/${scriptId}/episodes/${episodeId}/storyboards`, {
     method: 'POST',
@@ -169,4 +142,65 @@ export async function reorderStoryboards(
     method: 'PUT',
     body: JSON.stringify({ storyboardIds }),
   });
+}
+
+
+// ============ 分镜副本 API ============
+
+export async function createVariant(
+  scriptId: string,
+  episodeId: string,
+  storyboardId: string,
+  data?: Partial<StoryboardVariant>
+): Promise<StoryboardVariant> {
+  return request<StoryboardVariant>(
+    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/variants`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }
+  );
+}
+
+export async function updateVariant(
+  scriptId: string,
+  episodeId: string,
+  storyboardId: string,
+  variantId: string,
+  data: Partial<StoryboardVariant>
+): Promise<StoryboardVariant> {
+  return request<StoryboardVariant>(
+    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/variants/${variantId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function deleteVariant(
+  scriptId: string,
+  episodeId: string,
+  storyboardId: string,
+  variantId: string
+): Promise<void> {
+  await request<void>(
+    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/variants/${variantId}`,
+    { method: 'DELETE' }
+  );
+}
+
+export async function setActiveVariant(
+  scriptId: string,
+  episodeId: string,
+  storyboardId: string,
+  variantId: string
+): Promise<void> {
+  await request<void>(
+    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/active-variant`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ variantId }),
+    }
+  );
 }

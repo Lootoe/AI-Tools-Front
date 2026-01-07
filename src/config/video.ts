@@ -3,9 +3,6 @@
 // 轮询间隔（毫秒）
 export const POLL_INTERVAL = 10000;
 
-// 角色创建时间戳范围
-export const CHARACTER_TIMESTAMPS = '1,3';
-
 // 默认视频设置
 export const DEFAULT_VIDEO_SETTINGS = {
   aspectRatio: '9:16' as const,

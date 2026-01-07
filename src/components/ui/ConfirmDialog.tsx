@@ -22,19 +22,25 @@ const iconMap = {
 
 const colorMap = {
   danger: {
-    bg: 'bg-red-100 dark:bg-red-900/30',
-    icon: 'text-red-500',
-    button: 'bg-red-500 hover:bg-red-600',
+    bg: 'rgba(239, 68, 68, 0.15)',
+    border: 'rgba(239, 68, 68, 0.3)',
+    icon: '#ef4444',
+    button: 'linear-gradient(135deg, #ef4444, #dc2626)',
+    buttonShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
   },
   warning: {
-    bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-    icon: 'text-yellow-500',
-    button: 'bg-yellow-500 hover:bg-yellow-600',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    border: 'rgba(245, 158, 11, 0.3)',
+    icon: '#f59e0b',
+    button: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    buttonShadow: '0 4px 15px rgba(245, 158, 11, 0.4)',
   },
   info: {
-    bg: 'bg-blue-100 dark:bg-blue-900/30',
-    icon: 'text-blue-500',
-    button: 'bg-blue-500 hover:bg-blue-600',
+    bg: 'rgba(59, 130, 246, 0.15)',
+    border: 'rgba(59, 130, 246, 0.3)',
+    icon: '#3b82f6',
+    button: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    buttonShadow: '0 4px 15px rgba(59, 130, 246, 0.4)',
   },
 };
 
@@ -54,29 +60,62 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const colors = colorMap[type];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl animate-scale-in">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+    >
+      <div 
+        className="rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl animate-scale-in"
+        style={{ 
+          backgroundColor: 'rgba(15, 15, 25, 0.95)',
+          border: '1px solid rgba(60, 60, 80, 0.5)',
+          boxShadow: '0 0 40px rgba(0, 0, 0, 0.5)'
+        }}
+      >
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center`}>
-            <Icon size={20} className={colors.icon} />
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ 
+              backgroundColor: colors.bg,
+              border: `1px solid ${colors.border}`
+            }}
+          >
+            <Icon size={20} style={{ color: colors.icon }} />
           </div>
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+          <h3 className="text-lg font-bold text-white">
             {title}
           </h3>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-sm mb-6" style={{ color: '#9ca3af' }}>
           {message}
         </p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
+            className="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+            style={{ 
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(60, 60, 80, 0.5)',
+              color: '#9ca3af'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+              e.currentTarget.style.color = '#d1d5db';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(60, 60, 80, 0.5)';
+              e.currentTarget.style.color = '#9ca3af';
+            }}
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2 text-sm font-medium text-white ${colors.button} rounded-xl transition-colors`}
+            className="flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all"
+            style={{ 
+              background: colors.button,
+              boxShadow: colors.buttonShadow
+            }}
           >
             {confirmText}
           </button>

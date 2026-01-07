@@ -84,7 +84,6 @@ export interface StoryboardToVideoRequest {
   aspect_ratio?: '16:9' | '9:16';
   duration?: '10' | '15';
   private?: boolean;
-  characterIds?: string[]; // 关联的角色ID数组
   referenceImageUrls?: string[]; // 参考图URL数组
 }
 
@@ -104,7 +103,6 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       aspect_ratio: request.aspect_ratio || '9:16',
       duration: request.duration || '15',
       private: request.private ?? false,
-      ...(request.characterIds ? { characterIds: request.characterIds } : {}),
       ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
     }),
   });
@@ -112,58 +110,6 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`分镜视频生成失败: ${error.error || error.message || response.statusText}`);
-  }
-
-  return response.json();
-}
-
-// Sora2 创建角色请求
-export interface CreateCharacterRequest {
-  characterId: string; // 数据库中的角色ID
-  timestamps: string; // 例如 '1,2' 表示视频的1～2秒，范围差值最大3秒最小1秒
-  url?: string; // 视频URL（包含需要创建的角色，视频必须有声音、有角色）
-  from_task?: string; // 任务ID（根据已生成的任务创建角色）
-}
-
-// Sora2 创建角色响应（返回更新后的数据库角色）
-export interface CreateCharacterResponse {
-  success: boolean;
-  data: {
-    id: string;
-    characterId: string; // Sora2 角色ID
-    username: string;
-    permalink: string;
-    profilePictureUrl: string;
-    isCreatingCharacter: boolean;
-  };
-}
-
-// 创建 Sora2 角色（注册角色）
-export async function createSora2Character(request: CreateCharacterRequest): Promise<CreateCharacterResponse> {
-  const token = getAuthToken();
-
-  // 验证参数
-  if (!request.url && !request.from_task) {
-    throw new Error('url 和 from_task 必须提供其中一个');
-  }
-
-  const response = await fetch(`${BACKEND_URL}/api/videos/characters`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      characterId: request.characterId,
-      timestamps: request.timestamps,
-      ...(request.url ? { url: request.url } : {}),
-      ...(request.from_task ? { from_task: request.from_task } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(`创建角色失败: ${error.error || error.message || response.statusText}`);
   }
 
   return response.json();

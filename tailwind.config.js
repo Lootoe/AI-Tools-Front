@@ -13,6 +13,21 @@ export default {
                 gray: {
                     850: '#1a1a1a',
                 },
+                // 赛博朋克霓虹色系
+                neon: {
+                    cyan: '#00f5ff',
+                    pink: '#ff00ff',
+                    purple: '#bf00ff',
+                    blue: '#4d7cff',
+                    green: '#00ff9d',
+                },
+                cyber: {
+                    dark: '#0a0a0f',
+                    darker: '#050508',
+                    card: '#12121a',
+                    border: '#1e1e2e',
+                    hover: '#1a1a28',
+                },
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
                 ring: "hsl(var(--ring))",
@@ -70,6 +85,9 @@ export default {
                 'slide-down': 'slideDown 0.3s ease-out',
                 'scale-in': 'scaleIn 0.2s ease-out',
                 'shimmer': 'shimmer 2s linear infinite',
+                'neon-pulse': 'neonPulse 2s ease-in-out infinite',
+                'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+                'border-flow': 'borderFlow 3s linear infinite',
             },
             keyframes: {
                 fadeIn: {
@@ -91,6 +109,19 @@ export default {
                 shimmer: {
                     '0%': { backgroundPosition: '-200% 0' },
                     '100%': { backgroundPosition: '200% 0' },
+                },
+                neonPulse: {
+                    '0%, 100%': { opacity: '1', filter: 'brightness(1)' },
+                    '50%': { opacity: '0.8', filter: 'brightness(1.2)' },
+                },
+                glowPulse: {
+                    '0%, 100%': { boxShadow: '0 0 5px currentColor, 0 0 10px currentColor' },
+                    '50%': { boxShadow: '0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor' },
+                },
+                borderFlow: {
+                    '0%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' },
+                    '100%': { backgroundPosition: '0% 50%' },
                 },
             },
         },

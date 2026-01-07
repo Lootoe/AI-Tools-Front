@@ -54,40 +54,51 @@ async function downloadSingleVideo(
 }
 
 /**
- * 批量下载剧集中的所有分镜视频
+ * 批量下载剧集中所有分镜的当前选中副本视频
  */
 export async function downloadEpisodeVideos(
   episode: Episode,
   onProgress?: (current: number, total: number, filename: string) => void
 ): Promise<{ success: number; failed: number }> {
-  // 筛选出已完成且有视频URL的分镜
-  const completedStoryboards = episode.storyboards.filter(
-    (sb) => sb.status === 'completed' && sb.videoUrl
-  );
+  // 筛选出有可下载视频的分镜（优先使用当前选中副本，否则使用旧数据）
+  const downloadableStoryboards = episode.storyboards
+    .map((sb) => {
+      // 优先使用当前选中的副本
+      const activeVariant = sb.variants?.find((v) => v.id === sb.activeVariantId);
+      if (activeVariant?.status === 'completed' && activeVariant?.videoUrl) {
+        return { storyboard: sb, videoUrl: activeVariant.videoUrl };
+      }
+      // 兼容旧数据
+      if (sb.status === 'completed' && sb.videoUrl) {
+        return { storyboard: sb, videoUrl: sb.videoUrl };
+      }
+      return null;
+    })
+    .filter((item): item is { storyboard: typeof episode.storyboards[0]; videoUrl: string } => item !== null);
 
-  if (completedStoryboards.length === 0) {
+  if (downloadableStoryboards.length === 0) {
     throw new Error('没有可下载的视频');
   }
 
   let successCount = 0;
   let failedCount = 0;
 
-  for (let i = 0; i < completedStoryboards.length; i++) {
-    const storyboard = completedStoryboards[i];
+  for (let i = 0; i < downloadableStoryboards.length; i++) {
+    const { storyboard, videoUrl } = downloadableStoryboards[i];
     
     // 构建文件名：剧集序号_分镜序号.mp4
     const filename = `E${String(episode.episodeNumber).padStart(2, '0')}_S${String(storyboard.sceneNumber).padStart(2, '0')}.mp4`;
     
     try {
       if (onProgress) {
-        onProgress(i + 1, completedStoryboards.length, filename);
+        onProgress(i + 1, downloadableStoryboards.length, filename);
       }
 
-      await downloadSingleVideo(storyboard.videoUrl!, filename);
+      await downloadSingleVideo(videoUrl, filename);
       successCount++;
       
       // 添加延迟避免浏览器阻止多个下载
-      if (i < completedStoryboards.length - 1) {
+      if (i < downloadableStoryboards.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     } catch (error) {

@@ -226,6 +226,140 @@
             0 8px 32px -8px rgba(0, 0, 0, 0.1);
     }
 
+    /* 霓虹发光效果 */
+    .neon-glow-cyan {
+        box-shadow: 0 0 10px rgba(0, 245, 255, 0.3), 0 0 20px rgba(0, 245, 255, 0.2), 0 0 30px rgba(0, 245, 255, 0.1);
+    }
+
+    .neon-glow-pink {
+        box-shadow: 0 0 10px rgba(255, 0, 255, 0.3), 0 0 20px rgba(255, 0, 255, 0.2), 0 0 30px rgba(255, 0, 255, 0.1);
+    }
+
+    .neon-glow-purple {
+        box-shadow: 0 0 10px rgba(191, 0, 255, 0.3), 0 0 20px rgba(191, 0, 255, 0.2), 0 0 30px rgba(191, 0, 255, 0.1);
+    }
+
+    /* 霓虹文字 */
+    .neon-text-cyan {
+        color: #00f5ff;
+        text-shadow: 0 0 5px rgba(0, 245, 255, 0.5), 0 0 10px rgba(0, 245, 255, 0.3);
+    }
+
+    .neon-text-pink {
+        color: #ff00ff;
+        text-shadow: 0 0 5px rgba(255, 0, 255, 0.5), 0 0 10px rgba(255, 0, 255, 0.3);
+    }
+
+    /* 动态霓虹网格动画 */
+    @keyframes gridFlow {
+        0%, 100% {
+            opacity: 0.3;
+            background-position: 0 0;
+        }
+        50% {
+            opacity: 0.5;
+            background-position: 30px 30px;
+        }
+    }
+
+    .animate-grid-flow {
+        animation: gridFlow 8s ease-in-out infinite;
+    }
+
+    /* 霓虹光晕动画 */
+    @keyframes glowFloat1 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.25;
+        }
+        33% {
+            transform: translate(30px, -20px) scale(1.1);
+            opacity: 0.35;
+        }
+        66% {
+            transform: translate(-20px, 30px) scale(0.95);
+            opacity: 0.2;
+        }
+    }
+
+    @keyframes glowFloat2 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.2;
+        }
+        33% {
+            transform: translate(-25px, 35px) scale(1.05);
+            opacity: 0.3;
+        }
+        66% {
+            transform: translate(35px, -15px) scale(0.9);
+            opacity: 0.15;
+        }
+    }
+
+    @keyframes glowFloat3 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.2;
+        }
+        33% {
+            transform: translate(40px, 20px) scale(0.95);
+            opacity: 0.15;
+        }
+        66% {
+            transform: translate(-30px, -25px) scale(1.1);
+            opacity: 0.3;
+        }
+    }
+
+    @keyframes glowFloat4 {
+        0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.15;
+        }
+        50% {
+            transform: translate(20px, -30px) scale(1.15);
+            opacity: 0.25;
+        }
+    }
+
+    .animate-glow-1 {
+        animation: glowFloat1 12s ease-in-out infinite;
+    }
+
+    .animate-glow-2 {
+        animation: glowFloat2 15s ease-in-out infinite;
+    }
+
+    .animate-glow-3 {
+        animation: glowFloat3 18s ease-in-out infinite;
+    }
+
+    .animate-glow-4 {
+        animation: glowFloat4 10s ease-in-out infinite;
+    }
+
+    /* 霓虹边框动画 */
+    .neon-border-animate {
+        position: relative;
+    }
+
+    .neon-border-animate::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(90deg, #00f5ff, #ff00ff, #bf00ff, #00f5ff);
+        background-size: 300% 100%;
+        border-radius: inherit;
+        z-index: -1;
+        animation: borderFlow 3s linear infinite;
+    }
+
+    @keyframes borderFlow {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 300% 50%; }
+    }
+
     /* 闪烁动画 - 用于停止按钮 */
     .animate-shimmer {
         animation: shimmer 2s linear infinite;
@@ -237,6 +371,28 @@
         }
         100% {
             transform: translateX(100%);
+        }
+    }
+
+    /* 幻境AI Logo 渐变流动动画 */
+    @keyframes gradient-flow {
+        0% {
+            background-position: 0% 50%;
+        }
+        100% {
+            background-position: 200% 50%;
+        }
+    }
+
+    /* 幻境AI Logo 脉冲发光动画 */
+    @keyframes pulse-glow {
+        0%, 100% {
+            opacity: 1;
+            box-shadow: 0 0 6px #00f5ff, 0 0 12px #00f5ff;
+        }
+        50% {
+            opacity: 0.5;
+            box-shadow: 0 0 3px #00f5ff, 0 0 6px #00f5ff;
         }
     }
 
@@ -379,5 +535,147 @@
     /* 水平线样式 */
     .prose hr {
         @apply my-4 border-gray-300 dark:border-gray-600;
+    }
+
+    /* 赛博朋克扫描线效果 */
+    .cyber-scanlines {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cyber-scanlines::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 245, 255, 0.03) 2px,
+            rgba(0, 245, 255, 0.03) 4px
+        );
+        pointer-events: none;
+    }
+
+    /* 赛博朋克网格背景 */
+    .cyber-grid {
+        background-image: 
+            linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    /* 霓虹边框闪烁 */
+    @keyframes neonFlicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+            opacity: 1;
+        }
+        20%, 24%, 55% {
+            opacity: 0.6;
+        }
+    }
+
+    .neon-flicker {
+        animation: neonFlicker 3s infinite;
+    }
+
+    /* 赛博朋克滚动条 - 垂直 */
+    .cyber-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .cyber-scrollbar::-webkit-scrollbar-track {
+        background: rgba(30, 30, 46, 0.5);
+        border-radius: 2px;
+    }
+
+    .cyber-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 245, 255, 0.4);
+        border-radius: 2px;
+    }
+
+    .cyber-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 245, 255, 0.6);
+    }
+
+    /* 横向滚动条专用 */
+    .cyber-scrollbar-x::-webkit-scrollbar {
+        height: 3px;
+    }
+
+    .cyber-scrollbar-x::-webkit-scrollbar-track {
+        background: rgba(30, 30, 46, 0.3);
+        border-radius: 2px;
+    }
+
+    .cyber-scrollbar-x::-webkit-scrollbar-thumb {
+        background: rgba(0, 245, 255, 0.3);
+        border-radius: 2px;
+    }
+
+    .cyber-scrollbar-x::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 245, 255, 0.5);
+    }
+
+    /* 赛博朋克按钮悬停效果 */
+    .cyber-btn {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cyber-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(0, 245, 255, 0.2),
+            transparent
+        );
+        transition: left 0.5s;
+    }
+
+    .cyber-btn:hover::before {
+        left: 100%;
+    }
+
+    /* 数据流动画 */
+    @keyframes dataFlow {
+        0% {
+            background-position: 0% 0%;
+        }
+        100% {
+            background-position: 100% 100%;
+        }
+    }
+
+    .data-flow {
+        background: linear-gradient(
+            135deg,
+            transparent 25%,
+            rgba(0, 245, 255, 0.1) 25%,
+            rgba(0, 245, 255, 0.1) 50%,
+            transparent 50%,
+            transparent 75%,
+            rgba(191, 0, 255, 0.1) 75%
+        );
+        background-size: 20px 20px;
+        animation: dataFlow 2s linear infinite;
+    }
+
+    /* 全息效果 */
+    .hologram {
+        background: linear-gradient(
+            135deg,
+            rgba(0, 245, 255, 0.1) 0%,
+            rgba(191, 0, 255, 0.1) 50%,
+            rgba(0, 245, 255, 0.1) 100%
+        );
+        backdrop-filter: blur(10px);
     }
 }

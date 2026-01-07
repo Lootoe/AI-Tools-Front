@@ -7,11 +7,11 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, children, ...props }, ref) => {
+  ({ className, label, children, style, ...props }, ref) => {
     return (
       <div className="relative">
         {label && (
-          <label className="block text-sm font-medium mb-1.5">
+          <label className="block text-sm font-medium mb-1.5" style={{ color: '#9ca3af' }}>
             {label}
           </label>
         )}
@@ -20,20 +20,26 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             className={cn(
               'w-full h-10 px-3 py-2 pr-10 text-sm',
-              'bg-background border border-input rounded-md',
-              'appearance-none cursor-pointer',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'rounded-lg appearance-none cursor-pointer',
+              'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
               'disabled:cursor-not-allowed disabled:opacity-50',
               'transition-colors',
               className
             )}
+            style={{
+              backgroundColor: 'rgba(20, 20, 35, 0.8)',
+              border: '1px solid rgba(60, 60, 80, 0.5)',
+              color: '#e5e7eb',
+              ...style
+            }}
             {...props}
           >
             {children}
           </select>
           <ChevronDown 
-            className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" 
-            size={16} 
+            className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" 
+            size={16}
+            style={{ color: '#6b7280' }}
           />
         </div>
       </div>

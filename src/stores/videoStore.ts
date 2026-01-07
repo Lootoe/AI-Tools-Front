@@ -1,12 +1,16 @@
 import { create } from 'zustand';
-import { Script, Character, Episode, Storyboard, VideoPhase } from '@/types/video';
+import { Script, Episode, Storyboard, StoryboardVariant, VideoPhase, AssetTabType } from '@/types/video';
 import * as api from '@/services/scriptApi';
 
 interface VideoState {
   scripts: Script[];
   currentScriptId: string | null;
+  currentAssetTab: AssetTabType;
   isLoading: boolean;
   error: string | null;
+
+  // 资产 Tab 操作
+  setAssetTab: (tab: AssetTabType) => void;
 
   // 剧本操作
   loadScripts: () => Promise<void>;
@@ -16,22 +20,23 @@ interface VideoState {
   renameScript: (id: string, title: string) => Promise<void>;
   updateScriptPhase: (id: string, phase: VideoPhase) => Promise<void>;
 
-  // 角色操作
-  addCharacter: (scriptId: string, character: Omit<Character, 'id' | 'status' | 'createdAt'>) => Promise<string>;
-  updateCharacter: (scriptId: string, characterId: string, updates: Partial<Character>) => Promise<void>;
-  deleteCharacter: (scriptId: string, characterId: string) => Promise<void>;
-
   // 剧集操作
   addEpisode: (scriptId: string, episode: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateEpisode: (scriptId: string, episodeId: string, updates: Partial<Episode>) => Promise<void>;
   deleteEpisode: (scriptId: string, episodeId: string) => Promise<void>;
 
   // 分镜操作
-  addStoryboard: (scriptId: string, episodeId: string, storyboard: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt'>) => Promise<string>;
+  addStoryboard: (scriptId: string, episodeId: string, storyboard: Omit<Storyboard, 'id' | 'episodeId' | 'status' | 'createdAt' | 'variants'>) => Promise<string>;
   updateStoryboard: (scriptId: string, episodeId: string, storyboardId: string, updates: Partial<Storyboard>) => Promise<void>;
   deleteStoryboard: (scriptId: string, episodeId: string, storyboardId: string) => Promise<void>;
   clearStoryboards: (scriptId: string, episodeId: string) => Promise<void>;
   reorderStoryboards: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => Promise<void>;
+
+  // 分镜副本操作
+  addVariant: (scriptId: string, episodeId: string, storyboardId: string) => Promise<string>;
+  updateVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string, updates: Partial<StoryboardVariant>) => Promise<void>;
+  deleteVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
+  setActiveVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
 
   // 获取当前剧本
   getCurrentScript: () => Script | null;
@@ -43,17 +48,25 @@ interface VideoState {
 export const useVideoStore = create<VideoState>((set, get) => ({
   scripts: [],
   currentScriptId: null,
+  currentAssetTab: 'storyboard',
   isLoading: false,
   error: null,
+
+  setAssetTab: (tab: AssetTabType) => {
+    set({ currentAssetTab: tab });
+  },
 
   loadScripts: async () => {
     set({ isLoading: true, error: null });
     try {
       const scripts = await api.fetchScripts();
-      // 确保分镜按 sceneNumber 排序
+      // 确保分镜按 sceneNumber 排序，并初始化 variants 数组
       scripts.forEach((script) => {
         script.episodes.forEach((episode) => {
           episode.storyboards.sort((a, b) => a.sceneNumber - b.sceneNumber);
+          episode.storyboards.forEach((sb) => {
+            if (!sb.variants) sb.variants = [];
+          });
         });
       });
       const currentScriptId = scripts.length > 0 ? scripts[0].id : null;
@@ -128,69 +141,18 @@ export const useVideoStore = create<VideoState>((set, get) => ({
   refreshScript: async (scriptId: string) => {
     try {
       const script = await api.fetchScript(scriptId);
-      // 确保分镜按 sceneNumber 排序
+      // 确保分镜按 sceneNumber 排序，并初始化 variants 数组
       script.episodes.forEach((episode) => {
         episode.storyboards.sort((a, b) => a.sceneNumber - b.sceneNumber);
+        episode.storyboards.forEach((sb) => {
+          if (!sb.variants) sb.variants = [];
+        });
       });
       set((state) => ({
         scripts: state.scripts.map((s) => (s.id === scriptId ? script : s)),
       }));
     } catch (error) {
       console.error('刷新剧本失败:', error);
-    }
-  },
-
-  addCharacter: async (scriptId: string, character) => {
-    try {
-      const newCharacter = await api.createCharacter(scriptId, character);
-      set((state) => ({
-        scripts: state.scripts.map((s) =>
-          s.id === scriptId
-            ? { ...s, characters: [...s.characters, newCharacter] }
-            : s
-        ),
-      }));
-      return newCharacter.id;
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  updateCharacter: async (scriptId: string, characterId: string, updates) => {
-    try {
-      await api.updateCharacter(scriptId, characterId, updates);
-      set((state) => ({
-        scripts: state.scripts.map((s) =>
-          s.id === scriptId
-            ? {
-                ...s,
-                characters: s.characters.map((c) =>
-                  c.id === characterId ? { ...c, ...updates } : c
-                ),
-              }
-            : s
-        ),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  deleteCharacter: async (scriptId: string, characterId: string) => {
-    try {
-      await api.deleteCharacter(scriptId, characterId);
-      set((state) => ({
-        scripts: state.scripts.map((s) =>
-          s.id === scriptId
-            ? { ...s, characters: s.characters.filter((c) => c.id !== characterId) }
-            : s
-        ),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
     }
   },
 
@@ -378,6 +340,144 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     } catch (error) {
       // 失败时重新加载
       await get().refreshScript(scriptId);
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  // 分镜副本操作
+  addVariant: async (scriptId: string, episodeId: string, storyboardId: string) => {
+    try {
+      const newVariant = await api.createVariant(scriptId, episodeId, storyboardId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? {
+                        ...e,
+                        storyboards: e.storyboards.map((sb) =>
+                          sb.id === storyboardId
+                            ? {
+                                ...sb,
+                                variants: [...(sb.variants || []), newVariant],
+                                activeVariantId: sb.activeVariantId || newVariant.id,
+                              }
+                            : sb
+                        ),
+                      }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+      return newVariant.id;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  updateVariant: async (scriptId: string, episodeId: string, storyboardId: string, variantId: string, updates) => {
+    try {
+      await api.updateVariant(scriptId, episodeId, storyboardId, variantId, updates);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? {
+                        ...e,
+                        storyboards: e.storyboards.map((sb) =>
+                          sb.id === storyboardId
+                            ? {
+                                ...sb,
+                                variants: (sb.variants || []).map((v) =>
+                                  v.id === variantId ? { ...v, ...updates } : v
+                                ),
+                              }
+                            : sb
+                        ),
+                      }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  deleteVariant: async (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => {
+    try {
+      await api.deleteVariant(scriptId, episodeId, storyboardId, variantId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? {
+                        ...e,
+                        storyboards: e.storyboards.map((sb) => {
+                          if (sb.id !== storyboardId) return sb;
+                          const newVariants = (sb.variants || []).filter((v) => v.id !== variantId);
+                          return {
+                            ...sb,
+                            variants: newVariants,
+                            activeVariantId:
+                              sb.activeVariantId === variantId
+                                ? newVariants[0]?.id
+                                : sb.activeVariantId,
+                          };
+                        }),
+                      }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  setActiveVariant: async (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => {
+    try {
+      await api.setActiveVariant(scriptId, episodeId, storyboardId, variantId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+                ...s,
+                episodes: s.episodes.map((e) =>
+                  e.id === episodeId
+                    ? {
+                        ...e,
+                        storyboards: e.storyboards.map((sb) =>
+                          sb.id === storyboardId
+                            ? { ...sb, activeVariantId: variantId }
+                            : sb
+                        ),
+                      }
+                    : e
+                ),
+              }
+            : s
+        ),
+      }));
+    } catch (error) {
       set({ error: (error as Error).message });
       throw error;
     }
