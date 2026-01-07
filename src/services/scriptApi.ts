@@ -60,6 +60,13 @@ export async function deleteScript(id: string): Promise<void> {
   await request<void>(`/api/scripts/${id}`, { method: 'DELETE' });
 }
 
+export async function deleteScripts(ids: string[]): Promise<void> {
+  await request<void>('/api/scripts/batch-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 
 // ============ 剧集 API ============
 

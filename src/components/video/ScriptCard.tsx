@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreVertical, Trash2, Edit2, Film, Play, Layers } from 'lucide-react';
+import { MoreVertical, Trash2, Edit2, Film, Play, Layers, Check } from 'lucide-react';
 import { Script } from '@/types/video';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -8,6 +8,10 @@ interface ScriptCardProps {
   onClick: (scriptId: string) => void;
   onDelete: (scriptId: string) => void;
   onRename: (scriptId: string, newTitle: string) => void;
+  defaultRenaming?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: (scriptId: string, selected: boolean) => void;
 }
 
 export const ScriptCard: React.FC<ScriptCardProps> = ({
@@ -15,10 +19,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   onClick,
   onDelete,
   onRename,
+  defaultRenaming = false,
+  selectionMode = false,
+  isSelected = false,
+  onSelect,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(defaultRenaming);
   const [renameValue, setRenameValue] = useState(script.title);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -57,7 +65,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   };
 
   const handleCardClick = () => {
-    if (!isRenaming) {
+    if (selectionMode) {
+      onSelect?.(script.id, !isSelected);
+    } else if (!isRenaming) {
       onClick(script.id);
     }
   };
@@ -78,25 +88,46 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
         onClick={handleCardClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="group relative rounded-xl cursor-pointer transition-all duration-300"
+        className="group relative rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden"
         style={{ 
-          backgroundColor: 'rgba(20, 20, 30, 0.8)',
-          border: isHovered ? '1px solid rgba(0, 245, 255, 0.6)' : '1px solid rgba(60, 60, 80, 0.5)',
-          boxShadow: isHovered ? '0 0 25px rgba(0, 245, 255, 0.2), inset 0 0 20px rgba(0, 245, 255, 0.05)' : 'none'
+          backgroundColor: isSelected ? 'rgba(139, 92, 246, 0.2)' : isHovered ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: isSelected 
+            ? '1px solid rgba(139, 92, 246, 0.5)'
+            : isHovered 
+              ? '1px solid rgba(255, 255, 255, 0.25)' 
+              : '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: isHovered 
+            ? '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.1) inset' 
+            : '0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255,255,255,0.05) inset'
         }}
       >
+        {/* 选择框 */}
+        {selectionMode && (
+          <div 
+            className="absolute top-3 left-3 z-10 w-5 h-5 rounded flex items-center justify-center transition-all"
+            style={{
+              backgroundColor: isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
+              border: isSelected ? 'none' : '1px solid rgba(255,255,255,0.3)',
+            }}
+          >
+            {isSelected && <Check size={14} className="text-white" />}
+          </div>
+        )}
+        
         <div className="p-4 relative">
           {/* 图标和标题 */}
-          <div className="flex items-start gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center transition-all flex-shrink-0"
+              className="w-11 h-11 rounded-xl flex items-center justify-center transition-all flex-shrink-0"
               style={{ 
-                background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(138, 43, 226, 0.15))',
-                border: '1px solid rgba(0, 245, 255, 0.3)',
-                boxShadow: isHovered ? '0 0 12px rgba(0, 245, 255, 0.3)' : 'none'
+                background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(191, 0, 255, 0.2))',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: 'inset 0 0 10px rgba(255,255,255,0.05)'
               }}
             >
-              <Film size={18} style={{ color: '#00f5ff' }} />
+              <Film size={20} style={{ color: '#00f5ff' }} />
             </div>
             <div className="flex-1 min-w-0">
               {isRenaming ? (
@@ -108,38 +139,32 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     onKeyDown={handleRenameKeyDown}
                     onBlur={handleRenameSubmit}
                     autoFocus
-                    className="w-full px-2 py-1 text-sm font-medium rounded text-white focus:outline-none"
+                    className="w-full px-2 py-1 text-sm font-medium rounded-lg text-white focus:outline-none"
                     style={{ 
-                      backgroundColor: 'rgba(10, 10, 20, 0.9)',
-                      border: '1px solid rgba(0, 245, 255, 0.5)'
+                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                      border: '1px solid rgba(0, 245, 255, 0.5)',
+                      backdropFilter: 'blur(10px)'
                     }}
                   />
                 </form>
               ) : (
                 <h3 
                   data-testid="script-card-title"
-                  className="font-semibold truncate transition-colors"
-                  style={{ color: '#ffffff' }}
+                  className="font-semibold truncate transition-colors text-base"
+                  style={{ color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
                 >
                   {script.title}
                 </h3>
               )}
-              <p 
-                data-testid="script-card-description"
-                className="text-xs line-clamp-1 mt-1"
-                style={{ color: '#a0a0b0' }}
-              >
-                {script.content || '暂无描述'}
-              </p>
             </div>
           </div>
 
           {/* 底部信息 */}
           <div 
             className="flex items-center justify-between pt-3"
-            style={{ borderTop: '1px solid rgba(60, 60, 80, 0.4)' }}
+            style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}
           >
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: '#b0b0c0' }}>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
               <Layers size={12} style={{ color: '#a855f7' }} />
               <span>{script.episodes.length} 个剧集</span>
             </div>
@@ -148,9 +173,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               style={{ opacity: isHovered ? 1 : 0 }}
             >
               <button 
-                className="p-1.5 rounded transition-colors"
+                className="p-1.5 rounded-lg transition-all"
                 style={{ 
-                  backgroundColor: 'rgba(0, 245, 255, 0.15)',
+                  background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 245, 255, 0.1))',
+                  border: '1px solid rgba(0, 245, 255, 0.3)',
                   color: '#00f5ff'
                 }}
               >
@@ -163,11 +189,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <div className="absolute top-3 right-3">
             <button
               onClick={handleMenuClick}
-              className="p-1.5 rounded transition-all"
+              className="p-1.5 rounded-lg transition-all"
               style={{ 
-                color: '#808090',
+                color: 'rgba(255,255,255,0.6)',
                 opacity: isHovered ? 1 : 0,
-                backgroundColor: isHovered ? 'rgba(40, 40, 60, 0.8)' : 'transparent'
+                backgroundColor: isHovered ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                backdropFilter: 'blur(10px)'
               }}
             >
               <MoreVertical size={14} />
@@ -176,24 +203,26 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             {/* 下拉菜单 */}
             {showMenu && (
               <div 
-                className="absolute right-0 top-8 w-32 rounded-lg shadow-xl py-1 z-10 overflow-hidden"
+                className="absolute right-0 top-8 w-32 rounded-xl shadow-xl py-1 z-10 overflow-hidden"
                 style={{ 
-                  backgroundColor: 'rgba(20, 20, 30, 0.95)', 
-                  border: '1px solid rgba(60, 60, 80, 0.6)',
-                  backdropFilter: 'blur(10px)'
+                  backgroundColor: 'rgba(255,255,255,0.1)', 
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
                 }}
               >
                 <button
                   onClick={handleRenameClick}
-                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 transition-colors hover:bg-[rgba(60,60,80,0.5)]"
-                  style={{ color: '#e0e0e0' }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 transition-colors hover:bg-[rgba(255,255,255,0.1)]"
+                  style={{ color: '#ffffff' }}
                 >
                   <Edit2 size={12} />
                   重命名
                 </button>
                 <button
                   onClick={handleDeleteClick}
-                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 transition-colors hover:bg-[rgba(255,50,100,0.15)]"
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 transition-colors hover:bg-[rgba(255,100,150,0.15)]"
                   style={{ color: '#ff6b9d' }}
                 >
                   <Trash2 size={12} />

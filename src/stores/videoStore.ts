@@ -17,6 +17,7 @@ interface VideoState {
   createScript: (title?: string) => Promise<string>;
   selectScript: (id: string) => void;
   deleteScript: (id: string) => Promise<void>;
+  deleteScripts: (ids: string[]) => Promise<void>;
   renameScript: (id: string, title: string) => Promise<void>;
   updateScriptPhase: (id: string, phase: VideoPhase) => Promise<void>;
 
@@ -69,6 +70,8 @@ export const useVideoStore = create<VideoState>((set, get) => ({
           });
         });
       });
+      // 按创建时间升序排列（最早的在前面，最新的在末尾）
+      scripts.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       const currentScriptId = scripts.length > 0 ? scripts[0].id : null;
       set({ scripts, currentScriptId, isLoading: false });
     } catch (error) {
@@ -81,7 +84,7 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     try {
       const newScript = await api.createScript(title);
       set((state) => ({
-        scripts: [newScript, ...state.scripts],
+        scripts: [...state.scripts, newScript],
         currentScriptId: newScript.id,
         isLoading: false,
       }));
@@ -102,6 +105,19 @@ export const useVideoStore = create<VideoState>((set, get) => ({
       set((state) => ({
         scripts: state.scripts.filter((s) => s.id !== id),
         currentScriptId: state.currentScriptId === id ? null : state.currentScriptId,
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  deleteScripts: async (ids: string[]) => {
+    try {
+      await api.deleteScripts(ids);
+      set((state) => ({
+        scripts: state.scripts.filter((s) => !ids.includes(s.id)),
+        currentScriptId: ids.includes(state.currentScriptId || '') ? null : state.currentScriptId,
       }));
     } catch (error) {
       set({ error: (error as Error).message });
