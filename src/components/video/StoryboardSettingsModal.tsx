@@ -13,7 +13,6 @@ interface StoryboardSettingsModalProps {
   referenceImageUrls?: string[];
   aspectRatio?: string;
   duration?: string;
-  mode?: string;
   taskId?: string;
   onSave: (data: {
     description: string;
@@ -21,7 +20,6 @@ interface StoryboardSettingsModalProps {
     referenceImageUrls?: string[];
     aspectRatio: string;
     duration: string;
-    mode: string;
   }) => void;
   onClose: () => void;
 }
@@ -33,7 +31,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   referenceImageUrls = [],
   aspectRatio = '9:16',
   duration = '15',
-  mode = 'normal',
   taskId,
   onSave,
   onClose,
@@ -43,7 +40,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
   const [refImageUrls, setRefImageUrls] = useState<string[]>(referenceImageUrls);
   const [ratio, setRatio] = useState(aspectRatio);
   const [dur, setDur] = useState(duration);
-  const [selectedMode, setSelectedMode] = useState(mode);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCharacterDropdown, setShowCharacterDropdown] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -62,14 +58,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
     }
   };
 
-  // 当切换到 remix 模式时，清空参考图
-  const handleModeChange = (newMode: string) => {
-    setSelectedMode(newMode);
-    if (newMode === 'remix') {
-      setRefImageUrls([]);
-    }
-  };
-
   // 使用 ref 来追踪上一次的 props，避免数组引用导致的无限循环
   const prevPropsRef = useRef({
     description,
@@ -77,7 +65,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
     referenceImageUrls: JSON.stringify(referenceImageUrls),
     aspectRatio,
     duration,
-    mode,
   });
 
   useEffect(() => {
@@ -87,7 +74,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       referenceImageUrls: JSON.stringify(referenceImageUrls),
       aspectRatio,
       duration,
-      mode,
     };
 
     // 只在 props 真正改变时才更新状态
@@ -97,10 +83,9 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       setRefImageUrls(referenceImageUrls);
       setRatio(aspectRatio);
       setDur(duration);
-      setSelectedMode(mode);
       prevPropsRef.current = currentProps;
     }
-  }, [description, selectedCharacterIds, referenceImageUrls, aspectRatio, duration, mode]);
+  }, [description, selectedCharacterIds, referenceImageUrls, aspectRatio, duration]);
 
   const handleAddCharacter = (characterId: string) => {
     if (characterId && !selectedIds.includes(characterId)) {
@@ -168,7 +153,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
       referenceImageUrls: refImageUrls, // 始终传递数组，空数组表示清空参考图
       aspectRatio: ratio,
       duration: dur,
-      mode: selectedMode,
     });
     onClose();
   };
@@ -357,45 +341,6 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
 
           {/* 右侧 - 参考图和视频设置 */}
           <div className="w-72 overflow-y-auto p-5 bg-white dark:bg-gray-800 space-y-4 scrollbar-hide">
-            {/* 生成模式选择 */}
-            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-3">
-                <Settings size={14} className="text-purple-500" />
-                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  生成模式
-                </h4>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleModeChange('normal')}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg border transition-colors text-xs font-medium',
-                    selectedMode === 'normal'
-                      ? 'border-purple-500 bg-purple-500 text-white'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-400'
-                  )}
-                >
-                  普通模式
-                </button>
-                <button
-                  onClick={() => handleModeChange('remix')}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg border transition-colors text-xs font-medium',
-                    selectedMode === 'remix'
-                      ? 'border-purple-500 bg-purple-500 text-white'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-purple-400'
-                  )}
-                >
-                  Remix模式
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {selectedMode === 'normal'
-                  ? '独立生成视频，支持上传参考图'
-                  : 'Remix模式会基于上一个分镜生成连续视频'}
-              </p>
-            </div>
-
             {/* 视频设置 */}
             <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
@@ -492,14 +437,12 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                         alt={`参考图 ${index + 1}`}
                         className="w-full h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                       />
-                      {selectedMode !== 'remix' && (
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={10} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={10} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -514,13 +457,12 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                   multiple
                   onChange={handleImageUpload}
                   className="hidden"
-                  disabled={isUploadingImages || selectedMode === 'remix'}
+                  disabled={isUploadingImages}
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingImages || selectedMode === 'remix'}
+                  disabled={isUploadingImages}
                   className="w-full h-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={selectedMode === 'remix' ? 'Remix模式不支持上传参考图' : ''}
                 >
                   {isUploadingImages ? (
                     <>
@@ -530,9 +472,7 @@ export const StoryboardSettingsModal: React.FC<StoryboardSettingsModalProps> = (
                   ) : (
                     <>
                       <Upload size={16} />
-                      <span className="text-xs">
-                        {selectedMode === 'remix' ? 'Remix模式不支持参考图' : '点击上传参考图'}
-                      </span>
+                      <span className="text-xs">点击上传参考图</span>
                     </>
                   )}
                 </button>

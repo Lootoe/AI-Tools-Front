@@ -8,7 +8,7 @@ import { StoryboardCard } from './StoryboardCard';
 import { StoryboardSettingsModal } from './StoryboardSettingsModal';
 import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
 import { useStoryboardDrag } from '@/hooks/useStoryboardDrag';
-import { generateStoryboardVideo, remixVideo } from '@/services/api';
+import { generateStoryboardVideo } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 
 // 默认风格设定
@@ -112,7 +112,6 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       referenceImageUrls?: string[];
       aspectRatio: string;
       duration: string;
-      mode: string;
     }
   ) => {
     if (!script) return;
@@ -122,7 +121,6 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       referenceImageUrls: data.referenceImageUrls,
       aspectRatio: data.aspectRatio as '9:16' | '16:9',
       duration: data.duration as '10' | '15',
-      mode: data.mode as 'normal' | 'remix',
     });
   };
 
@@ -150,33 +148,14 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
       // 构建 prompt
       const finalPrompt = buildPrompt(storyboard.description, storyboard.characterIds, script.characters);
 
-      // 根据用户选择的模式决定是否使用 remix
-      const useRemixMode = storyboard.mode === 'remix';
-      const storyboardIndex = episode.storyboards.findIndex((sb) => sb.id === storyboardId);
-      const previousTaskId = findPreviousCompletedTaskId(episode.storyboards, storyboardIndex);
-
-      let response;
-      if (useRemixMode && previousTaskId) {
-        // 用户选择了 remix 模式且有上一个完成的视频
-        const remixPrompt = `接上个视频结尾，以下是后续剧情。\n\n${finalPrompt}`;
-        response = await remixVideo({
-          taskId: previousTaskId,
-          prompt: remixPrompt,
-          aspect_ratio: storyboard.aspectRatio || '9:16',
-          duration: storyboard.duration || '15',
-          characterIds: storyboard.characterIds,
-          // remix 模式不支持参考图
-        });
-      } else {
-        // 普通模式或没有上一个视频
-        response = await generateStoryboardVideo({
-          prompt: finalPrompt,
-          aspect_ratio: storyboard.aspectRatio || '9:16',
-          duration: storyboard.duration || '15',
-          characterIds: storyboard.characterIds,
-          referenceImageUrls: storyboard.referenceImageUrls,
-        });
-      }
+      // 使用普通模式生成视频
+      const response = await generateStoryboardVideo({
+        prompt: finalPrompt,
+        aspect_ratio: storyboard.aspectRatio || '9:16',
+        duration: storyboard.duration || '15',
+        characterIds: storyboard.characterIds,
+        referenceImageUrls: storyboard.referenceImageUrls,
+      });
 
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
       if (response.success && taskId) {
@@ -349,7 +328,6 @@ export const StoryboardEditor: React.FC<StoryboardEditorProps> = ({ episode }) =
           referenceImageUrls={currentSettingsStoryboard.referenceImageUrls}
           aspectRatio={currentSettingsStoryboard.aspectRatio}
           duration={currentSettingsStoryboard.duration}
-          mode={currentSettingsStoryboard.mode}
           taskId={currentSettingsStoryboard.taskId}
           onSave={(data) => handleSaveSettings(settingsModalStoryboardId, data)}
           onClose={() => setSettingsModalStoryboardId(null)}
@@ -401,18 +379,4 @@ function buildPrompt(description: string, characterIds: string[], characters: Ch
   return globalSettings.length > 0
     ? `【全局设定】${globalSettings.join('；')}。\n\n${description}`
     : description;
-}
-
-// 辅助函数：查找上一个已完成的分镜的 taskId
-function findPreviousCompletedTaskId(
-  storyboards: { taskId?: string; status: string }[],
-  currentIndex: number
-): string | undefined {
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    const sb = storyboards[i];
-    if (sb.taskId && sb.status === 'completed') {
-      return sb.taskId;
-    }
-  }
-  return undefined;
 }
