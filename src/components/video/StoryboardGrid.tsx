@@ -170,26 +170,6 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
         className="flex-1 overflow-x-auto overflow-y-hidden p-2 cyber-scrollbar-x"
       >
         <div className="flex gap-2 h-full">
-          {storyboards.length === 0 && (
-            <div className="flex items-center justify-center w-full">
-              <div className="flex flex-col items-center">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center mb-2"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
-                    border: '1px solid rgba(0,245,255,0.2)',
-                  }}
-                >
-                  <Video size={16} style={{ color: 'rgba(0,245,255,0.4)' }} />
-                </div>
-                <p className="text-[10px]" style={{ color: '#6b7280' }}>
-                  暂无分镜，点击添加
-                </p>
-              </div>
-            </div>
-          )}
-
           {storyboards.map((storyboard, index) => {
             const isSelected = selectedId === storyboard.id;
             const isHovered = hoveredId === storyboard.id;
