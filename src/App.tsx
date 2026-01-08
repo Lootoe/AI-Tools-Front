@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HomePage } from '@/pages/HomePage';
-import { ChatPage } from '@/pages/ChatPage';
-import { TextToImagePage } from '@/pages/TextToImagePage';
 import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
 import { useModelStore } from '@/stores/modelStore';
@@ -71,12 +69,6 @@ function App() {
             <Route path="/home" element={
               <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
                 <HomePage />
-              </main>
-            } />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/text-to-image" element={
-              <main className="flex-1 px-4 py-4 overflow-hidden relative">
-                <TextToImagePage />
               </main>
             } />
             <Route path="/ai-comic" element={<Navigate to="/video" replace />} />
