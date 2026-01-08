@@ -317,7 +317,7 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+      <div className="flex-1 flex gap-3 overflow-hidden">
         {/* 左侧：物品池 - 3列网格 */}
         <div
           className="w-[280px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden"
