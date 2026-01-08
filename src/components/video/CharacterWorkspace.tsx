@@ -4,7 +4,6 @@ import {
   Sparkles,
   Plus,
   Trash2,
-  Loader2,
   Wand2,
   Image as ImageIcon,
   Download,
@@ -14,6 +13,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
+import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { useCharacterStore } from '@/stores/characterStore';
 import { generateImage, uploadImage } from '@/services/api';
 import { Character } from '@/types/video';
@@ -75,7 +76,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             {isGenerating ? (
-              <Loader2 size={20} className="animate-spin" style={{ color: '#bf00ff' }} />
+              <InlineLoading size={20} color="#bf00ff" />
             ) : (
               <Users size={24} style={{ color: 'rgba(107,114,128,0.4)' }} />
             )}
@@ -85,7 +86,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
         {/* 生成中遮罩 */}
         {isGenerating && character.thumbnailUrl && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-            <Loader2 size={20} className="animate-spin" style={{ color: '#bf00ff' }} />
+            <InlineLoading size={20} color="#bf00ff" />
           </div>
         )}
 
@@ -162,13 +163,13 @@ const NewCharacterCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId }) => {
   const { characters, isLoading, loadCharacters, addCharacter, updateCharacter, deleteCharacter } =
     useCharacterStore();
+  const { showToast, ToastContainer } = useToast();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -238,18 +239,16 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
   const handleSave = async () => {
     if (!selectedCharacter || isSaving) return;
     setIsSaving(true);
-    setSaveSuccess(false);
     try {
       await updateCharacter(scriptId, selectedCharacter.id, {
         name: editName.trim() || '未命名角色',
         description: editDescription.trim(),
       });
       setError(null);
-      setSaveSuccess(true);
-      // 2秒后重置成功状态
-      setTimeout(() => setSaveSuccess(false), 2000);
+      showToast('保存成功', 'success');
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败');
+      showToast('保存失败', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -282,7 +281,9 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
   };
 
   return (
-    <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+    <>
+      <ToastContainer />
+      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
       {/* 左侧：角色池 - 3列网格 */}
       <div
         className="w-[280px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden"
@@ -312,7 +313,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
         <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={18} className="animate-spin" style={{ color: '#00f5ff' }} />
+              <InlineLoading size={18} color="#00f5ff" />
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-2">
@@ -394,44 +395,33 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                   </div>
                 )}
 
-                {/* 保存按钮 - 青色样式，带hover和状态反馈 */}
+                {/* 保存按钮 - 青色样式，带hover */}
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-full h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all"
+                  className="w-full h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all hover:shadow-[0_0_12px_rgba(0,245,255,0.2)]"
                   style={{
-                    background: saveSuccess
-                      ? 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.2))'
-                      : 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))',
-                    border: `1px solid ${saveSuccess ? 'rgba(34,197,94,0.5)' : 'rgba(0,245,255,0.3)'}`,
-                    color: saveSuccess ? '#22c55e' : '#00f5ff',
+                    background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))',
+                    border: '1px solid rgba(0,245,255,0.3)',
+                    color: '#00f5ff',
                     cursor: isSaving ? 'not-allowed' : 'pointer',
                     opacity: isSaving ? 0.7 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSaving && !saveSuccess) {
+                    if (!isSaving) {
                       e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,212,170,0.2))';
                       e.currentTarget.style.borderColor = 'rgba(0,245,255,0.5)';
-                      e.currentTarget.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!saveSuccess) {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))';
-                      e.currentTarget.style.borderColor = 'rgba(0,245,255,0.3)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))';
+                    e.currentTarget.style.borderColor = 'rgba(0,245,255,0.3)';
                   }}
                 >
                   {isSaving ? (
                     <>
-                      <Loader2 size={16} className="mr-2 animate-spin" />
-                      保存中...
-                    </>
-                  ) : saveSuccess ? (
-                    <>
-                      <Save size={16} className="mr-2" />
-                      已保存
+                      <InlineLoading size={16} color="#00f5ff" />
+                      <span className="ml-2">保存中...</span>
                     </>
                   ) : (
                     <>
@@ -532,22 +522,14 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
                 {/* 设计稿展示 */}
                 <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative">
-                  {isProcessing ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
-                      <div
-                        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))',
-                          border: '1px solid rgba(191,0,255,0.3)',
-                        }}
-                      >
-                        <Loader2 size={28} className="animate-spin" style={{ color: '#bf00ff' }} />
-                      </div>
-                      <p className="text-sm" style={{ color: '#d1d5db' }}>
-                        {isUploading ? '正在上传...' : '正在生成设计稿...'}
-                      </p>
-                    </div>
-                  ) : null}
+                  {isProcessing && (
+                    <Loading
+                      overlay
+                      size={28}
+                      color="#bf00ff"
+                      text={isUploading ? '正在上传...' : '正在生成设计稿...'}
+                    />
+                  )}
 
                   {selectedCharacter.designImageUrl ? (
                     <img
@@ -619,5 +601,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
         )}
       </div>
     </div>
+    </>
   );
 };
