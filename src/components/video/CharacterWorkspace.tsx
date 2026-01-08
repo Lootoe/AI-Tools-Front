@@ -28,7 +28,6 @@ interface CharacterWorkspaceProps {
 // 支持的图片生成模型
 const IMAGE_MODELS = [
   { value: 'nano-banana-2', label: 'Nano Banana 2' },
-  { value: 'flux-2-pro', label: 'Flux 2 Pro' },
   { value: 'doubao-seedream-3-0-t2i-250415', label: '豆包' },
 ] as const;
 
