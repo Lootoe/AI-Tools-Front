@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HomePage } from '@/pages/HomePage';
 import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
-import { useModelStore } from '@/stores/modelStore';
 import { GlobalToastProvider, useGlobalToast, setGlobalShowToast } from '@/components/ui/Toast';
 
 const queryClient = new QueryClient({
@@ -29,11 +28,6 @@ function GlobalToastInitializer() {
 }
 
 function App() {
-  const loadModels = useModelStore((state) => state.loadModels);
-
-  useEffect(() => {
-    loadModels();
-  }, [loadModels]);
   return (
     <QueryClientProvider client={queryClient}>
       <GlobalToastProvider>

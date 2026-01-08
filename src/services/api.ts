@@ -1,5 +1,3 @@
-import { AIModel } from '@/types/models';
-
 // 后端API地址
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -260,13 +258,4 @@ export async function generatePropDesign(description: string, model?: string): P
 // 获取存储的 token (移到前面以便 uploadImage 使用)
 function getAuthToken(): string | null {
   return localStorage.getItem('token');
-}
-
-// 获取模型列表
-export async function fetchModels(): Promise<AIModel[]> {
-  const response = await fetch(`${BACKEND_URL}/api/models`);
-  if (!response.ok) {
-    throw new Error('获取模型列表失败');
-  }
-  return response.json();
 }
