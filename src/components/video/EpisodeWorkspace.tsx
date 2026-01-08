@@ -7,6 +7,7 @@ import { CyberVideoPlayer } from './CyberVideoPlayer';
 import { StoryboardLeftPanel } from './StoryboardLeftPanel';
 import { StoryboardVariantPool } from './StoryboardVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
 import { generateStoryboardVideo } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
@@ -30,6 +31,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     deleteVariant,
     setActiveVariant,
   } = useVideoStore();
+
+  const { showToast, ToastContainer } = useToast();
 
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
   const [selectedStoryboardId, setSelectedStoryboardId] = useState<string | null>(null);
@@ -131,29 +134,38 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   // 分镜操作
   const handleAddStoryboard = async () => {
     if (!script || !selectedEpisode) return;
-    const sceneNumber = selectedEpisode.storyboards.length + 1;
-    const newId = await addStoryboard(script.id, selectedEpisode.id, {
-      sceneNumber,
-      description: `分镜 ${sceneNumber}`,
-    });
-    setSelectedStoryboardId(newId);
+    try {
+      const sceneNumber = selectedEpisode.storyboards.length + 1;
+      const newId = await addStoryboard(script.id, selectedEpisode.id, {
+        sceneNumber,
+        description: `分镜 ${sceneNumber}`,
+      });
+      setSelectedStoryboardId(newId);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '添加分镜失败', 'error');
+    }
   };
 
   const handleDeleteStoryboard = (storyboardId: string) => {
     setDeleteConfirmStoryboardId(storyboardId);
   };
 
-  const confirmDeleteStoryboard = () => {
+  const confirmDeleteStoryboard = async () => {
     if (!script || !selectedEpisode || !deleteConfirmStoryboardId) return;
-    const storyboard = selectedEpisode.storyboards.find(
-      (sb) => sb.id === deleteConfirmStoryboardId
-    );
-    if (storyboard?.taskId) {
-      stopPolling(storyboard.taskId);
-    }
-    deleteStoryboard(script.id, selectedEpisode.id, deleteConfirmStoryboardId);
-    if (selectedStoryboardId === deleteConfirmStoryboardId) {
-      setSelectedStoryboardId(null);
+    try {
+      const storyboard = selectedEpisode.storyboards.find(
+        (sb) => sb.id === deleteConfirmStoryboardId
+      );
+      if (storyboard?.taskId) {
+        stopPolling(storyboard.taskId);
+      }
+      await deleteStoryboard(script.id, selectedEpisode.id, deleteConfirmStoryboardId);
+      if (selectedStoryboardId === deleteConfirmStoryboardId) {
+        setSelectedStoryboardId(null);
+      }
+      showToast('分镜已删除', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '删除分镜失败', 'error');
     }
     setDeleteConfirmStoryboardId(null);
   };
@@ -162,7 +174,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     if (!script || !selectedEpisode) return;
     const storyboard = selectedEpisode.storyboards.find((sb) => sb.id === storyboardId);
     if (!storyboard || !storyboard.description) {
-      alert('请先填写分镜脚本');
+      showToast('请先填写分镜脚本', 'warning');
       return;
     }
 
@@ -192,6 +204,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       }
     } catch (error) {
       console.error('分镜视频生成失败:', error);
+      showToast(error instanceof Error ? error.message : '视频生成失败，请重试', 'error');
       // 如果失败，需要找到刚创建的副本并更新状态
       const updatedStoryboard = selectedEpisode.storyboards.find((sb) => sb.id === storyboardId);
       const latestVariant = (updatedStoryboard?.variants || []).slice(-1)[0];
@@ -216,12 +229,17 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const confirmDeleteVariant = async () => {
     if (!script || !selectedEpisode || !selectedStoryboardId || !deleteConfirmVariantId) return;
-    const storyboard = selectedEpisode.storyboards.find((sb) => sb.id === selectedStoryboardId);
-    const variant = (storyboard?.variants || []).find((v) => v.id === deleteConfirmVariantId);
-    if (variant?.taskId) {
-      stopPolling(variant.taskId);
+    try {
+      const storyboard = selectedEpisode.storyboards.find((sb) => sb.id === selectedStoryboardId);
+      const variant = (storyboard?.variants || []).find((v) => v.id === deleteConfirmVariantId);
+      if (variant?.taskId) {
+        stopPolling(variant.taskId);
+      }
+      await deleteVariant(script.id, selectedEpisode.id, selectedStoryboardId, deleteConfirmVariantId);
+      showToast('副本已删除', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '删除副本失败', 'error');
     }
-    await deleteVariant(script.id, selectedEpisode.id, selectedStoryboardId, deleteConfirmVariantId);
     setDeleteConfirmVariantId(null);
   };
 

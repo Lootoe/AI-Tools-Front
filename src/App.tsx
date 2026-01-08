@@ -7,6 +7,7 @@ import { TextToImagePage } from '@/pages/TextToImagePage';
 import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
 import { useModelStore } from '@/stores/modelStore';
+import { GlobalToastProvider, useGlobalToast, setGlobalShowToast } from '@/components/ui/Toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,18 @@ const queryClient = new QueryClient({
   },
 });
 
+// 初始化全局 toast 的组件
+function GlobalToastInitializer() {
+  const { showToast } = useGlobalToast();
+  
+  useEffect(() => {
+    setGlobalShowToast(showToast);
+    return () => setGlobalShowToast(null);
+  }, [showToast]);
+  
+  return null;
+}
+
 function App() {
   const loadModels = useModelStore((state) => state.loadModels);
 
@@ -25,7 +38,9 @@ function App() {
   }, [loadModels]);
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <GlobalToastProvider>
+        <GlobalToastInitializer />
+        <BrowserRouter>
         <div className="flex flex-col h-screen" style={{ backgroundColor: '#0a0a12' }}>
           {/* 赛博朋克背景 */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -78,6 +93,7 @@ function App() {
           </Routes>
         </div>
       </BrowserRouter>
+      </GlobalToastProvider>
     </QueryClientProvider>
   );
 }

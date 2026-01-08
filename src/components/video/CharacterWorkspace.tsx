@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { Loading, InlineLoading } from '@/components/ui/Loading';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCharacterStore } from '@/stores/characterStore';
 import { generateImage, uploadImage } from '@/services/api';
 import { Character } from '@/types/video';
@@ -166,13 +167,17 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
   const { showToast, ToastContainer } = useToast();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; characterId: string | null; characterName: string }>({
+    isOpen: false,
+    characterId: null,
+    characterName: '',
+  });
 
   useEffect(() => {
     if (scriptId) {
@@ -199,9 +204,8 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     try {
       const characterId = await addCharacter(scriptId, '新角色', '');
       setSelectedCharacterId(characterId);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '创建失败');
+    } catch {
+      // 错误由 API 层统一处理显示 toast
     }
   };
 
@@ -209,7 +213,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     if (!selectedCharacter || !editDescription.trim() || isProcessing) return;
 
     await updateCharacter(scriptId, selectedCharacter.id, { status: 'generating' });
-    setError(null);
 
     try {
       const fullPrompt = `${CHARACTER_DESIGN_PROMPT_TEMPLATE}[${editDescription.trim()}]`;
@@ -226,13 +229,13 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
           thumbnailUrl: response.images[0].url,
           status: 'completed',
         });
+        showToast('设计稿生成成功', 'success');
       } else {
         await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
-        setError('生成失败，请重试');
       }
-    } catch (err) {
+    } catch {
       await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
-      setError(err instanceof Error ? err.message : '生成失败');
+      // 错误由 API 层统一处理显示 toast
     }
   };
 
@@ -244,11 +247,9 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
         name: editName.trim() || '未命名角色',
         description: editDescription.trim(),
       });
-      setError(null);
       showToast('保存成功', 'success');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败');
-      showToast('保存失败', 'error');
+    } catch {
+      // 错误由 API 层统一处理显示 toast
     } finally {
       setIsSaving(false);
     }
@@ -259,7 +260,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     if (!file || !selectedCharacter || isProcessing) return;
 
     setIsUploading(true);
-    setError(null);
 
     try {
       const response = await uploadImage(file);
@@ -269,20 +269,56 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
           thumbnailUrl: response.url,
           status: 'completed',
         });
-      } else {
-        setError('上传失败，请重试');
+        showToast('图片上传成功', 'success');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '上传失败，请检查网络后重试');
+    } catch {
+      // 错误由 API 层统一处理显示 toast
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+  const handleDeleteClick = (character: Character) => {
+    setDeleteConfirm({
+      isOpen: true,
+      characterId: character.id,
+      characterName: character.name || '未命名角色',
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirm.characterId) {
+      try {
+        await deleteCharacter(scriptId, deleteConfirm.characterId);
+        if (selectedCharacterId === deleteConfirm.characterId) {
+          setSelectedCharacterId(null);
+        }
+        // 删除成功不需要 toast 提示
+      } catch {
+        // 错误由 API 层统一处理显示 toast
+      }
+    }
+    setDeleteConfirm({ isOpen: false, characterId: null, characterName: '' });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirm({ isOpen: false, characterId: null, characterName: '' });
+  };
+
   return (
     <>
       <ToastContainer />
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="删除角色"
+        message={`确定要删除角色「${deleteConfirm.characterName}」吗？此操作无法撤销。`}
+        type="danger"
+        confirmText="删除"
+        cancelText="取消"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
       {/* 左侧：角色池 - 3列网格 */}
       <div
@@ -324,10 +360,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                   character={character}
                   isSelected={selectedCharacterId === character.id}
                   onSelect={() => setSelectedCharacterId(character.id)}
-                  onDelete={() => {
-                    deleteCharacter(scriptId, character.id);
-                    if (selectedCharacterId === character.id) setSelectedCharacterId(null);
-                  }}
+                  onDelete={() => handleDeleteClick(character)}
                 />
               ))}
             </div>
@@ -381,19 +414,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                     className="flex-1 min-h-0 resize-none text-sm"
                   />
                 </div>
-
-                {error && (
-                  <div
-                    className="px-3 py-2 rounded-lg text-xs"
-                    style={{
-                      backgroundColor: 'rgba(239,68,68,0.1)',
-                      border: '1px solid rgba(239,68,68,0.3)',
-                      color: '#f87171',
-                    }}
-                  >
-                    {error}
-                  </div>
-                )}
 
                 {/* 保存按钮 - 青色样式，带hover */}
                 <button

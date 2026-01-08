@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { Check, X, AlertCircle, Info } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -82,7 +82,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration =
   );
 };
 
-// Toast管理Hook
+// Toast管理Hook（组件级别）
 interface ToastState {
   message: string;
   type: ToastType;
@@ -94,16 +94,16 @@ let toastId = 0;
 export const useToast = () => {
   const [toasts, setToasts] = useState<ToastState[]>([]);
 
-  const showToast = (message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = ++toastId;
     setToasts((prev) => [...prev, { message, type, id }]);
-  };
+  }, []);
 
-  const removeToast = (id: number) => {
+  const removeToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
-  const ToastContainer = () => (
+  const ToastContainer = useCallback(() => (
     <>
       {toasts.map((toast) => (
         <Toast
@@ -114,7 +114,60 @@ export const useToast = () => {
         />
       ))}
     </>
-  );
+  ), [toasts, removeToast]);
 
   return { showToast, ToastContainer };
 };
+
+// ============ 全局 Toast Provider ============
+
+interface GlobalToastContextType {
+  showToast: (message: string, type?: ToastType) => void;
+}
+
+const GlobalToastContext = createContext<GlobalToastContextType | null>(null);
+
+export const GlobalToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [toasts, setToasts] = useState<ToastState[]>([]);
+
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    const id = ++toastId;
+    setToasts((prev) => [...prev, { message, type, id }]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  return (
+    <GlobalToastContext.Provider value={{ showToast }}>
+      {children}
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
+    </GlobalToastContext.Provider>
+  );
+};
+
+// 全局 toast hook
+export const useGlobalToast = () => {
+  const context = useContext(GlobalToastContext);
+  if (!context) {
+    throw new Error('useGlobalToast must be used within GlobalToastProvider');
+  }
+  return context;
+};
+
+// 获取全局 showToast 函数（用于非组件环境）
+let globalShowToast: ((message: string, type?: ToastType) => void) | null = null;
+
+export const setGlobalShowToast = (fn: typeof globalShowToast) => {
+  globalShowToast = fn;
+};
+
+export const getGlobalShowToast = () => globalShowToast;
