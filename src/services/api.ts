@@ -242,7 +242,7 @@ export interface CharacterDesignResponse {
 }
 
 // 生成角色设计稿（提示词模板在后端，前端只传角色描述）
-export async function generateCharacterDesign(description: string): Promise<CharacterDesignResponse> {
+export async function generateCharacterDesign(description: string, model?: string): Promise<CharacterDesignResponse> {
     const token = getAuthToken();
 
     const response = await fetch(`${BACKEND_URL}/api/images/character-design`, {
@@ -251,7 +251,7 @@ export async function generateCharacterDesign(description: string): Promise<Char
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ description, model }),
     });
 
     if (!response.ok) {

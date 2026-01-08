@@ -9,6 +9,7 @@ import {
   Download,
   Upload,
   Save,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
@@ -23,6 +24,14 @@ import { Character } from '@/types/video';
 interface CharacterWorkspaceProps {
   scriptId: string;
 }
+
+// 支持的图片生成模型
+const IMAGE_MODELS = [
+  { value: 'nano-banana-2-4k', label: 'Nano Banana 4K' },
+  { value: 'doubao-seedream-3-0-t2i-250415', label: '豆包' },
+] as const;
+
+type ImageModel = typeof IMAGE_MODELS[number]['value'];
 
 // 单个角色卡片组件 - 重新设计
 interface CharacterCardProps {
@@ -163,6 +172,8 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2-4k');
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; characterId: string | null; characterName: string }>({
     isOpen: false,
     characterId: null,
@@ -206,7 +217,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
     try {
       // 调用后端角色设计稿生成接口，提示词模板在后端
-      const response = await generateCharacterDesign(editDescription.trim());
+      const response = await generateCharacterDesign(editDescription.trim(), selectedModel);
 
       if (response.success && response.images.length > 0) {
         await updateCharacter(scriptId, selectedCharacter.id, {
@@ -452,6 +463,67 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                     <span className="text-sm font-medium text-white">角色设计稿</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* 模型选择下拉框 */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                        disabled={isProcessing}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all"
+                        style={{
+                          backgroundColor: 'rgba(0,245,255,0.1)',
+                          border: '1px solid rgba(0,245,255,0.2)',
+                          color: '#00f5ff',
+                          opacity: isProcessing ? 0.5 : 1,
+                          cursor: isProcessing ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        <span>{IMAGE_MODELS.find(m => m.value === selectedModel)?.label}</span>
+                        <ChevronDown size={12} />
+                      </button>
+                      {isModelDropdownOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setIsModelDropdownOpen(false)}
+                          />
+                          <div
+                            className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden"
+                            style={{
+                              backgroundColor: 'rgba(18,18,26,0.98)',
+                              border: '1px solid rgba(0,245,255,0.2)',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                            }}
+                          >
+                            {IMAGE_MODELS.map((model) => (
+                              <button
+                                key={model.value}
+                                onClick={() => {
+                                  setSelectedModel(model.value);
+                                  setIsModelDropdownOpen(false);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap transition-colors"
+                                style={{
+                                  color: selectedModel === model.value ? '#00f5ff' : '#d1d5db',
+                                  backgroundColor: selectedModel === model.value ? 'rgba(0,245,255,0.1)' : 'transparent',
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (selectedModel !== model.value) {
+                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (selectedModel !== model.value) {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }
+                                }}
+                              >
+                                {model.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     {/* 生成按钮 */}
                     <button
                       onClick={handleGenerateDesign}
