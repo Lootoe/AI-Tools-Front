@@ -92,10 +92,12 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setLocalLinkedPropIds(selectedStoryboard?.linkedPropIds || []);
   }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.linkedCharacterIds, selectedStoryboard?.linkedSceneIds, selectedStoryboard?.linkedPropIds]);
 
-  // 比较数组是否相等
+  // 比较数组是否相等（忽略顺序）
   const arraysEqual = (a: string[], b: string[]) => {
     if (a.length !== b.length) return false;
-    return a.every((v, i) => v === b[i]);
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((v, i) => v === sortedB[i]);
   };
 
   // 计算是否有未保存的更改
