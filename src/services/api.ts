@@ -75,6 +75,19 @@ export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse
   return response.json();
 }
 
+// 关联资产信息
+export interface LinkedAssetInfo {
+  name: string;
+  imageUrl: string;
+}
+
+// 分镜关联资产
+export interface StoryboardLinkedAssets {
+  characters: LinkedAssetInfo[];
+  scenes: LinkedAssetInfo[];
+  props: LinkedAssetInfo[];
+}
+
 // 分镜生成视频请求
 export interface StoryboardToVideoRequest {
   prompt: string;
@@ -83,6 +96,7 @@ export interface StoryboardToVideoRequest {
   duration?: '10' | '15';
   private?: boolean;
   referenceImageUrls?: string[]; // 参考图URL数组
+  linkedAssets?: StoryboardLinkedAssets; // 关联资产信息
 }
 
 // 分镜生成视频
@@ -102,6 +116,7 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       duration: request.duration || '15',
       private: request.private ?? false,
       ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
+      ...(request.linkedAssets ? { linked_assets: request.linkedAssets } : {}),
     }),
   });
 

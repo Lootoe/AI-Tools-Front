@@ -22,6 +22,10 @@ export interface Storyboard {
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
   createdAt: string;
+  // 关联资产ID数组
+  linkedCharacterIds?: string[]; // 关联的角色ID数组
+  linkedSceneIds?: string[];     // 关联的场景ID数组
+  linkedPropIds?: string[];      // 关联的物品ID数组
   // 分镜池相关
   variants: StoryboardVariant[];  // 分镜副本列表
   activeVariantId?: string;       // 当前选中的副本ID
@@ -31,6 +35,20 @@ export interface Storyboard {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+}
+
+// 关联资产信息（用于视频生成时传递）
+export interface LinkedAsset {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
+
+// 分镜关联资产（用于视频生成）
+export interface StoryboardLinkedAssets {
+  characters: LinkedAsset[];
+  scenes: LinkedAsset[];
+  props: LinkedAsset[];
 }
 
 // 剧集

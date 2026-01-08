@@ -15,6 +15,16 @@ interface StoryboardLeftPanelProps {
   onLocalDescriptionChange: (value: string) => void;
   onSave?: () => void;
   hasUnsavedChanges?: boolean;
+  // 本地关联资产状态
+  localLinkedCharacterIds: string[];
+  localLinkedSceneIds: string[];
+  localLinkedPropIds: string[];
+  // 资产关联回调
+  onUpdateLinkedAssets?: (
+    characterIds: string[],
+    sceneIds: string[],
+    propIds: string[]
+  ) => void;
 }
 
 type TabType = 'script' | 'api' | 'assets';
@@ -30,6 +40,10 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   onLocalDescriptionChange,
   onSave,
   hasUnsavedChanges,
+  localLinkedCharacterIds,
+  localLinkedSceneIds,
+  localLinkedPropIds,
+  onUpdateLinkedAssets,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('script');
   const [isFocused, setIsFocused] = useState(false);
@@ -154,7 +168,13 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
           />
         )}
         {activeTab === 'assets' && (
-          <StoryboardAssetsPanel storyboard={storyboard} />
+          <StoryboardAssetsPanel
+            storyboard={storyboard}
+            localLinkedCharacterIds={localLinkedCharacterIds}
+            localLinkedSceneIds={localLinkedSceneIds}
+            localLinkedPropIds={localLinkedPropIds}
+            onUpdateLinkedAssets={onUpdateLinkedAssets}
+          />
         )}
       </div>
 

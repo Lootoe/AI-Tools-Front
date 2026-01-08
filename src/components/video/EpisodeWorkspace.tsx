@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
+import { useCharacterStore } from '@/stores/characterStore';
+import { useSceneStore } from '@/stores/sceneStore';
+import { usePropStore } from '@/stores/propStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
 import { CyberVideoPlayer } from './CyberVideoPlayer';
@@ -9,7 +12,7 @@ import { StoryboardVariantPool } from './StoryboardVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
-import { generateStoryboardVideo } from '@/services/api';
+import { generateStoryboardVideo, StoryboardLinkedAssets } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 import { Storyboard } from '@/types/video';
 
@@ -33,6 +36,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setActiveVariant,
   } = useVideoStore();
 
+  const { characters, loadCharacters } = useCharacterStore();
+  const { scenes, loadScenes } = useSceneStore();
+  const { props, loadProps } = usePropStore();
+
   const { showToast, ToastContainer } = useToast();
 
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
@@ -44,6 +51,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [localDescription, setLocalDescription] = useState('');
   const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
+  // 本地关联资产状态
+  const [localLinkedCharacterIds, setLocalLinkedCharacterIds] = useState<string[]>([]);
+  const [localLinkedSceneIds, setLocalLinkedSceneIds] = useState<string[]>([]);
+  const [localLinkedPropIds, setLocalLinkedPropIds] = useState<string[]>([]);
 
   const script = scripts.find((s) => s.id === scriptId);
 
@@ -76,13 +87,34 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setLocalDescription(selectedStoryboard?.description || '');
     setLocalAspectRatio(selectedStoryboard?.aspectRatio || '9:16');
     setLocalDuration(selectedStoryboard?.duration || '15');
-  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration]);
+    setLocalLinkedCharacterIds(selectedStoryboard?.linkedCharacterIds || []);
+    setLocalLinkedSceneIds(selectedStoryboard?.linkedSceneIds || []);
+    setLocalLinkedPropIds(selectedStoryboard?.linkedPropIds || []);
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.linkedCharacterIds, selectedStoryboard?.linkedSceneIds, selectedStoryboard?.linkedPropIds]);
+
+  // 比较数组是否相等
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => v === b[i]);
+  };
 
   // 计算是否有未保存的更改
-  const hasUnsavedChanges = 
+  const hasUnsavedChanges =
     localDescription !== (selectedStoryboard?.description || '') ||
     localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
-    localDuration !== (selectedStoryboard?.duration || '15');
+    localDuration !== (selectedStoryboard?.duration || '15') ||
+    !arraysEqual(localLinkedCharacterIds, selectedStoryboard?.linkedCharacterIds || []) ||
+    !arraysEqual(localLinkedSceneIds, selectedStoryboard?.linkedSceneIds || []) ||
+    !arraysEqual(localLinkedPropIds, selectedStoryboard?.linkedPropIds || []);
+
+  // 加载资产数据
+  useEffect(() => {
+    if (scriptId) {
+      loadCharacters(scriptId);
+      loadScenes(scriptId);
+      loadProps(scriptId);
+    }
+  }, [scriptId, loadCharacters, loadScenes, loadProps]);
 
   // 任务轮询
   const handleStatusChange = useCallback(
@@ -189,7 +221,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     try {
       // 创建新的分镜副本
       const variantId = await addVariant(script.id, selectedEpisode.id, storyboardId);
-      
+
       // 更新副本状态为生成中
       await updateVariant(script.id, selectedEpisode.id, storyboardId, variantId, {
         status: 'generating',
@@ -197,11 +229,16 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       });
 
       const finalPrompt = buildPrompt(storyboard.description);
+
+      // 构建关联资产信息（使用本地状态）
+      const linkedAssets = buildLinkedAssets();
+
       const response = await generateStoryboardVideo({
         prompt: finalPrompt,
         aspect_ratio: storyboard.aspectRatio || '9:16',
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
+        linkedAssets,
       });
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
       if (response.success && taskId) {
@@ -254,11 +291,11 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   // 保存所有配置
   const handleSaveConfig = async () => {
     if (!script || !selectedEpisode || !selectedStoryboardId || !selectedStoryboard) return;
-    
+
     try {
       // 构建更新数据
       const updates: Partial<Storyboard> = {};
-      
+
       if (localDescription !== selectedStoryboard.description) {
         updates.description = localDescription;
       }
@@ -268,7 +305,16 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       if (localDuration !== (selectedStoryboard.duration || '15')) {
         updates.duration = localDuration;
       }
-      
+      if (!arraysEqual(localLinkedCharacterIds, selectedStoryboard.linkedCharacterIds || [])) {
+        updates.linkedCharacterIds = localLinkedCharacterIds;
+      }
+      if (!arraysEqual(localLinkedSceneIds, selectedStoryboard.linkedSceneIds || [])) {
+        updates.linkedSceneIds = localLinkedSceneIds;
+      }
+      if (!arraysEqual(localLinkedPropIds, selectedStoryboard.linkedPropIds || [])) {
+        updates.linkedPropIds = localLinkedPropIds;
+      }
+
       // 如果有变更，则保存
       if (Object.keys(updates).length > 0) {
         await updateStoryboard(script.id, selectedEpisode.id, selectedStoryboardId, updates);
@@ -285,6 +331,45 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const handleDurationChange = (duration: '10' | '15') => {
     setLocalDuration(duration);
+  };
+
+  // 资产关联处理函数 - 更新本地状态
+  const handleUpdateLinkedAssets = (
+    characterIds: string[],
+    sceneIds: string[],
+    propIds: string[]
+  ) => {
+    setLocalLinkedCharacterIds(characterIds);
+    setLocalLinkedSceneIds(sceneIds);
+    setLocalLinkedPropIds(propIds);
+  };
+
+  // 构建关联资产信息（使用本地状态）
+  const buildLinkedAssets = (): StoryboardLinkedAssets | undefined => {
+    const linkedCharacters = localLinkedCharacterIds
+      .map((id) => characters.find((c) => c.id === id))
+      .filter((c) => c && c.designImageUrl)
+      .map((c) => ({ name: c!.name, imageUrl: c!.designImageUrl! }));
+
+    const linkedScenes = localLinkedSceneIds
+      .map((id) => scenes.find((s) => s.id === id))
+      .filter((s) => s && s.designImageUrl)
+      .map((s) => ({ name: s!.name, imageUrl: s!.designImageUrl! }));
+
+    const linkedProps = localLinkedPropIds
+      .map((id) => props.find((p) => p.id === id))
+      .filter((p) => p && p.designImageUrl)
+      .map((p) => ({ name: p!.name, imageUrl: p!.designImageUrl! }));
+
+    if (linkedCharacters.length === 0 && linkedScenes.length === 0 && linkedProps.length === 0) {
+      return undefined;
+    }
+
+    return {
+      characters: linkedCharacters,
+      scenes: linkedScenes,
+      props: linkedProps,
+    };
   };
 
   const handleClearStoryboards = () => {
@@ -313,7 +398,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     }
     setIsDownloading(true);
     try {
-      const result = await downloadEpisodeVideos(selectedEpisode, () => {});
+      const result = await downloadEpisodeVideos(selectedEpisode, () => { });
       if (result.failed > 0) {
         alert(`下载完成！成功：${result.success} 个，失败：${result.failed} 个`);
       }
@@ -420,6 +505,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               onLocalDescriptionChange={setLocalDescription}
               onSave={handleSaveConfig}
               hasUnsavedChanges={hasUnsavedChanges}
+              localLinkedCharacterIds={localLinkedCharacterIds}
+              localLinkedSceneIds={localLinkedSceneIds}
+              localLinkedPropIds={localLinkedPropIds}
+              onUpdateLinkedAssets={handleUpdateLinkedAssets}
             />
 
             {/* 中间视频播放器 */}
