@@ -75,3 +75,29 @@ export interface Character {
   createdAt: string;
   updatedAt: string;
 }
+
+// 场景资产
+export interface Scene {
+  id: string;
+  scriptId: string;
+  name: string;
+  description: string;           // 场景设定/信息
+  designImageUrl?: string;       // 场景设计稿图片URL
+  thumbnailUrl?: string;         // 缩略图
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 物品资产
+export interface Prop {
+  id: string;
+  scriptId: string;
+  name: string;
+  description: string;           // 物品设定/信息
+  designImageUrl?: string;       // 物品设计稿图片URL
+  thumbnailUrl?: string;         // 缩略图
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
