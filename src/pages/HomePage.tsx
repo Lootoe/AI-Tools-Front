@@ -1,32 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, ImagePlus, Video, ArrowRight, Sparkles } from 'lucide-react';
+import { Video, ArrowRight, Sparkles } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   const modules = [
     {
-      title: 'AI对话',
-      description: '智能对话助手',
-      icon: MessageSquare,
-      path: '/chat',
-      gradient: 'from-violet-500 via-purple-500 to-indigo-500',
-      shadowColor: 'shadow-violet-500/25',
-    },
-    {
-      title: '图片生成',
-      description: '文字生成图片',
-      icon: ImagePlus,
-      path: '/text-to-image',
-      gradient: 'from-orange-500 via-pink-500 to-rose-500',
-      shadowColor: 'shadow-orange-500/25',
-    },
-    {
-      title: '视频生成',
-      description: '图片转视频',
+      title: 'AI漫剧',
+      description: '视频剧本创作',
       icon: Video,
-      path: '/image-to-video',
+      path: '/video',
       gradient: 'from-blue-500 via-indigo-500 to-purple-500',
       shadowColor: 'shadow-blue-500/25',
     },
@@ -51,7 +35,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Modules Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full">
+      <div className="flex justify-center max-w-4xl w-full">
         {modules.map((module, index) => {
           const Icon = module.icon;
           return (

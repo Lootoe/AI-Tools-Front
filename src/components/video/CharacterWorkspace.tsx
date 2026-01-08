@@ -27,7 +27,8 @@ interface CharacterWorkspaceProps {
 
 // 支持的图片生成模型
 const IMAGE_MODELS = [
-  { value: 'nano-banana-2-4k', label: 'Nano Banana 4K' },
+  { value: 'nano-banana-2', label: 'Nano Banana 2' },
+  { value: 'flux-2-pro', label: 'Flux 2 Pro' },
   { value: 'doubao-seedream-3-0-t2i-250415', label: '豆包' },
 ] as const;
 
@@ -172,7 +173,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2-4k');
+  const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; characterId: string | null; characterName: string }>({
     isOpen: false,
