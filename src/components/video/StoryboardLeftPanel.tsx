@@ -134,7 +134,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="输入分镜提示词..."
-              className="flex-1 w-full rounded-lg p-2.5 text-xs leading-relaxed resize-none focus:outline-none transition-all"
+              className="flex-1 w-full rounded-lg p-2.5 text-xs leading-relaxed resize-none focus:outline-none transition-all scrollbar-hide"
               style={{
                 backgroundColor: '#0a0a0f',
                 border: isFocused ? '1px solid rgba(0,245,255,0.5)' : '1px solid #1e1e2e',
