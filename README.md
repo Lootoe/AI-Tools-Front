@@ -1,37 +1,56 @@
-# AI Agent Platform
+# AI Tools Frontend
 
-一个现代化的 AI 对话平台，支持多个大模型，可自定义参数，具备完整的对话管理功能。
+AI 视频创作工具平台前端，支持剧本编辑、分镜管理、AI 图片/视频生成等功能。
 
-## ✨ 功能特性
+## 功能特性
 
--   **🤖 多模型支持**：支持 OpenAI GPT、Claude、通义千问等多个大模型
--   **⚙️ 参数调节**：可自由调整 temperature、max_tokens、top_p 等参数
--   **💬 对话管理**：
-    -   创建、删除对话
-    -   编辑、删除、重新生成消息
-    -   对话列表展示
-    -   对话历史持久化（本地存储）
--   **📝 Markdown 支持**：
-    -   完整的 Markdown 语法渲染
-    -   代码高亮显示（支持多种编程语言）
-    -   表格、列表、引用等格式支持
-    -   GFM（GitHub Flavored Markdown）扩展
--   **🎨 现代 UI**：基于 TailwindCSS 的美观界面
--   **📱 响应式设计**：适配不同屏幕尺寸
+- **剧本管理**：创建、编辑、删除剧本，支持多剧集结构
+- **分镜编辑**：可视化分镜管理，支持拖拽排序、多副本生成
+- **资产管理**：角色、场景、物品资产的创建与关联
+- **AI 图片生成**：基于描述生成参考图片
+- **AI 视频生成**：图生视频，支持多种比例和时长
+- **实时状态**：视频生成进度实时更新
+- **本地持久化**：对话历史本地存储
 
-## 🛠️ 技术栈
+## 技术栈
 
--   **框架**：React 18 + TypeScript 5
--   **构建工具**：Vite 6
--   **状态管理**：Zustand
--   **UI 组件**：自定义组件 + Radix UI
--   **样式**：TailwindCSS + @tailwindcss/typography
--   **Markdown 渲染**：react-markdown + remark-gfm + rehype-highlight
--   **HTTP 客户端**：Axios
--   **本地存储**：LocalForage (IndexedDB)
--   **图标**：Lucide React
+- **框架**：React 18 + TypeScript 5
+- **构建**：Vite 6
+- **状态管理**：Zustand 5
+- **数据请求**：TanStack Query + Axios
+- **路由**：React Router 6
+- **UI**：TailwindCSS + Radix UI
+- **Markdown**：react-markdown + remark-gfm + rehype-highlight
+- **本地存储**：LocalForage (IndexedDB)
+- **图标**：Lucide React
 
-## 📦 快速开始
+## 项目结构
+
+```
+src/
+├── components/           # 组件
+│   ├── ui/              # 基础 UI 组件
+│   ├── chat/            # 对话组件
+│   ├── sidebar/         # 侧边栏
+│   └── settings/        # 设置面板
+├── pages/               # 页面
+│   ├── HomePage.tsx     # 首页
+│   ├── ScriptListPage.tsx    # 剧本列表
+│   ├── ScriptEditorPage.tsx  # 剧本编辑器
+│   └── ImageToVideoPage.tsx  # 图生视频
+├── stores/              # Zustand 状态
+├── services/            # API 服务
+├── hooks/               # 自定义 Hooks
+├── types/               # TypeScript 类型
+├── utils/               # 工具函数
+├── config/              # 配置
+├── lib/                 # 第三方库封装
+├── App.tsx
+├── main.tsx
+└── index.css
+```
+
+## 快速开始
 
 ### 1. 安装依赖
 
@@ -41,18 +60,14 @@ npm install
 
 ### 2. 配置环境变量
 
-复制 `.env.example` 为 `.env` 并填入你的 API 密钥：
-
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件：
+编辑 `.env` 文件，配置后端 API 地址：
 
 ```env
-VITE_OPENAI_API_KEY=your_openai_api_key_here
-VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
-VITE_QWEN_API_KEY=your_qwen_api_key_here
+VITE_API_BASE_URL=http://localhost:3000
 ```
 
 ### 3. 启动开发服务器
@@ -61,98 +76,64 @@ VITE_QWEN_API_KEY=your_qwen_api_key_here
 npm run dev
 ```
 
-访问 http://localhost:3000
+访问 http://localhost:5173
 
 ### 4. 构建生产版本
 
 ```bash
 npm run build
+npm run preview  # 预览构建结果
 ```
 
-## 📁 项目结构
+## 页面说明
 
+### 首页
+AI 对话界面，支持多模型切换和参数调节。
+
+### 剧本列表
+管理所有剧本，支持创建、删除、批量操作。
+
+### 剧本编辑器
+核心功能页面：
+- 左侧：剧集列表
+- 中间：分镜编辑区，支持拖拽排序
+- 右侧：资产面板（角色/场景/物品）
+
+分镜支持：
+- 添加参考图片
+- 设置视频比例（16:9 / 9:16）
+- 设置视频时长（10s / 15s）
+- 生成多个视频副本
+- 关联角色/场景/物品资产
+
+### 图生视频
+独立的图片转视频工具页面。
+
+## 开发说明
+
+### 代码规范
+
+```bash
+npm run lint      # ESLint 检查
+npm run test      # 运行测试
 ```
-AI-Agent/
-├── src/
-│   ├── components/          # 组件目录
-│   │   ├── ui/             # 基础UI组件
-│   │   ├── chat/           # 对话相关组件
-│   │   ├── sidebar/        # 侧边栏组件
-│   │   └── settings/       # 设置相关组件
-│   ├── pages/              # 页面组件
-│   ├── stores/             # Zustand状态管理
-│   ├── services/           # API服务
-│   ├── types/              # TypeScript类型定义
-│   ├── hooks/              # 自定义Hooks
-│   ├── utils/              # 工具函数
-│   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css
-├── public/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── tailwind.config.js
-```
 
-## 🎯 使用说明
+### 添加新页面
 
-### 创建对话
-
-1. 点击左侧边栏的"新对话"按钮
-2. 系统会自动创建一个新对话并切换到该对话
-
-### 切换模型
-
-1. 在右侧设置面板中选择想要使用的模型
-2. 点击对应的模型卡片即可切换
-
-### 调整参数
-
-在右侧设置面板中可以调整以下参数：
-
--   **Temperature**：控制回答的随机性（0-2）
--   **Max Tokens**：最大生成的 token 数
--   **Top P**：核采样参数
--   **Frequency Penalty**：频率惩罚（-2 to 2）
--   **Presence Penalty**：存在惩罚（-2 to 2）
-
-### 消息操作
-
--   **编辑**：点击用户消息上的编辑图标
--   **删除**：点击消息上的删除图标
--   **重新生成**：点击 AI 消息上的重新生成图标
-
-## ⚠️ 注意事项
-
--   需要有效的 API 密钥才能使用对应的模型
--   对话历史存储在本地浏览器中（IndexedDB）
--   清除浏览器数据会导致对话历史丢失
-
-## 📝 开发说明
-
-### 添加新模型
-
-在 `src/types/models.ts` 中的 `AVAILABLE_MODELS` 数组中添加新模型配置：
-
-```typescript
-{
-  id: 'model-id',
-  name: 'Model Name',
-  provider: 'provider-name',
-  description: '模型描述',
-  maxTokens: 8192,
-}
-```
+1. 在 `src/pages/` 创建页面组件
+2. 在 `src/App.tsx` 添加路由配置
 
 ### 自定义样式
 
-主题配置在 `src/index.css` 和 `tailwind.config.js` 中。
+- 全局样式：`src/index.css`
+- Tailwind 配置：`tailwind.config.js`
 
-## 📄 License
+## 注意事项
+
+- 需要后端服务运行在 http://localhost:3000
+- 部分功能需要有效的 AI API 密钥
+- 对话历史存储在浏览器 IndexedDB，清除浏览器数据会丢失
+
+## License
 
 MIT
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
