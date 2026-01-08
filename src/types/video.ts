@@ -62,3 +62,16 @@ export type VideoPhase = 'storyboard' | 'video';
 
 // 资产 Tab 类型
 export type AssetTabType = 'storyboard' | 'character' | 'scene' | 'props';
+
+// 角色资产
+export interface Character {
+  id: string;
+  scriptId: string;
+  name: string;
+  description: string;           // 角色设定/信息
+  designImageUrl?: string;       // 角色设计稿图片URL
+  thumbnailUrl?: string;         // 缩略图
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}

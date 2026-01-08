@@ -1,37 +1,623 @@
-import React from 'react';
-import { Users, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Users,
+  Sparkles,
+  Plus,
+  Trash2,
+  Loader2,
+  Wand2,
+  Image as ImageIcon,
+  Download,
+  Upload,
+  Save,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
+import { Input } from '@/components/ui/Input';
+import { useCharacterStore } from '@/stores/characterStore';
+import { generateImage, uploadImage } from '@/services/api';
+import { Character } from '@/types/video';
 
 interface CharacterWorkspaceProps {
   scriptId: string;
 }
 
-export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId }) => {
+// 角色设计稿生成的系统提示词模板
+const CHARACTER_DESIGN_PROMPT_TEMPLATE = `请根据以下角色信息，生成一份完整的角色设计参考图（类似手绘网格纸风格），包含以下模块：
+1. 【配色与配饰】：列出角色主色调+至少3个配饰（如眼镜、包、饰品等）
+2. 【多角度视图】：正面、侧面、背面的全身展示（基础穿搭）
+3. 【多套穿搭】：至少2套不同风格的完整造型（含服装+鞋履）
+4. 【动作姿势】：至少3个动态动作（如跑、跳、坐）
+5. 【表情集合】：至少5种不同情绪的面部表情（如开心、害羞、生气）
+
+角色信息：`;
+
+// 单个角色卡片组件 - 重新设计
+interface CharacterCardProps {
+  character: Character;
+  isSelected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+const CharacterCard: React.FC<CharacterCardProps> = ({
+  character,
+  isSelected,
+  onSelect,
+  onDelete,
+}) => {
+  const isGenerating = character.status === 'generating';
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-      <div className="relative mb-6">
-        <div
-          className="w-20 h-20 rounded-2xl flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
-            border: '1px solid rgba(0,245,255,0.2)',
+    <div
+      onClick={onSelect}
+      className="group relative rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
+      style={{
+        backgroundColor: 'rgba(18,18,26,0.9)',
+        border: '1px solid',
+        borderColor: isSelected ? 'rgba(0,245,255,0.6)' : 'rgba(30,30,46,0.8)',
+        boxShadow: isSelected
+          ? '0 0 12px rgba(0,245,255,0.25), inset 0 0 20px rgba(0,245,255,0.05)'
+          : '0 2px 8px rgba(0,0,0,0.3)',
+      }}
+    >
+      {/* 缩略图区域 */}
+      <div
+        className="aspect-square relative overflow-hidden"
+        style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+      >
+        {character.thumbnailUrl ? (
+          <img
+            src={character.thumbnailUrl}
+            alt={character.name}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            {isGenerating ? (
+              <Loader2 size={20} className="animate-spin" style={{ color: '#bf00ff' }} />
+            ) : (
+              <Users size={24} style={{ color: 'rgba(107,114,128,0.4)' }} />
+            )}
+          </div>
+        )}
+
+        {/* 生成中遮罩 */}
+        {isGenerating && character.thumbnailUrl && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+            <Loader2 size={20} className="animate-spin" style={{ color: '#bf00ff' }} />
+          </div>
+        )}
+
+        {/* 悬浮删除按钮 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
           }}
+          className="absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+          style={{
+            backgroundColor: 'rgba(239,68,68,0.9)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          }}
+          title="删除"
         >
-          <Users size={36} style={{ color: 'rgba(0,245,255,0.5)' }} />
+          <Trash2 size={10} className="text-white" />
+        </button>
+
+        {/* 选中指示器 */}
+        {isSelected && (
+          <div
+            className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full"
+            style={{
+              backgroundColor: '#00f5ff',
+              boxShadow: '0 0 6px rgba(0,245,255,0.8)',
+            }}
+          />
+        )}
+      </div>
+
+      {/* 角色名称 - 底部居中，固定高度 */}
+      <div className="px-1.5 py-1.5 text-center h-7 flex items-center justify-center">
+        <span
+          className="text-[10px] font-medium truncate"
+          style={{ color: isSelected ? '#00f5ff' : '#d1d5db' }}
+        >
+          {character.name || '未命名'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// 新建角色卡片 - 重新设计
+const NewCharacterCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <div
+    onClick={onClick}
+    className="rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] group"
+    style={{
+      backgroundColor: 'rgba(18,18,26,0.5)',
+      border: '1px dashed rgba(0,245,255,0.2)',
+    }}
+  >
+    <div className="aspect-square flex flex-col items-center justify-center">
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
+          border: '1px solid rgba(0,245,255,0.2)',
+        }}
+      >
+        <Plus size={16} style={{ color: '#00f5ff' }} />
+      </div>
+    </div>
+    <div className="px-1.5 py-1.5 text-center h-7 flex items-center justify-center">
+      <span className="text-[10px]" style={{ color: '#6b7280' }}>
+        新建
+      </span>
+    </div>
+  </div>
+);
+
+export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId }) => {
+  const { characters, isLoading, loadCharacters, addCharacter, updateCharacter, deleteCharacter } =
+    useCharacterStore();
+
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editName, setEditName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (scriptId) {
+      loadCharacters(scriptId);
+    }
+  }, [scriptId, loadCharacters]);
+
+  useEffect(() => {
+    const selected = characters.find((c) => c.id === selectedCharacterId);
+    if (selected) {
+      setEditDescription(selected.description || '');
+      setEditName(selected.name || '');
+    } else {
+      setEditDescription('');
+      setEditName('');
+    }
+  }, [selectedCharacterId, characters]);
+
+  const selectedCharacter = characters.find((c) => c.id === selectedCharacterId);
+  const isProcessing = selectedCharacter?.status === 'generating' || isUploading;
+  const hasDesignImage = !!selectedCharacter?.designImageUrl;
+
+  const handleCreateCharacter = async () => {
+    try {
+      const characterId = await addCharacter(scriptId, '新角色', '');
+      setSelectedCharacterId(characterId);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '创建失败');
+    }
+  };
+
+  const handleGenerateDesign = async () => {
+    if (!selectedCharacter || !editDescription.trim() || isProcessing) return;
+
+    await updateCharacter(scriptId, selectedCharacter.id, { status: 'generating' });
+    setError(null);
+
+    try {
+      const fullPrompt = `${CHARACTER_DESIGN_PROMPT_TEMPLATE}[${editDescription.trim()}]`;
+      const response = await generateImage({
+        model: 'nano-banana-2-4k',
+        prompt: fullPrompt,
+        aspect_ratio: '1:1',
+        image_size: '2K',
+      });
+
+      if (response.success && response.images.length > 0) {
+        await updateCharacter(scriptId, selectedCharacter.id, {
+          designImageUrl: response.images[0].url,
+          thumbnailUrl: response.images[0].url,
+          status: 'completed',
+        });
+      } else {
+        await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
+        setError('生成失败，请重试');
+      }
+    } catch (err) {
+      await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
+      setError(err instanceof Error ? err.message : '生成失败');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedCharacter || isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
+      await updateCharacter(scriptId, selectedCharacter.id, {
+        name: editName.trim() || '未命名角色',
+        description: editDescription.trim(),
+      });
+      setError(null);
+      setSaveSuccess(true);
+      // 2秒后重置成功状态
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCharacter || isProcessing) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const response = await uploadImage(file);
+      if (response.success && response.url) {
+        await updateCharacter(scriptId, selectedCharacter.id, {
+          designImageUrl: response.url,
+          thumbnailUrl: response.url,
+          status: 'completed',
+        });
+      } else {
+        setError('上传失败，请重试');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败，请检查网络后重试');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+      {/* 左侧：角色池 - 3列网格 */}
+      <div
+        className="w-[280px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden"
+        style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}
+      >
+        <div
+          className="px-3 py-2.5 flex items-center justify-between flex-shrink-0"
+          style={{ borderBottom: '1px solid #1e1e2e' }}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="w-6 h-6 rounded-md flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(191,0,255,0.15))',
+                border: '1px solid rgba(0,245,255,0.3)',
+              }}
+            >
+              <Users size={12} style={{ color: '#00f5ff' }} />
+            </div>
+            <span className="text-xs font-medium text-white">角色池</span>
+          </div>
+          <span className="text-[10px]" style={{ color: '#6b7280' }}>
+            {characters.length}
+          </span>
         </div>
-        <div
-          className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, #ff00ff, #bf00ff)',
-            boxShadow: '0 0 10px rgba(255,0,255,0.5)',
-          }}
-        >
-          <Sparkles size={12} className="text-white" />
+
+        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={18} className="animate-spin" style={{ color: '#00f5ff' }} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              <NewCharacterCard onClick={handleCreateCharacter} />
+              {characters.map((character) => (
+                <CharacterCard
+                  key={character.id}
+                  character={character}
+                  isSelected={selectedCharacterId === character.id}
+                  onSelect={() => setSelectedCharacterId(character.id)}
+                  onDelete={() => {
+                    deleteCharacter(scriptId, character.id);
+                    if (selectedCharacterId === character.id) setSelectedCharacterId(null);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">角色管理</h3>
-      <p className="text-sm max-w-md" style={{ color: '#6b7280' }}>
-        角色管理功能开发中...
-      </p>
+
+      {/* 右侧：角色编辑器 */}
+      <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+        {selectedCharacter ? (
+          <>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))',
+                  border: '1px solid rgba(191,0,255,0.3)',
+                }}
+              >
+                <Wand2 size={14} style={{ color: '#bf00ff' }} />
+              </div>
+              <span className="text-sm font-medium text-white">角色编辑器</span>
+            </div>
+
+            <div className="flex-1 flex gap-4 overflow-hidden">
+              {/* 左侧：角色设定输入 */}
+              <div
+                className="w-[340px] flex-shrink-0 flex flex-col gap-3 rounded-xl p-4"
+                style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}
+              >
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#9ca3af' }}>
+                    角色名称
+                  </label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="输入角色名称..."
+                    className="h-9 text-sm"
+                  />
+                </div>
+
+                <div className="flex-1 flex flex-col min-h-0">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#9ca3af' }}>
+                    角色设定
+                  </label>
+                  <Textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="描述角色的外观、服装、风格等信息..."
+                    className="flex-1 min-h-0 resize-none text-sm"
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    className="px-3 py-2 rounded-lg text-xs"
+                    style={{
+                      backgroundColor: 'rgba(239,68,68,0.1)',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      color: '#f87171',
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                {/* 保存按钮 - 青色样式，带hover和状态反馈 */}
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="w-full h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all"
+                  style={{
+                    background: saveSuccess
+                      ? 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(22,163,74,0.2))'
+                      : 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))',
+                    border: `1px solid ${saveSuccess ? 'rgba(34,197,94,0.5)' : 'rgba(0,245,255,0.3)'}`,
+                    color: saveSuccess ? '#22c55e' : '#00f5ff',
+                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                    opacity: isSaving ? 0.7 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSaving && !saveSuccess) {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,212,170,0.2))';
+                      e.currentTarget.style.borderColor = 'rgba(0,245,255,0.5)';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(0,245,255,0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!saveSuccess) {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))';
+                      e.currentTarget.style.borderColor = 'rgba(0,245,255,0.3)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                      保存中...
+                    </>
+                  ) : saveSuccess ? (
+                    <>
+                      <Save size={16} className="mr-2" />
+                      已保存
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} className="mr-2" />
+                      保存角色信息
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 右侧：设计稿展示区域 */}
+              <div
+                className="flex-1 flex flex-col rounded-xl overflow-hidden"
+                style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}
+              >
+                {/* 展示区头部 */}
+                <div
+                  className="px-4 py-2.5 flex items-center justify-between flex-shrink-0"
+                  style={{ borderBottom: '1px solid #1e1e2e' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={14} style={{ color: '#00f5ff' }} />
+                    <span className="text-sm font-medium text-white">角色设计稿</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* 生成按钮 */}
+                    <button
+                      onClick={handleGenerateDesign}
+                      disabled={isProcessing || !editDescription.trim()}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all"
+                      style={{
+                        background: isProcessing || !editDescription.trim()
+                          ? 'rgba(191,0,255,0.1)'
+                          : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))',
+                        border: '1px solid rgba(191,0,255,0.3)',
+                        color: '#bf00ff',
+                        opacity: isProcessing || !editDescription.trim() ? 0.5 : 1,
+                        cursor: isProcessing || !editDescription.trim() ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <Sparkles size={12} />
+                      生成
+                    </button>
+                    {/* 上传按钮 */}
+                    <button
+                      onClick={() => !isProcessing && fileInputRef.current?.click()}
+                      disabled={isProcessing}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all"
+                      style={{
+                        backgroundColor: 'rgba(107,114,128,0.15)',
+                        border: '1px solid rgba(107,114,128,0.3)',
+                        color: '#9ca3af',
+                        opacity: isProcessing ? 0.5 : 1,
+                        cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <Upload size={12} />
+                      上传
+                    </button>
+                    {/* 下载按钮 */}
+                    {hasDesignImage && !isProcessing ? (
+                      <a
+                        href={selectedCharacter.designImageUrl}
+                        download={`character-${selectedCharacter.name}-${Date.now()}.png`}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-colors"
+                        style={{
+                          backgroundColor: 'rgba(0,245,255,0.1)',
+                          border: '1px solid rgba(0,245,255,0.3)',
+                          color: '#00f5ff',
+                        }}
+                      >
+                        <Download size={12} />
+                        下载
+                      </a>
+                    ) : (
+                      <span
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs"
+                        style={{
+                          backgroundColor: 'rgba(107,114,128,0.1)',
+                          border: '1px solid rgba(107,114,128,0.2)',
+                          color: '#6b7280',
+                          opacity: 0.5,
+                        }}
+                      >
+                        <Download size={12} />
+                        下载
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadImage}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* 设计稿展示 */}
+                <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative">
+                  {isProcessing ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
+                      <div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))',
+                          border: '1px solid rgba(191,0,255,0.3)',
+                        }}
+                      >
+                        <Loader2 size={28} className="animate-spin" style={{ color: '#bf00ff' }} />
+                      </div>
+                      <p className="text-sm" style={{ color: '#d1d5db' }}>
+                        {isUploading ? '正在上传...' : '正在生成设计稿...'}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {selectedCharacter.designImageUrl ? (
+                    <img
+                      src={selectedCharacter.designImageUrl}
+                      alt="角色设计稿"
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                      style={{ boxShadow: '0 0 30px rgba(0,245,255,0.1)' }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div
+                        className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(0,245,255,0.05), rgba(191,0,255,0.05))',
+                          border: '1px solid rgba(0,245,255,0.1)',
+                        }}
+                      >
+                        <ImageIcon size={32} style={{ color: 'rgba(0,245,255,0.3)' }} />
+                      </div>
+                      <div>
+                        <p className="text-sm" style={{ color: '#6b7280' }}>
+                          点击"生成"或"上传"添加角色设计稿
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: '#4b5563' }}>
+                          AI生成将包含多角度、多表情、多穿搭的设计参考图
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="relative mb-6">
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
+                  border: '1px solid rgba(0,245,255,0.2)',
+                }}
+              >
+                <Users size={36} style={{ color: 'rgba(0,245,255,0.5)' }} />
+              </div>
+              <div
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, #ff00ff, #bf00ff)',
+                  boxShadow: '0 0 10px rgba(255,0,255,0.5)',
+                }}
+              >
+                <Sparkles size={12} className="text-white" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">选择或创建角色</h3>
+            <p className="text-sm max-w-md mb-4" style={{ color: '#6b7280' }}>
+              从左侧角色池选择一个角色进行编辑，或点击"新建"创建新角色
+            </p>
+            <Button
+              onClick={handleCreateCharacter}
+              className="h-10 px-6"
+              style={{ background: 'linear-gradient(135deg, #00f5ff, #00d4aa)' }}
+            >
+              <Plus size={16} className="mr-2" />
+              新建角色
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
