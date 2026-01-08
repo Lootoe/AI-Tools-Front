@@ -15,7 +15,7 @@ import { generateStoryboardVideo, StoryboardLinkedAssets } from '@/services/api'
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 import { Storyboard } from '@/types/video';
 
-const DEFAULT_STYLE = '日漫风格';
+
 
 interface EpisodeWorkspaceProps {
   scriptId: string;
@@ -195,7 +195,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         progress: '0',
       });
 
-      const finalPrompt = buildPrompt(storyboard.description);
+      const finalPrompt = storyboard.description;
 
       // 构建关联资产信息（使用本地状态）
       const linkedAssets = buildLinkedAssets();
@@ -551,6 +551,3 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   );
 };
 
-function buildPrompt(description: string): string {
-  return `【全局设定】风格：${DEFAULT_STYLE}。\n\n${description}`;
-}
