@@ -17,22 +17,12 @@ import { useToast } from '@/components/ui/Toast';
 import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCharacterStore } from '@/stores/characterStore';
-import { generateImage, uploadImage } from '@/services/api';
+import { generateCharacterDesign, uploadImage } from '@/services/api';
 import { Character } from '@/types/video';
 
 interface CharacterWorkspaceProps {
   scriptId: string;
 }
-
-// 角色设计稿生成的系统提示词模板
-const CHARACTER_DESIGN_PROMPT_TEMPLATE = `请根据以下角色信息，生成一份完整的角色设计参考图（类似手绘网格纸风格），包含以下模块：
-1. 【配色与配饰】：列出角色主色调+至少3个配饰（如眼镜、包、饰品等）
-2. 【多角度视图】：正面、侧面、背面的全身展示（基础穿搭）
-3. 【多套穿搭】：至少2套不同风格的完整造型（含服装+鞋履）
-4. 【动作姿势】：至少3个动态动作（如跑、跳、坐）
-5. 【表情集合】：至少5种不同情绪的面部表情（如开心、害羞、生气）
-
-角色信息：`;
 
 // 单个角色卡片组件 - 重新设计
 interface CharacterCardProps {
@@ -215,13 +205,8 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     await updateCharacter(scriptId, selectedCharacter.id, { status: 'generating' });
 
     try {
-      const fullPrompt = `${CHARACTER_DESIGN_PROMPT_TEMPLATE}[${editDescription.trim()}]`;
-      const response = await generateImage({
-        model: 'nano-banana-2-4k',
-        prompt: fullPrompt,
-        aspect_ratio: '1:1',
-        image_size: '2K',
-      });
+      // 调用后端角色设计稿生成接口，提示词模板在后端
+      const response = await generateCharacterDesign(editDescription.trim());
 
       if (response.success && response.images.length > 0) {
         await updateCharacter(scriptId, selectedCharacter.id, {

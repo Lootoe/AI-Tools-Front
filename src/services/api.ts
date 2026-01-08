@@ -230,6 +230,38 @@ export async function uploadBase64Image(base64: string): Promise<ImageUploadResp
     return uploadImage(file);
 }
 
+// ============ 角色设计稿生成 ============
+
+// 角色设计稿生成响应
+export interface CharacterDesignResponse {
+    success: boolean;
+    images: Array<{
+        url: string;
+        revisedPrompt?: string;
+    }>;
+}
+
+// 生成角色设计稿（提示词模板在后端，前端只传角色描述）
+export async function generateCharacterDesign(description: string): Promise<CharacterDesignResponse> {
+    const token = getAuthToken();
+
+    const response = await fetch(`${BACKEND_URL}/api/images/character-design`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ description }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(error.error || error.message || '生成失败');
+    }
+
+    return response.json();
+}
+
 // 获取存储的 token (移到前面以便 uploadImage 使用)
 function getAuthToken(): string | null {
     return localStorage.getItem('token');
