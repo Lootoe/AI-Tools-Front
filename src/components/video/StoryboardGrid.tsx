@@ -99,30 +99,30 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
           {/* 批量下载按钮 */}
           {onDownloadAll && storyboards.some((sb) => {
             const activeVariant = sb.variants?.find(v => v.id === sb.activeVariantId);
-            return (activeVariant?.status === 'completed' && activeVariant?.videoUrl) || 
-                   (sb.status === 'completed' && sb.videoUrl);
+            return (activeVariant?.status === 'completed' && activeVariant?.videoUrl) ||
+              (sb.status === 'completed' && sb.videoUrl);
           }) && (
-            <button
-              onClick={onDownloadAll}
-              disabled={isDownloading}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors disabled:opacity-50"
-              style={{
-                color: '#4d7cff',
-                border: '1px solid rgba(77,124,255,0.3)',
-              }}
-              onMouseEnter={(e) => {
-                if (!isDownloading) {
-                  e.currentTarget.style.backgroundColor = 'rgba(77,124,255,0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <Download size={12} />
-              批量下载
-            </button>
-          )}
+              <button
+                onClick={onDownloadAll}
+                disabled={isDownloading}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors disabled:opacity-50"
+                style={{
+                  color: '#4d7cff',
+                  border: '1px solid rgba(77,124,255,0.3)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isDownloading) {
+                    e.currentTarget.style.backgroundColor = 'rgba(77,124,255,0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <Download size={12} />
+                批量下载
+              </button>
+            )}
 
           {/* 清空按钮 */}
           {onClearAll && storyboards.length > 0 && (
@@ -164,7 +164,7 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
       </div>
 
       {/* 分镜横向列表 */}
-      <div 
+      <div
         ref={scrollContainerRef}
         onWheel={handleWheel}
         className="flex-1 overflow-x-auto overflow-y-hidden p-2 cyber-scrollbar-x"
@@ -309,6 +309,39 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
               </div>
             );
           })}
+
+          {/* 添加分镜卡片 */}
+          <div
+            onClick={onAdd}
+            className="relative flex-shrink-0 w-28 h-full rounded-lg overflow-hidden cursor-pointer transition-all group"
+            style={{
+              backgroundColor: 'rgba(18,18,26,0.5)',
+              border: '2px dashed rgba(0,245,255,0.3)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(0,245,255,0.6)';
+              e.currentTarget.style.backgroundColor = 'rgba(0,245,255,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(0,245,255,0.3)';
+              e.currentTarget.style.backgroundColor = 'rgba(18,18,26,0.5)';
+            }}
+          >
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(191,0,255,0.2))',
+                  border: '1px solid rgba(0,245,255,0.3)',
+                }}
+              >
+                <Plus size={16} style={{ color: '#00f5ff' }} />
+              </div>
+              <span className="text-[10px]" style={{ color: '#00f5ff' }}>
+                添加分镜
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
