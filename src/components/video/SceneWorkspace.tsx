@@ -188,6 +188,7 @@ export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
     }
   }, [scriptId, loadScenes]);
 
+  // 只在选中的场景ID变化时同步数据，避免生成图片时因scenes更新导致输入框被清空
   useEffect(() => {
     const selected = scenes.find((s) => s.id === selectedSceneId);
     if (selected) {
@@ -197,7 +198,8 @@ export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
       setEditDescription('');
       setEditName('');
     }
-  }, [selectedSceneId, scenes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSceneId]);
 
   const selectedScene = scenes.find((s) => s.id === selectedSceneId);
   const isProcessing = selectedScene?.status === 'generating' || isUploading;

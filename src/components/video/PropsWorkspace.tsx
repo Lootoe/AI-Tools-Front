@@ -188,6 +188,7 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
     }
   }, [scriptId, loadProps]);
 
+  // 只在选中的物品ID变化时同步数据，避免生成图片时因props更新导致输入框被清空
   useEffect(() => {
     const selected = props.find((p) => p.id === selectedPropId);
     if (selected) {
@@ -197,7 +198,8 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
       setEditDescription('');
       setEditName('');
     }
-  }, [selectedPropId, props]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPropId]);
 
   const selectedProp = props.find((p) => p.id === selectedPropId);
   const isProcessing = selectedProp?.status === 'generating' || isUploading;
