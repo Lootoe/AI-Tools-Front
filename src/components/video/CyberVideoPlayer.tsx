@@ -136,7 +136,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
-    
+
     if (video.paused) {
       video.play();
     } else {
@@ -296,9 +296,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const progress = duration > 0 ? (isSeeking ? seekingProgress : (currentTime / duration) * 100) : 0;
 
   return (
-    <div 
+    <div
       className="relative flex flex-col h-full rounded-xl overflow-hidden"
-      style={{ 
+      style={{
         backgroundColor: '#0a0a0f',
         border: '1px solid #1e1e2e',
         boxShadow: '0 0 30px rgba(0,245,255,0.1), inset 0 0 60px rgba(0,0,0,0.5)'
@@ -353,7 +353,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       <div className="relative flex-1 bg-black cyber-scanlines overflow-hidden">
         {/* 截屏闪光效果 */}
         {captureFlash && (
-          <div 
+          <div
             className="absolute inset-0 z-20 pointer-events-none"
             style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
           />
@@ -365,7 +365,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             className="w-full h-full object-contain"
             poster={thumbnailUrl}
             onClick={togglePlay}
-            crossOrigin="anonymous"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -373,9 +372,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <img src={thumbnailUrl} alt="预览" className="w-full h-full object-contain" />
             ) : (
               <div className="text-center">
-                <div 
+                <div
                   className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
                     border: '1px solid rgba(0,245,255,0.3)'
                   }}
@@ -390,13 +389,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
         {/* 播放按钮覆盖层 */}
         {videoUrl && !isPlaying && !isLoading && (
-          <div 
+          <div
             className="absolute inset-0 flex items-center justify-center cursor-pointer"
             onClick={togglePlay}
           >
-            <div 
+            <div
               className="w-16 h-16 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-              style={{ 
+              style={{
                 background: 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(191,0,255,0.2))',
                 border: '2px solid rgba(0,245,255,0.5)',
                 boxShadow: '0 0 30px rgba(0,245,255,0.3)'
@@ -409,13 +408,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
         {/* 加载中覆盖层 */}
         {videoUrl && isLoading && (
-          <div 
+          <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none"
             style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
           >
-            <div 
+            <div
               className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ 
+              style={{
                 background: 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(191,0,255,0.2))',
                 border: '2px solid rgba(0,245,255,0.5)',
                 boxShadow: '0 0 30px rgba(0,245,255,0.3)'
@@ -433,7 +432,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <button
                 onClick={onPrevious}
                 className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all"
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(10,10,15,0.8)',
                   border: '1px solid rgba(0,245,255,0.3)',
                   color: '#00f5ff'
@@ -446,7 +445,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
               <button
                 onClick={onNext}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-all"
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(10,10,15,0.8)',
                   border: '1px solid rgba(0,245,255,0.3)',
                   color: '#00f5ff'
@@ -460,7 +459,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       </div>
 
       {/* 进度条 */}
-      <div 
+      <div
         ref={progressRef}
         className="h-1.5 cursor-pointer relative group"
         style={{ backgroundColor: 'rgba(30,30,46,0.8)' }}
@@ -468,18 +467,18 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         onMouseDown={handleProgressMouseDown}
       >
         {/* 播放进度 */}
-        <div 
+        <div
           className="absolute inset-y-0 left-0 pointer-events-none transition-[width] duration-75"
-          style={{ 
+          style={{
             width: `${progress}%`,
             background: 'linear-gradient(90deg, #00f5ff, #bf00ff)',
             boxShadow: '0 0 10px rgba(0,245,255,0.5)'
           }}
         />
         {/* 进度指示器 */}
-        <div 
+        <div
           className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ 
+          style={{
             left: `${progress}%`,
             transform: 'translate(-50%, -50%)',
             backgroundColor: '#00f5ff',
@@ -488,9 +487,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         />
         {/* 加载指示器 */}
         {isLoading && (
-          <div 
+          <div
             className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ 
+            style={{
               left: `${progress}%`,
               transform: 'translate(-50%, -50%)',
             }}
@@ -501,7 +500,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       </div>
 
       {/* 控制栏 */}
-      <div 
+      <div
         className="flex items-center justify-between px-3 py-2"
         style={{ backgroundColor: 'rgba(10,10,15,0.9)' }}
       >
@@ -530,7 +529,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             onClick={togglePlay}
             disabled={!videoUrl}
             className="p-2 rounded-full transition-all disabled:opacity-30"
-            style={{ 
+            style={{
               background: 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(191,0,255,0.2))',
               border: '1px solid rgba(0,245,255,0.3)',
               color: '#00f5ff'
@@ -551,7 +550,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           <span className="text-xs ml-2" style={{ color: '#6b7280' }}>
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
-          
+
           {/* 自动连播开关 */}
           <button
             onClick={() => setAutoPlay(!autoPlay)}
@@ -590,9 +589,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           >
             <Download size={14} />
           </button>
-          
+
           <div className="w-px h-4 mx-1" style={{ backgroundColor: '#1e1e2e' }} />
-          
+
           <button
             onClick={toggleMute}
             className="p-1.5 rounded transition-colors"
@@ -610,7 +609,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
             className="w-16 h-1 rounded-full appearance-none cursor-pointer"
-            style={{ 
+            style={{
               background: `linear-gradient(to right, #00f5ff ${volume * 100}%, #1e1e2e ${volume * 100}%)`
             }}
           />
@@ -628,9 +627,9 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       </div>
 
       {/* 底部霓虹边框 */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 right-0 h-[1px]"
-        style={{ 
+        style={{
           background: 'linear-gradient(90deg, transparent, #bf00ff, #00f5ff, #bf00ff, transparent)',
           opacity: 0.5
         }}
