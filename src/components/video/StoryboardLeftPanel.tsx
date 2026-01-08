@@ -7,6 +7,8 @@ import { StoryboardAssetsPanel } from './StoryboardAssetsPanel';
 interface StoryboardLeftPanelProps {
   storyboard: Storyboard | null;
   storyboardIndex: number;
+  localAspectRatio: '9:16' | '16:9';
+  localDuration: '10' | '15';
   onAspectRatioChange: (ratio: '9:16' | '16:9') => void;
   onDurationChange: (duration: '10' | '15') => void;
   localDescription: string;
@@ -20,6 +22,8 @@ type TabType = 'script' | 'api' | 'assets';
 export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   storyboard,
   storyboardIndex,
+  localAspectRatio,
+  localDuration,
   onAspectRatioChange,
   onDurationChange,
   localDescription,
@@ -143,6 +147,8 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
         {activeTab === 'api' && (
           <StoryboardApiPanel
             storyboard={storyboard}
+            localAspectRatio={localAspectRatio}
+            localDuration={localDuration}
             onAspectRatioChange={onAspectRatioChange}
             onDurationChange={onDurationChange}
           />

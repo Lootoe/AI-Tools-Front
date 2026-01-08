@@ -4,12 +4,16 @@ import { Storyboard } from '@/types/video';
 
 interface StoryboardApiPanelProps {
   storyboard: Storyboard | null;
+  localAspectRatio: '9:16' | '16:9';
+  localDuration: '10' | '15';
   onAspectRatioChange: (ratio: '9:16' | '16:9') => void;
   onDurationChange: (duration: '10' | '15') => void;
 }
 
 export const StoryboardApiPanel: React.FC<StoryboardApiPanelProps> = ({
   storyboard,
+  localAspectRatio,
+  localDuration,
   onAspectRatioChange,
   onDurationChange,
 }) => {
@@ -22,9 +26,6 @@ export const StoryboardApiPanel: React.FC<StoryboardApiPanelProps> = ({
       </div>
     );
   }
-
-  const aspectRatio = storyboard.aspectRatio || '9:16';
-  const duration = storyboard.duration || '15';
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 cyber-scrollbar">
@@ -43,12 +44,12 @@ export const StoryboardApiPanel: React.FC<StoryboardApiPanelProps> = ({
               onClick={() => onAspectRatioChange(ratio)}
               className="flex-1 py-2 rounded text-xs font-medium transition-all"
               style={{
-                backgroundColor: aspectRatio === ratio ? 'rgba(77,124,255,0.15)' : '#12121a',
+                backgroundColor: localAspectRatio === ratio ? 'rgba(77,124,255,0.15)' : '#12121a',
                 border:
-                  aspectRatio === ratio
+                  localAspectRatio === ratio
                     ? '1px solid rgba(77,124,255,0.5)'
                     : '1px solid #1e1e2e',
-                color: aspectRatio === ratio ? '#4d7cff' : '#6b7280',
+                color: localAspectRatio === ratio ? '#4d7cff' : '#6b7280',
               }}
             >
               {ratio === '9:16' ? '竖屏 9:16' : '横屏 16:9'}
@@ -72,10 +73,10 @@ export const StoryboardApiPanel: React.FC<StoryboardApiPanelProps> = ({
               onClick={() => onDurationChange(dur)}
               className="flex-1 py-2 rounded text-xs font-medium transition-all"
               style={{
-                backgroundColor: duration === dur ? 'rgba(255,0,255,0.15)' : '#12121a',
+                backgroundColor: localDuration === dur ? 'rgba(255,0,255,0.15)' : '#12121a',
                 border:
-                  duration === dur ? '1px solid rgba(255,0,255,0.5)' : '1px solid #1e1e2e',
-                color: duration === dur ? '#ff00ff' : '#6b7280',
+                  localDuration === dur ? '1px solid rgba(255,0,255,0.5)' : '1px solid #1e1e2e',
+                color: localDuration === dur ? '#ff00ff' : '#6b7280',
               }}
             >
               {dur}秒

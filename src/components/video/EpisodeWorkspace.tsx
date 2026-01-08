@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
 import { generateStoryboardVideo } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
+import { Storyboard } from '@/types/video';
 
 const DEFAULT_STYLE = '日漫风格';
 
@@ -41,6 +42,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [localDescription, setLocalDescription] = useState('');
+  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('9:16');
+  const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
 
   const script = scripts.find((s) => s.id === scriptId);
 
@@ -68,13 +71,18 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     (sb) => sb.id === selectedStoryboardId
   );
 
-  // 当选中的分镜变化时，同步本地描述
+  // 当选中的分镜变化时，同步本地状态
   useEffect(() => {
     setLocalDescription(selectedStoryboard?.description || '');
-  }, [selectedStoryboard?.id, selectedStoryboard?.description]);
+    setLocalAspectRatio(selectedStoryboard?.aspectRatio || '9:16');
+    setLocalDuration(selectedStoryboard?.duration || '15');
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration]);
 
   // 计算是否有未保存的更改
-  const hasUnsavedChanges = localDescription !== (selectedStoryboard?.description || '');
+  const hasUnsavedChanges = 
+    localDescription !== (selectedStoryboard?.description || '') ||
+    localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
+    localDuration !== (selectedStoryboard?.duration || '15');
 
   // 任务轮询
   const handleStatusChange = useCallback(
@@ -244,24 +252,39 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   };
 
   // 保存所有配置
-  const handleSaveConfig = () => {
-    if (!script || !selectedEpisode || !selectedStoryboardId) return;
-    // 保存脚本描述
-    if (localDescription !== selectedStoryboard?.description) {
-      updateStoryboard(script.id, selectedEpisode.id, selectedStoryboardId, {
-        description: localDescription,
-      });
+  const handleSaveConfig = async () => {
+    if (!script || !selectedEpisode || !selectedStoryboardId || !selectedStoryboard) return;
+    
+    try {
+      // 构建更新数据
+      const updates: Partial<Storyboard> = {};
+      
+      if (localDescription !== selectedStoryboard.description) {
+        updates.description = localDescription;
+      }
+      if (localAspectRatio !== (selectedStoryboard.aspectRatio || '9:16')) {
+        updates.aspectRatio = localAspectRatio;
+      }
+      if (localDuration !== (selectedStoryboard.duration || '15')) {
+        updates.duration = localDuration;
+      }
+      
+      // 如果有变更，则保存
+      if (Object.keys(updates).length > 0) {
+        await updateStoryboard(script.id, selectedEpisode.id, selectedStoryboardId, updates);
+        showToast('配置已保存', 'success');
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '保存配置失败', 'error');
     }
   };
 
   const handleAspectRatioChange = (ratio: '9:16' | '16:9') => {
-    if (!script || !selectedEpisode || !selectedStoryboardId) return;
-    updateStoryboard(script.id, selectedEpisode.id, selectedStoryboardId, { aspectRatio: ratio });
+    setLocalAspectRatio(ratio);
   };
 
   const handleDurationChange = (duration: '10' | '15') => {
-    if (!script || !selectedEpisode || !selectedStoryboardId) return;
-    updateStoryboard(script.id, selectedEpisode.id, selectedStoryboardId, { duration });
+    setLocalDuration(duration);
   };
 
   const handleClearStoryboards = () => {
@@ -389,6 +412,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
             <StoryboardLeftPanel
               storyboard={selectedStoryboard || null}
               storyboardIndex={currentStoryboardIndex}
+              localAspectRatio={localAspectRatio}
+              localDuration={localDuration}
               onAspectRatioChange={handleAspectRatioChange}
               onDurationChange={handleDurationChange}
               localDescription={localDescription}
@@ -471,6 +496,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         onConfirm={handleClearStoryboards}
         onCancel={() => setShowClearConfirm(false)}
       />
+
+      {/* Toast 容器 */}
+      <ToastContainer />
     </>
   );
 };
