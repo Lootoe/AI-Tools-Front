@@ -32,6 +32,9 @@ export function useTaskPolling(
 ) {
   const timersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   const taskIdsRef = useRef<Set<string>>(new Set());
+  // 使用 ref 存储 callbacks，避免依赖变化导致重复轮询
+  const callbacksRef = useRef(callbacks);
+  callbacksRef.current = callbacks;
 
   // 解析任务状态
   const parseTaskStatus = useCallback((responseData: {
@@ -75,20 +78,30 @@ export function useTaskPolling(
     return { status: 'generating', progress: progressValue };
   }, []);
 
+  // 停止轮询
+  const stopPolling = useCallback((taskId: string) => {
+    const timer = timersRef.current.get(taskId);
+    if (timer) {
+      clearInterval(timer);
+      timersRef.current.delete(taskId);
+    }
+    taskIdsRef.current.delete(taskId);
+  }, []);
+
   // 执行单次轮询
   const doPoll = useCallback(async (taskId: string) => {
     try {
       const response = await getVideoStatus(taskId);
       const result = parseTaskStatus(response.data);
 
-      callbacks.onStatusChange(taskId, result);
+      callbacksRef.current.onStatusChange(taskId, result);
 
       if (result.status === 'completed') {
         stopPolling(taskId);
-        callbacks.onComplete?.(taskId, result.videoUrl || '');
+        callbacksRef.current.onComplete?.(taskId, result.videoUrl || '');
       } else if (result.status === 'failed') {
         stopPolling(taskId);
-        callbacks.onError?.(taskId, result.error || '生成失败');
+        callbacksRef.current.onError?.(taskId, result.error || '生成失败');
       }
 
       return result;
@@ -97,14 +110,13 @@ export function useTaskPolling(
       // 网络错误不停止轮询，继续尝试
       return null;
     }
-  }, [callbacks, parseTaskStatus]);
+  }, [parseTaskStatus, stopPolling]);
 
   // 开始轮询
   const startPolling = useCallback((taskId: string) => {
-    // 如果已有定时器，先清除
-    const existingTimer = timersRef.current.get(taskId);
-    if (existingTimer) {
-      clearInterval(existingTimer);
+    // 如果已经在轮询，跳过
+    if (taskIdsRef.current.has(taskId)) {
+      return;
     }
 
     taskIdsRef.current.add(taskId);
@@ -125,16 +137,6 @@ export function useTaskPolling(
 
     timersRef.current.set(taskId, timer);
   }, [doPoll, pollInterval]);
-
-  // 停止轮询
-  const stopPolling = useCallback((taskId: string) => {
-    const timer = timersRef.current.get(taskId);
-    if (timer) {
-      clearInterval(timer);
-      timersRef.current.delete(taskId);
-    }
-    taskIdsRef.current.delete(taskId);
-  }, []);
 
   // 停止所有轮询
   const stopAllPolling = useCallback(() => {

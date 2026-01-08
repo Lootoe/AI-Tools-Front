@@ -38,10 +38,11 @@ interface VideoState {
   updateVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string, updates: Partial<StoryboardVariant>) => Promise<void>;
   deleteVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
   setActiveVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
+  refreshVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
 
   // 获取当前剧本
   getCurrentScript: () => Script | null;
-  
+
   // 内部方法：刷新单个剧本
   refreshScript: (scriptId: string) => Promise<void>;
 }
@@ -196,11 +197,11 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId ? { ...e, ...updates } : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId ? { ...e, ...updates } : e
+              ),
+            }
             : s
         ),
       }));
@@ -233,13 +234,13 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? { ...e, storyboards: [...e.storyboards, newStoryboard] }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? { ...e, storyboards: [...e.storyboards, newStoryboard] }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -257,18 +258,18 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? {
-                        ...e,
-                        storyboards: e.storyboards.map((sb) =>
-                          sb.id === storyboardId ? { ...sb, ...updates } : sb
-                        ),
-                      }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) =>
+                      sb.id === storyboardId ? { ...sb, ...updates } : sb
+                    ),
+                  }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -285,13 +286,13 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? { ...e, storyboards: e.storyboards.filter((sb) => sb.id !== storyboardId) }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? { ...e, storyboards: e.storyboards.filter((sb) => sb.id !== storyboardId) }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -308,11 +309,11 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId ? { ...e, storyboards: [] } : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId ? { ...e, storyboards: [] } : e
+              ),
+            }
             : s
         ),
       }));
@@ -331,7 +332,7 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     const storyboards = [...episode.storyboards];
     const [movedItem] = storyboards.splice(fromIndex, 1);
     storyboards.splice(toIndex, 0, movedItem);
-    
+
     // 更新 sceneNumber
     storyboards.forEach((sb, idx) => {
       sb.sceneNumber = idx + 1;
@@ -342,11 +343,11 @@ export const useVideoStore = create<VideoState>((set, get) => ({
       scripts: state.scripts.map((s) =>
         s.id === scriptId
           ? {
-              ...s,
-              episodes: s.episodes.map((e) =>
-                e.id === episodeId ? { ...e, storyboards } : e
-              ),
-            }
+            ...s,
+            episodes: s.episodes.map((e) =>
+              e.id === episodeId ? { ...e, storyboards } : e
+            ),
+          }
           : s
       ),
     }));
@@ -369,24 +370,24 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? {
-                        ...e,
-                        storyboards: e.storyboards.map((sb) =>
-                          sb.id === storyboardId
-                            ? {
-                                ...sb,
-                                variants: [...(sb.variants || []), newVariant],
-                                activeVariantId: sb.activeVariantId || newVariant.id,
-                              }
-                            : sb
-                        ),
-                      }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) =>
+                      sb.id === storyboardId
+                        ? {
+                          ...sb,
+                          variants: [...(sb.variants || []), newVariant],
+                          activeVariantId: sb.activeVariantId || newVariant.id,
+                        }
+                        : sb
+                    ),
+                  }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -404,25 +405,25 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? {
-                        ...e,
-                        storyboards: e.storyboards.map((sb) =>
-                          sb.id === storyboardId
-                            ? {
-                                ...sb,
-                                variants: (sb.variants || []).map((v) =>
-                                  v.id === variantId ? { ...v, ...updates } : v
-                                ),
-                              }
-                            : sb
-                        ),
-                      }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) =>
+                      sb.id === storyboardId
+                        ? {
+                          ...sb,
+                          variants: (sb.variants || []).map((v) =>
+                            v.id === variantId ? { ...v, ...updates } : v
+                          ),
+                        }
+                        : sb
+                    ),
+                  }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -439,27 +440,27 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? {
-                        ...e,
-                        storyboards: e.storyboards.map((sb) => {
-                          if (sb.id !== storyboardId) return sb;
-                          const newVariants = (sb.variants || []).filter((v) => v.id !== variantId);
-                          return {
-                            ...sb,
-                            variants: newVariants,
-                            activeVariantId:
-                              sb.activeVariantId === variantId
-                                ? newVariants[0]?.id
-                                : sb.activeVariantId,
-                          };
-                        }),
-                      }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) => {
+                      if (sb.id !== storyboardId) return sb;
+                      const newVariants = (sb.variants || []).filter((v) => v.id !== variantId);
+                      return {
+                        ...sb,
+                        variants: newVariants,
+                        activeVariantId:
+                          sb.activeVariantId === variantId
+                            ? newVariants[0]?.id
+                            : sb.activeVariantId,
+                      };
+                    }),
+                  }
+                  : e
+              ),
+            }
             : s
         ),
       }));
@@ -476,26 +477,61 @@ export const useVideoStore = create<VideoState>((set, get) => ({
         scripts: state.scripts.map((s) =>
           s.id === scriptId
             ? {
-                ...s,
-                episodes: s.episodes.map((e) =>
-                  e.id === episodeId
-                    ? {
-                        ...e,
-                        storyboards: e.storyboards.map((sb) =>
-                          sb.id === storyboardId
-                            ? { ...sb, activeVariantId: variantId }
-                            : sb
-                        ),
-                      }
-                    : e
-                ),
-              }
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) =>
+                      sb.id === storyboardId
+                        ? { ...sb, activeVariantId: variantId }
+                        : sb
+                    ),
+                  }
+                  : e
+              ),
+            }
             : s
         ),
       }));
     } catch (error) {
       set({ error: (error as Error).message });
       throw error;
+    }
+  },
+
+  refreshVariant: async (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => {
+    try {
+      const variant = await api.fetchVariant(scriptId, episodeId, storyboardId, variantId);
+      set((state) => ({
+        scripts: state.scripts.map((s) =>
+          s.id === scriptId
+            ? {
+              ...s,
+              episodes: s.episodes.map((e) =>
+                e.id === episodeId
+                  ? {
+                    ...e,
+                    storyboards: e.storyboards.map((sb) =>
+                      sb.id === storyboardId
+                        ? {
+                          ...sb,
+                          variants: (sb.variants || []).map((v) =>
+                            v.id === variantId ? variant : v
+                          ),
+                        }
+                        : sb
+                    ),
+                  }
+                  : e
+              ),
+            }
+            : s
+        ),
+      }));
+    } catch (error) {
+      // 静默失败，不影响用户体验
+      console.error('刷新 variant 失败:', error);
     }
   },
 

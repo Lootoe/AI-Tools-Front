@@ -173,8 +173,16 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
           {storyboards.map((storyboard, index) => {
             const isSelected = selectedId === storyboard.id;
             const isHovered = hoveredId === storyboard.id;
-            const isGenerating =
-              storyboard.status === 'generating' || storyboard.status === 'queued';
+
+            // 获取当前选中副本的信息
+            const activeVariant = storyboard.variants?.find(v => v.id === storyboard.activeVariantId);
+            // 优先使用选中副本的数据，否则使用旧数据（兼容）
+            const currentVideoUrl = activeVariant?.videoUrl || storyboard.videoUrl;
+            const currentThumbnailUrl = activeVariant?.thumbnailUrl || storyboard.thumbnailUrl;
+            const currentStatus = activeVariant?.status || storyboard.status;
+            const currentProgress = activeVariant?.progress || storyboard.progress;
+
+            const isGenerating = currentStatus === 'generating' || currentStatus === 'queued';
             const isDragging = draggedIndex === index;
             const isDragOver = dragOverIndex === index;
 
@@ -216,18 +224,18 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
                   className="w-full h-full relative"
                   style={{ backgroundColor: '#0a0a0f' }}
                 >
-                  {storyboard.videoUrl ? (
+                  {currentVideoUrl ? (
                     <video
-                      src={`${storyboard.videoUrl}#t=0.1`}
+                      src={`${currentVideoUrl}#t=0.1`}
                       className="w-full h-full object-cover pointer-events-none"
                       preload="metadata"
                       muted
                       disablePictureInPicture
                       controlsList="nodownload nofullscreen noremoteplayback"
                     />
-                  ) : storyboard.thumbnailUrl ? (
+                  ) : currentThumbnailUrl ? (
                     <img
-                      src={storyboard.thumbnailUrl}
+                      src={currentThumbnailUrl}
                       alt={`分镜 ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -250,9 +258,9 @@ export const StoryboardGrid: React.FC<StoryboardGridProps> = ({
                           style={{ color: '#00f5ff' }}
                         />
                         <span className="text-[8px]" style={{ color: '#00f5ff' }}>
-                          {storyboard.status === 'queued'
+                          {currentStatus === 'queued'
                             ? '排队'
-                            : `${storyboard.progress || '0'}%`}
+                            : `${currentProgress || '0'}%`}
                         </span>
                       </div>
                     </div>

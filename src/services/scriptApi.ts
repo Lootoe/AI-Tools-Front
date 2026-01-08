@@ -154,6 +154,18 @@ export async function reorderStoryboards(
 
 // ============ 分镜副本 API ============
 
+export async function fetchVariant(
+  scriptId: string,
+  episodeId: string,
+  storyboardId: string,
+  variantId: string
+): Promise<StoryboardVariant> {
+  return request<StoryboardVariant>(
+    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/variants/${variantId}`,
+    { method: 'GET' }
+  );
+}
+
 export async function createVariant(
   scriptId: string,
   episodeId: string,

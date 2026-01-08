@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useCharacterStore } from '@/stores/characterStore';
@@ -11,7 +11,6 @@ import { StoryboardLeftPanel } from './StoryboardLeftPanel';
 import { StoryboardVariantPool } from './StoryboardVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { useTaskPolling, PollResult } from '@/hooks/useTaskPolling';
 import { generateStoryboardVideo, StoryboardLinkedAssets } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 import { Storyboard } from '@/types/video';
@@ -34,6 +33,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     updateVariant,
     deleteVariant,
     setActiveVariant,
+    refreshVariant,
   } = useVideoStore();
 
   const { characters, loadCharacters } = useCharacterStore();
@@ -116,60 +116,31 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     }
   }, [scriptId, loadCharacters, loadScenes, loadProps]);
 
-  // 任务轮询
-  const handleStatusChange = useCallback(
-    (taskId: string, result: PollResult) => {
-      if (!script || !selectedEpisode) return;
-      // 查找包含此 taskId 的分镜副本
-      for (const storyboard of selectedEpisode.storyboards) {
-        const variant = (storyboard.variants || []).find((v) => v.taskId === taskId);
-        if (variant) {
-          updateVariant(script.id, selectedEpisode.id, storyboard.id, variant.id, {
-            status: result.status,
-            progress: result.progress,
-            ...(result.videoUrl ? { videoUrl: result.videoUrl } : {}),
-          });
-          return;
-        }
-      }
-      // 兼容旧数据：查找分镜本身的 taskId
-      const storyboard = selectedEpisode.storyboards.find((sb) => sb.taskId === taskId);
-      if (storyboard) {
-        updateStoryboard(script.id, selectedEpisode.id, storyboard.id, {
-          status: result.status,
-          progress: result.progress,
-          ...(result.videoUrl ? { videoUrl: result.videoUrl } : {}),
-        });
-      }
-    },
-    [script, selectedEpisode, updateVariant, updateStoryboard]
-  );
-
-  const { startPolling, stopPolling } = useTaskPolling({
-    onStatusChange: handleStatusChange,
-  });
-
+  // 定时刷新正在生成的 variant（后端独立轮询更新数据库，前端只需定时拉取最新数据）
   useEffect(() => {
-    if (!selectedEpisode) return;
+    if (!selectedEpisode || !script) return;
+
+    // 收集所有正在生成的 variant 信息
+    const pendingVariants: { storyboardId: string; variantId: string }[] = [];
     selectedEpisode.storyboards.forEach((storyboard) => {
-      // 轮询分镜副本的任务
       (storyboard.variants || []).forEach((variant) => {
-        if (
-          (variant.status === 'generating' || variant.status === 'queued') &&
-          variant.taskId
-        ) {
-          startPolling(variant.taskId);
+        if (variant.status === 'generating' || variant.status === 'queued') {
+          pendingVariants.push({ storyboardId: storyboard.id, variantId: variant.id });
         }
       });
-      // 兼容旧数据
-      if (
-        (storyboard.status === 'generating' || storyboard.status === 'queued') &&
-        storyboard.taskId
-      ) {
-        startPolling(storyboard.taskId);
-      }
     });
-  }, [selectedEpisode?.id]);
+
+    if (pendingVariants.length === 0) return;
+
+    // 定时刷新每个正在生成的 variant
+    const refreshInterval = setInterval(() => {
+      pendingVariants.forEach(({ storyboardId, variantId }) => {
+        refreshVariant(script.id, selectedEpisode.id, storyboardId, variantId);
+      });
+    }, 5000);
+
+    return () => clearInterval(refreshInterval);
+  }, [selectedEpisode, script, refreshVariant]);
 
   // 分镜操作
   const handleAddStoryboard = async () => {
@@ -193,12 +164,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const confirmDeleteStoryboard = async () => {
     if (!script || !selectedEpisode || !deleteConfirmStoryboardId) return;
     try {
-      const storyboard = selectedEpisode.storyboards.find(
-        (sb) => sb.id === deleteConfirmStoryboardId
-      );
-      if (storyboard?.taskId) {
-        stopPolling(storyboard.taskId);
-      }
       await deleteStoryboard(script.id, selectedEpisode.id, deleteConfirmStoryboardId);
       if (selectedStoryboardId === deleteConfirmStoryboardId) {
         setSelectedStoryboardId(null);
@@ -239,11 +204,11 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
         linkedAssets,
+        variantId, // 传给后端，后端会自动启动轮询
       });
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
       if (response.success && taskId) {
         await updateVariant(script.id, selectedEpisode.id, storyboardId, variantId, { taskId });
-        startPolling(taskId);
       } else {
         throw new Error('未获取到任务ID');
       }
@@ -275,11 +240,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const confirmDeleteVariant = async () => {
     if (!script || !selectedEpisode || !selectedStoryboardId || !deleteConfirmVariantId) return;
     try {
-      const storyboard = selectedEpisode.storyboards.find((sb) => sb.id === selectedStoryboardId);
-      const variant = (storyboard?.variants || []).find((v) => v.id === deleteConfirmVariantId);
-      if (variant?.taskId) {
-        stopPolling(variant.taskId);
-      }
       await deleteVariant(script.id, selectedEpisode.id, selectedStoryboardId, deleteConfirmVariantId);
       showToast('副本已删除', 'success');
     } catch (error) {
@@ -374,9 +334,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const handleClearStoryboards = () => {
     if (!script || !selectedEpisode) return;
-    selectedEpisode.storyboards.forEach((sb) => {
-      if (sb.taskId) stopPolling(sb.taskId);
-    });
     clearStoryboards(script.id, selectedEpisode.id);
     setSelectedStoryboardId(null);
     setShowClearConfirm(false);

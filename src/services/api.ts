@@ -97,6 +97,7 @@ export interface StoryboardToVideoRequest {
   private?: boolean;
   referenceImageUrls?: string[]; // 参考图URL数组
   linkedAssets?: StoryboardLinkedAssets; // 关联资产信息
+  variantId?: string; // 分镜副本ID，用于后端轮询更新状态
 }
 
 // 分镜生成视频
@@ -117,6 +118,7 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       private: request.private ?? false,
       ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
       ...(request.linkedAssets ? { linked_assets: request.linkedAssets } : {}),
+      ...(request.variantId ? { variantId: request.variantId } : {}),
     }),
   });
 
@@ -273,4 +275,32 @@ export async function generatePropDesign(description: string, model?: string): P
 // 获取存储的 token (移到前面以便 uploadImage 使用)
 function getAuthToken(): string | null {
   return localStorage.getItem('token');
+}
+
+
+// ============ 视频轮询状态 ============
+
+// 获取后端轮询状态（调试用）
+export async function getPollingStatus(): Promise<{
+  success: boolean;
+  data: {
+    activePolls: number;
+    tasks: { taskId: string; duration: number }[];
+  };
+}> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/polling/status`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`获取轮询状态失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
 }
