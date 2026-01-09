@@ -26,6 +26,7 @@ export interface Sora2VideoResponse {
     };
     [key: string]: unknown;
   };
+  balance?: number; // 更新后的余额
 }
 
 // 生成 Sora2 视频
@@ -189,6 +190,7 @@ export interface CharacterDesignResponse {
     url: string;
     revisedPrompt?: string;
   }>;
+  balance?: number; // 更新后的余额
 }
 
 // 生成角色设计稿（提示词模板在后端，前端只传角色描述）
@@ -219,6 +221,7 @@ export interface SceneDesignResponse {
     url: string;
     revisedPrompt?: string;
   }>;
+  balance?: number; // 更新后的余额
 }
 
 // 生成场景设计稿（提示词模板在后端，前端只传场景描述）
@@ -249,6 +252,7 @@ export interface PropDesignResponse {
     url: string;
     revisedPrompt?: string;
   }>;
+  balance?: number; // 更新后的余额
 }
 
 // 生成物品设计稿（提示词模板在后端，前端只传物品描述）
@@ -275,6 +279,49 @@ export async function generatePropDesign(description: string, model?: string): P
 // 获取存储的 token (移到前面以便 uploadImage 使用)
 function getAuthToken(): string | null {
   return localStorage.getItem('token');
+}
+
+// ============ 余额记录相关 ============
+
+// 余额记录类型
+export interface BalanceRecord {
+  id: string;
+  type: 'consume' | 'recharge' | 'refund' | 'invite' | 'redeem';
+  amount: number;
+  balance: number;
+  description: string;
+  createdAt: string;
+}
+
+// 余额记录响应
+export interface BalanceRecordsResponse {
+  success: boolean;
+  data: {
+    records: BalanceRecord[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}
+
+// 获取余额记录
+export async function getBalanceRecords(page: number = 1, pageSize: number = 20): Promise<BalanceRecordsResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/auth/balance-records?page=${page}&pageSize=${pageSize}`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || error.message || '获取余额记录失败');
+  }
+
+  return response.json();
 }
 
 

@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCharacterStore } from '@/stores/characterStore';
+import { useAuthStore } from '@/stores/authStore';
 import { generateCharacterDesign, uploadImage } from '@/services/api';
 import { Character } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
@@ -164,6 +165,7 @@ const NewCharacterCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId }) => {
   const { characters, isLoading, loadCharacters, addCharacter, updateCharacter, deleteCharacter } =
     useCharacterStore();
+  const { updateBalance } = useAuthStore();
   const { showToast, ToastContainer } = useToast();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
@@ -216,6 +218,10 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
   const handleGenerateDesign = async () => {
     if (!selectedCharacter || !editDescription.trim() || isProcessing) return;
 
+    // 乐观更新：立即扣除前端显示的代币
+    const tokenCost = selectedModel === 'nano-banana-2' ? 4 : 2;
+    updateBalance((prev) => prev - tokenCost);
+
     await updateCharacter(scriptId, selectedCharacter.id, { status: 'generating' });
 
     try {
@@ -228,11 +234,19 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
           thumbnailUrl: response.images[0].url,
           status: 'completed',
         });
+        // 同步后端返回的真实余额
+        if (response.balance !== undefined) {
+          updateBalance(response.balance);
+        }
         showToast('设计稿生成成功', 'success');
       } else {
+        // 失败时恢复余额
+        updateBalance((prev) => prev + tokenCost);
         await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
       }
     } catch {
+      // 失败时恢复余额
+      updateBalance((prev) => prev + tokenCost);
       await updateCharacter(scriptId, selectedCharacter.id, { status: 'failed' });
       // 错误由 API 层统一处理显示 toast
     }

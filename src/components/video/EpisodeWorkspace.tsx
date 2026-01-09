@@ -4,6 +4,7 @@ import { useVideoStore } from '@/stores/videoStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useSceneStore } from '@/stores/sceneStore';
 import { usePropStore } from '@/stores/propStore';
+import { useAuthStore } from '@/stores/authStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
 import { CyberVideoPlayer } from './CyberVideoPlayer';
@@ -39,6 +40,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const { characters, loadCharacters } = useCharacterStore();
   const { scenes, loadScenes } = useSceneStore();
   const { props, loadProps } = usePropStore();
+  const { updateBalance } = useAuthStore();
 
   const { showToast, ToastContainer } = useToast();
 
@@ -185,6 +187,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       return;
     }
 
+    // 乐观更新：立即扣除前端显示的代币
+    const tokenCost = 3;
+    updateBalance((prev) => prev - tokenCost);
+
     try {
       // 创建新的分镜副本
       const variantId = await addVariant(script.id, selectedEpisode.id, storyboardId);
@@ -211,10 +217,16 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
       if (response.success && taskId) {
         await updateVariant(script.id, selectedEpisode.id, storyboardId, variantId, { taskId });
+        // 同步后端返回的真实余额
+        if (response.balance !== undefined) {
+          updateBalance(response.balance);
+        }
       } else {
         throw new Error('未获取到任务ID');
       }
     } catch (error) {
+      // 失败时恢复余额
+      updateBalance((prev) => prev + tokenCost);
       console.error('分镜视频生成失败:', error);
       showToast(error instanceof Error ? error.message : '视频生成失败，请重试', 'error');
       // 如果失败，需要找到刚创建的副本并更新状态

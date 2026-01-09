@@ -13,19 +13,13 @@ import {
   Edit3,
   Mail,
   LogOut,
+  RotateCcw,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
+import { getBalanceRecords, BalanceRecord } from '@/services/api';
 import CoinIcon from '@/img/coin.png';
-
-interface BalanceRecord {
-  id: string;
-  type: 'consume' | 'recharge' | 'invite' | 'redeem';
-  amount: number;
-  description: string;
-  createdAt: string;
-}
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,7 +48,26 @@ export const ProfilePage: React.FC = () => {
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  const [balanceHistory] = useState<BalanceRecord[]>([]);
+  const [balanceHistory, setBalanceHistory] = useState<BalanceRecord[]>([]);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  // 加载余额记录
+  useEffect(() => {
+    const loadBalanceRecords = async () => {
+      setBalanceLoading(true);
+      try {
+        const response = await getBalanceRecords(1, 50);
+        if (response.success) {
+          setBalanceHistory(response.data.records);
+        }
+      } catch (error) {
+        console.error('加载余额记录失败:', error);
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+    loadBalanceRecords();
+  }, []);
 
   const getInviteLink = () => `${window.location.origin}/home?mode=register&invite=${userInfo.inviteCode}`;
 
@@ -87,6 +100,7 @@ export const ProfilePage: React.FC = () => {
     switch (type) {
       case 'consume': return <TrendingDown size={14} />;
       case 'recharge': return <TrendingUp size={14} />;
+      case 'refund': return <RotateCcw size={14} />;
       case 'invite': return <Gift size={14} />;
       case 'redeem': return <Ticket size={14} />;
     }
@@ -96,6 +110,7 @@ export const ProfilePage: React.FC = () => {
     switch (type) {
       case 'consume': return '#ef4444';
       case 'recharge': return '#22c55e';
+      case 'refund': return '#3b82f6';
       case 'invite': return '#a855f7';
       case 'redeem': return '#f59e0b';
     }
@@ -312,7 +327,12 @@ export const ProfilePage: React.FC = () => {
               <span className="text-white font-medium">余额记录</span>
             </div>
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-              {balanceHistory.length === 0 ? (
+              {balanceLoading ? (
+                <div className="text-center py-12" style={{ color: '#4b5563' }}>
+                  <div className="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3" />
+                  <p className="text-sm">加载中...</p>
+                </div>
+              ) : balanceHistory.length === 0 ? (
                 <div className="text-center py-12" style={{ color: '#4b5563' }}>
                   <History size={32} className="mx-auto mb-3 opacity-50" />
                   <p className="text-sm">暂无记录</p>
@@ -333,11 +353,13 @@ export const ProfilePage: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-white text-sm">{record.description}</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>{record.createdAt}</div>
+                        <div className="text-xs" style={{ color: '#6b7280' }}>
+                          {new Date(record.createdAt).toLocaleString('zh-CN')}
+                        </div>
                       </div>
                     </div>
                     <span className="font-medium text-sm" style={{ color: getRecordColor(record.type) }}>
-                      {record.amount > 0 ? '+' : ''}{record.amount.toFixed(2)}
+                      {record.amount > 0 ? '+' : ''}{Math.floor(Math.abs(record.amount))}
                     </span>
                   </div>
                 ))

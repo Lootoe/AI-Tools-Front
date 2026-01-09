@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSceneStore } from '@/stores/sceneStore';
+import { useAuthStore } from '@/stores/authStore';
 import { generateSceneDesign, uploadImage } from '@/services/api';
 import { Scene } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
@@ -165,6 +166,7 @@ const NewSceneCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
   const { scenes, isLoading, loadScenes, addScene, updateScene, deleteScene } =
     useSceneStore();
+  const { updateBalance } = useAuthStore();
   const { showToast, ToastContainer } = useToast();
 
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
@@ -217,6 +219,10 @@ export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
   const handleGenerateDesign = async () => {
     if (!selectedScene || !editDescription.trim() || isProcessing) return;
 
+    // 乐观更新：立即扣除前端显示的代币
+    const tokenCost = selectedModel === 'nano-banana-2' ? 4 : 2;
+    updateBalance((prev) => prev - tokenCost);
+
     await updateScene(scriptId, selectedScene.id, { status: 'generating' });
 
     try {
@@ -229,11 +235,19 @@ export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
           thumbnailUrl: response.images[0].url,
           status: 'completed',
         });
+        // 同步后端返回的真实余额
+        if (response.balance !== undefined) {
+          updateBalance(response.balance);
+        }
         showToast('设计稿生成成功', 'success');
       } else {
+        // 失败时恢复余额
+        updateBalance((prev) => prev + tokenCost);
         await updateScene(scriptId, selectedScene.id, { status: 'failed' });
       }
     } catch {
+      // 失败时恢复余额
+      updateBalance((prev) => prev + tokenCost);
       await updateScene(scriptId, selectedScene.id, { status: 'failed' });
       // 错误由 API 层统一处理显示 toast
     }

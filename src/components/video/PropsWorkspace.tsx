@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { usePropStore } from '@/stores/propStore';
+import { useAuthStore } from '@/stores/authStore';
 import { generatePropDesign, uploadImage } from '@/services/api';
 import { Prop } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
@@ -165,6 +166,7 @@ const NewPropCard: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
   const { props, isLoading, loadProps, addProp, updateProp, deleteProp } =
     usePropStore();
+  const { updateBalance } = useAuthStore();
   const { showToast, ToastContainer } = useToast();
 
   const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
@@ -217,6 +219,10 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
   const handleGenerateDesign = async () => {
     if (!selectedProp || !editDescription.trim() || isProcessing) return;
 
+    // 乐观更新：立即扣除前端显示的代币
+    const tokenCost = selectedModel === 'nano-banana-2' ? 4 : 2;
+    updateBalance((prev) => prev - tokenCost);
+
     await updateProp(scriptId, selectedProp.id, { status: 'generating' });
 
     try {
@@ -229,11 +235,19 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
           thumbnailUrl: response.images[0].url,
           status: 'completed',
         });
+        // 同步后端返回的真实余额
+        if (response.balance !== undefined) {
+          updateBalance(response.balance);
+        }
         showToast('设计稿生成成功', 'success');
       } else {
+        // 失败时恢复余额
+        updateBalance((prev) => prev + tokenCost);
         await updateProp(scriptId, selectedProp.id, { status: 'failed' });
       }
     } catch {
+      // 失败时恢复余额
+      updateBalance((prev) => prev + tokenCost);
       await updateProp(scriptId, selectedProp.id, { status: 'failed' });
       // 错误由 API 层统一处理显示 toast
     }
