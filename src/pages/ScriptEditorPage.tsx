@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Film } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { CyberAssetSidebar } from '@/components/video/CyberAssetSidebar';
 import { EpisodeWorkspace } from '@/components/video/EpisodeWorkspace';
@@ -104,24 +104,7 @@ export const ScriptEditorPage: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* 顶部工具栏 */}
-      <AppNavbar
-        rightContent={
-          <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
-                border: '1px solid rgba(0,245,255,0.2)',
-              }}
-            >
-              <Zap size={14} style={{ color: '#00f5ff' }} />
-            </div>
-            <span className="font-medium text-sm" style={{ color: '#e5e7eb' }}>
-              {script.title}
-            </span>
-          </div>
-        }
-      />
+      <AppNavbar />
 
       {/* 主内容区 */}
       <div className="flex-1 flex overflow-hidden p-3 gap-3">

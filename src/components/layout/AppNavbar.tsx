@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import Logo from '@/img/Logo.png';
 
 interface AppNavbarProps {
   rightContent?: React.ReactNode;
@@ -25,7 +26,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate('/home');
     setShowDropdown(false);
   };
 
@@ -51,27 +52,10 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
             }}
           />
           {/* Logo图标 */}
-          <div
-            className="relative w-6 h-6 rounded-md flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, #00f5ff, #bf00ff, #ff0080)',
-              boxShadow: '0 0 12px rgba(0,245,255,0.5), 0 0 24px rgba(191,0,255,0.3)',
-            }}
-          >
-            <span className="text-white text-xs font-bold" style={{ textShadow: '0 0 8px rgba(255,255,255,0.8)' }}>幻</span>
-          </div>
+          <img src={Logo} alt="喵想" className="h-6 w-auto" />
           {/* Logo文字 */}
-          <span
-            className="relative font-bold text-base tracking-wide"
-            style={{
-              background: 'linear-gradient(90deg, #00f5ff, #bf00ff, #ff0080, #00f5ff)',
-              backgroundSize: '200% 100%',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'gradient-flow 3s linear infinite',
-            }}
-          >
-            幻境AI
+          <span className="relative font-bold text-base tracking-wide text-white">
+            喵想
           </span>
         </button>
 

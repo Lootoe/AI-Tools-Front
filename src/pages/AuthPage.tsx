@@ -129,7 +129,7 @@ export const AuthPage: React.FC = () => {
             {mode === 'login' ? '欢迎回来' : '创建账号'}
           </h1>
           <p style={{ color: '#6b7280' }} className="text-sm">
-            {mode === 'login' ? '登录以继续使用 AI Tools' : '注册以开始创作之旅'}
+            {mode === 'login' ? '登录以继续使用 喵想' : '注册以开始创作之旅'}
           </p>
         </div>
 

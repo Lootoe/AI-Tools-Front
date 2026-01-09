@@ -56,7 +56,7 @@ export const ProfilePage: React.FC = () => {
 
   const [balanceHistory] = useState<BalanceRecord[]>([]);
 
-  const getInviteLink = () => `${window.location.origin}/auth?mode=register&invite=${userInfo.inviteCode}`;
+  const getInviteLink = () => `${window.location.origin}/home?mode=register&invite=${userInfo.inviteCode}`;
 
   const copyInviteLink = async () => {
     try {
@@ -80,7 +80,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate('/home');
   };
 
   const getRecordIcon = (type: BalanceRecord['type']) => {

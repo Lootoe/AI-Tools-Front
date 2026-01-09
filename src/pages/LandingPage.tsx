@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Sparkles, Play } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Play } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { sendVerificationCode, register, login } from '@/services/authApi';
 import { useAuthStore } from '@/stores/authStore';
+import Logo from '@/img/Logo.png';
 
 type AuthMode = 'login' | 'register';
 type ViewState = 'landing' | 'auth';
@@ -115,21 +116,7 @@ export const LandingPage: React.FC = () => {
                 className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
                 style={{ background: 'transparent' }}
             >
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center"
-                            style={{
-                                background: 'linear-gradient(135deg, #00f5ff, #bf00ff)',
-                                boxShadow: '0 0 20px rgba(0,245,255,0.4)',
-                            }}
-                        >
-                            <Sparkles size={22} className="text-white" />
-                        </div>
-                        <span className="text-xl font-bold text-white">AI Tools</span>
-                    </div>
-
+                <div className="max-w-7xl mx-auto flex items-center justify-end">
                     {/* 登录按钮 */}
                     <button
                         onClick={handleNavLogin}
@@ -148,29 +135,30 @@ export const LandingPage: React.FC = () => {
                         className={`transition-all duration-700 ease-out ${viewState === 'auth' ? 'w-1/2 pr-8' : 'w-full text-center'
                             }`}
                     >
-                        <h1
-                            className={`font-bold text-white mb-6 leading-tight transition-all duration-700 ${viewState === 'auth' ? 'text-4xl text-left' : 'text-5xl md:text-6xl'
+                        {/* Logo + 品牌名作为大标题 */}
+                        <div className={`flex items-center gap-4 mb-6 transition-all duration-700 ${viewState === 'auth' ? 'justify-start' : 'justify-center'}`}>
+                            <img src={Logo} alt="喵想" className={`transition-all duration-700 ${viewState === 'auth' ? 'h-16' : 'h-24 md:h-32'}`} />
+                            <span
+                                className={`font-bold text-white transition-all duration-700 ${viewState === 'auth' ? 'text-4xl' : 'text-5xl md:text-7xl'}`}
+                                style={{ textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}
+                            >
+                                喵想
+                            </span>
+                        </div>
+
+                        <h2
+                            className={`font-bold text-white mb-6 leading-tight transition-all duration-700 ${viewState === 'auth' ? 'text-2xl text-left' : 'text-3xl md:text-4xl'
                                 }`}
                             style={{ textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}
                         >
-                            用 AI 释放你的
-                            <span
-                                className="block mt-2"
-                                style={{
-                                    background: 'linear-gradient(90deg, #00f5ff, #bf00ff)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                }}
-                            >
-                                创作潜能
-                            </span>
-                        </h1>
+                            用 AI 释放你的创作潜能
+                        </h2>
 
                         <p
                             className={`text-gray-300 mb-8 transition-all duration-700 ${viewState === 'auth' ? 'text-base text-left' : 'text-lg md:text-xl max-w-2xl mx-auto'
                                 }`}
                         >
-                            一站式 AI 创作平台，让你的想象力变为现实。从剧本创作到视频生成，AI 助你轻松完成。
+                            更亲民的 AI 创作平台，让你的想象力变为现实。从剧本创作到视频生成，AI 助你轻松完成。
                         </p>
 
                         {/* 立即体验按钮 */}
@@ -210,7 +198,7 @@ export const LandingPage: React.FC = () => {
                                     {mode === 'login' ? '欢迎回来' : '创建账号'}
                                 </h2>
                                 <p className="text-gray-400 text-sm">
-                                    {mode === 'login' ? '登录以继续使用 AI Tools' : '注册以开始创作之旅'}
+                                    {mode === 'login' ? '登录以继续使用 喵想' : '注册以开始创作之旅'}
                                 </p>
                             </div>
 
