@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 
 interface AppNavbarProps {
   rightContent?: React.ReactNode;
@@ -7,11 +8,9 @@ interface AppNavbarProps {
 
 export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // 模拟用户数据
-  const userBalance = 100.00;
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -23,6 +22,12 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+    setShowDropdown(false);
+  };
 
   return (
     <div
@@ -99,7 +104,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            ¥{userBalance.toFixed(2)}
+            ¥{(user?.balance ?? 0).toFixed(2)}
           </span>
         </div>
 
@@ -117,7 +122,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
                 boxShadow: '0 0 10px rgba(0, 245, 255, 0.3)',
               }}
             >
-              用
+              {(user?.nickname || user?.email || '用').charAt(0).toUpperCase()}
             </div>
             <svg
               className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
@@ -153,6 +158,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ rightContent }) => {
               </button>
               <div className="h-px mx-2" style={{ backgroundColor: 'rgba(60, 60, 80, 0.5)' }} />
               <button
+                onClick={handleLogout}
                 className="w-full px-4 py-2.5 text-left text-sm text-gray-300 hover:text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

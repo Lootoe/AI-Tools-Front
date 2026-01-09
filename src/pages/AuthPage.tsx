@@ -135,24 +135,6 @@ export const AuthPage: React.FC = () => {
 
         {/* 表单 */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 昵称（仅注册） */}
-          {mode === 'register' && (
-            <div className="relative">
-              <User
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2"
-                style={{ color: '#6b7280' }}
-              />
-              <Input
-                type="text"
-                placeholder="昵称（选填）"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          )}
-
           {/* 邮箱 */}
           <div className="relative">
             <Mail
@@ -196,6 +178,24 @@ export const AuthPage: React.FC = () => {
               >
                 {sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '获取验证码'}
               </Button>
+            </div>
+          )}
+
+          {/* 昵称（仅注册） */}
+          {mode === 'register' && (
+            <div className="relative">
+              <User
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+                style={{ color: '#6b7280' }}
+              />
+              <Input
+                type="text"
+                placeholder="昵称（选填）"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="pl-10"
+              />
             </div>
           )}
 
