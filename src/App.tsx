@@ -4,6 +4,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HomePage } from '@/pages/HomePage';
 import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
+import { ProfilePage } from '@/pages/ProfilePage';
+import { AuthPage } from '@/pages/AuthPage';
+import { useAuthStore } from '@/stores/authStore';
 import { GlobalToastProvider, useGlobalToast, setGlobalShowToast } from '@/components/ui/Toast';
 
 const queryClient = new QueryClient({
@@ -15,14 +18,38 @@ const queryClient = new QueryClient({
   },
 });
 
+// 路由守卫组件
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthStore();
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 // 初始化全局 toast 的组件
 function GlobalToastInitializer() {
   const { showToast } = useGlobalToast();
+  const { checkAuth } = useAuthStore();
 
   useEffect(() => {
     setGlobalShowToast(showToast);
     return () => setGlobalShowToast(null);
   }, [showToast]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   return null;
 }
@@ -57,24 +84,39 @@ function App() {
 
             {/* 导航栏已移除，默认显示AI漫剧页面 */}
             <Routes>
-              {/* 根路径重定向到AI漫剧页面 */}
+              {/* 根路径重定向到剧本页 */}
               <Route path="/" element={<Navigate to="/video" replace />} />
-              {/* 保留其他路由，但暂时不通过导航访问 */}
+              {/* 登录页 */}
+              <Route path="/auth" element={<AuthPage />} />
+              {/* 以下路由需要登录 */}
               <Route path="/home" element={
-                <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
-                  <HomePage />
-                </main>
+                <ProtectedRoute>
+                  <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
+                    <HomePage />
+                  </main>
+                </ProtectedRoute>
               } />
               <Route path="/ai-comic" element={<Navigate to="/video" replace />} />
               <Route path="/video" element={
-                <main className="flex-1 overflow-hidden relative">
-                  <ScriptListPage />
-                </main>
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-hidden relative">
+                    <ScriptListPage />
+                  </main>
+                </ProtectedRoute>
               } />
               <Route path="/video/script/:scriptId" element={
-                <main className="flex-1 overflow-hidden relative">
-                  <ScriptEditorPage />
-                </main>
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-hidden relative">
+                    <ScriptEditorPage />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-auto relative">
+                    <ProfilePage />
+                  </main>
+                </ProtectedRoute>
               } />
             </Routes>
           </div>
