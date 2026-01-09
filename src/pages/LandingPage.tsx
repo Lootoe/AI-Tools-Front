@@ -165,10 +165,10 @@ export const LandingPage: React.FC = () => {
                         {viewState === 'landing' && (
                             <button
                                 onClick={handleExperience}
-                                className="group inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-semibold text-white transition-all duration-300 hover:scale-105"
+                                className="group inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:brightness-110"
                                 style={{
-                                    background: 'linear-gradient(90deg, #00f5ff, #bf00ff)',
-                                    boxShadow: '0 4px 30px rgba(0,245,255,0.4)',
+                                    background: '#6366f1',
+                                    boxShadow: '0 4px 24px rgba(99,102,241,0.35)',
                                 }}
                             >
                                 <Play size={22} className="group-hover:scale-110 transition-transform" />
@@ -249,7 +249,7 @@ export const LandingPage: React.FC = () => {
                                             style={{
                                                 background: 'rgba(255,255,255,0.1)',
                                                 borderColor: 'rgba(255,255,255,0.2)',
-                                                color: countdown > 0 ? '#9ca3af' : '#00f5ff',
+                                                color: countdown > 0 ? '#9ca3af' : '#818cf8',
                                             }}
                                         >
                                             {sendingCode ? '发送中...' : countdown > 0 ? `${countdown}s` : '获取验证码'}
@@ -330,11 +330,11 @@ export const LandingPage: React.FC = () => {
                                 <Button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full h-12 text-base font-medium transition-all duration-300 hover:scale-[1.02]"
+                                    className="w-full h-12 text-base font-medium transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
                                     style={{
-                                        background: 'linear-gradient(90deg, #00f5ff, #bf00ff)',
+                                        background: '#6366f1',
                                         border: 'none',
-                                        boxShadow: '0 4px 20px rgba(0,245,255,0.3)',
+                                        boxShadow: '0 4px 24px rgba(99,102,241,0.3)',
                                     }}
                                 >
                                     {loading ? (
@@ -363,7 +363,7 @@ export const LandingPage: React.FC = () => {
                                         setError('');
                                     }}
                                     className="ml-2 text-sm font-medium transition-colors hover:underline"
-                                    style={{ color: '#00f5ff' }}
+                                    style={{ color: '#818cf8' }}
                                 >
                                     {mode === 'login' ? '立即注册' : '去登录'}
                                 </button>

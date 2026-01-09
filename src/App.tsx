@@ -1,11 +1,9 @@
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { HomePage } from '@/pages/HomePage';
 import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { AuthPage } from '@/pages/AuthPage';
 import { LandingPage } from '@/pages/LandingPage';
 import { useAuthStore } from '@/stores/authStore';
 import { GlobalToastProvider, useGlobalToast, setGlobalShowToast } from '@/components/ui/Toast';
@@ -87,16 +85,8 @@ function App() {
             <Routes>
               {/* 首页（落地页+登录） */}
               <Route path="/" element={<LandingPage />} />
-              {/* 兼容旧的登录路由 */}
               <Route path="/home" element={<LandingPage />} />
               {/* 以下路由需要登录 */}
-              <Route path="/home" element={
-                <ProtectedRoute>
-                  <main className="flex-1 container mx-auto px-4 py-8 overflow-auto relative">
-                    <HomePage />
-                  </main>
-                </ProtectedRoute>
-              } />
               <Route path="/ai-comic" element={<Navigate to="/video" replace />} />
               <Route path="/video" element={
                 <ProtectedRoute>

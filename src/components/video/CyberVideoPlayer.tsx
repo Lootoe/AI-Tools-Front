@@ -16,6 +16,7 @@ import {
   Repeat,
   Loader2,
 } from 'lucide-react';
+import { captureVideoFrame } from '@/services/api';
 
 interface CyberVideoPlayerProps {
   videoUrl?: string;
@@ -61,6 +62,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekingProgress, setSeekingProgress] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   // 当 videoUrl 变化时，重置播放状态
   useEffect(() => {
@@ -235,41 +237,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const captureFrame = () => {
+  const captureFrame = async () => {
     const video = videoRef.current;
-    if (!video || !videoUrl) return;
+    if (!video || !videoUrl || isCapturing) return;
+
+    setIsCapturing(true);
+    const fileName = generateFileName('frame', 'png');
 
     try {
-      // 创建 canvas 来捕获当前帧
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      // 绘制当前帧
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // 生成文件名
-      const fileName = generateFileName('frame', 'png');
-
-      // 转换为 blob 并下载
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-      }, 'image/png');
+      // 使用后端 ffmpeg 截屏（直接下载文件流）
+      await captureVideoFrame(videoUrl, currentTime, fileName);
 
       // 显示闪光效果
       setCaptureFlash(true);
       setTimeout(() => setCaptureFlash(false), 200);
     } catch (error) {
       console.error('截屏失败:', error);
-      alert('截屏失败，可能是由于跨域限制。请确保视频服务器支持 CORS。');
+      alert(error instanceof Error ? error.message : '截屏失败');
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -569,14 +555,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={captureFrame}
-            disabled={!videoUrl}
+            disabled={!videoUrl || isCapturing}
             className="p-1.5 rounded transition-colors disabled:opacity-30"
             style={{ color: '#6b7280' }}
             onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.color = '#00f5ff')}
             onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
             title="截取当前帧"
           >
-            <Camera size={14} />
+            {isCapturing ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
           </button>
           <button
             onClick={downloadVideo}

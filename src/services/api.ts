@@ -351,3 +351,38 @@ export async function getPollingStatus(): Promise<{
 
   return response.json();
 }
+
+
+// ============ 视频截屏相关 ============
+
+// 通过后端 ffmpeg 截取视频帧并下载
+export async function captureVideoFrame(videoUrl: string, timestamp: number, filename: string): Promise<void> {
+  const token = getAuthToken();
+  const params = new URLSearchParams({
+    url: videoUrl,
+    t: timestamp.toString(),
+  });
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/capture-frame?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`截屏失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  // 获取 blob 并下载
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
