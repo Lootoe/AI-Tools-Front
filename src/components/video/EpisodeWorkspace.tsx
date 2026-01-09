@@ -195,7 +195,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       // 创建新的分镜副本
       const variantId = await addVariant(script.id, selectedEpisode.id, storyboardId);
 
-      // 更新副本状态为生成中
+      // 乐观更新：立即在前端显示生成中状态
       await updateVariant(script.id, selectedEpisode.id, storyboardId, variantId, {
         status: 'generating',
         progress: '0',
@@ -206,21 +206,24 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       // 构建关联资产信息（使用本地状态）
       const linkedAssets = buildLinkedAssets();
 
+      // 调用后端 API 生成视频
+      // 后端会自动更新 variant 状态为 generating，保存 taskId，并启动轮询
       const response = await generateStoryboardVideo({
         prompt: finalPrompt,
         aspect_ratio: storyboard.aspectRatio || '9:16',
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
         linkedAssets,
-        variantId, // 传给后端，后端会自动启动轮询
+        variantId,
       });
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
       if (response.success && taskId) {
-        await updateVariant(script.id, selectedEpisode.id, storyboardId, variantId, { taskId });
         // 同步后端返回的真实余额
         if (response.balance !== undefined) {
           updateBalance(response.balance);
         }
+        // 刷新 variant 获取最新状态（包括 taskId）
+        await refreshVariant(script.id, selectedEpisode.id, storyboardId, variantId);
       } else {
         throw new Error('未获取到任务ID');
       }
