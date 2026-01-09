@@ -184,7 +184,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
           <button
             onClick={onSave}
             disabled={!hasUnsavedChanges}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${hasUnsavedChanges ? 'hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]' : ''}`}
             style={{
               background: hasUnsavedChanges
                 ? 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,212,255,0.2))'

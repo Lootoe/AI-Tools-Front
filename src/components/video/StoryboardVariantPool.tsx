@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Check, Loader2, Play, Layers, AlertCircle } from 'lucide-react';
 import { Storyboard, StoryboardVariant } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
@@ -16,6 +16,33 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
   onDeleteVariant,
   onGenerate,
 }) => {
+  const [isGenerateCooldown, setIsGenerateCooldown] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  // 冷却倒计时
+  useEffect(() => {
+    if (!isGenerateCooldown) return;
+
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          setIsGenerateCooldown(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isGenerateCooldown]);
+
+  const handleGenerate = useCallback(() => {
+    if (isGenerateCooldown) return;
+    onGenerate();
+    setIsGenerateCooldown(true);
+    setCooldownSeconds(2);
+  }, [isGenerateCooldown, onGenerate]);
+
   if (!storyboard) {
     return (
       <div
@@ -112,19 +139,22 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
       {/* 生成按钮 */}
       <div className="p-3" style={{ borderTop: '1px solid #1e1e2e' }}>
         <button
-          onClick={onGenerate}
-          disabled={!hasDescription}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handleGenerate}
+          disabled={!hasDescription || isGenerateCooldown}
+          className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed ${hasDescription && !isGenerateCooldown ? 'hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]' : ''}`}
           style={{
-            background: hasDescription
+            background: hasDescription && !isGenerateCooldown
               ? 'linear-gradient(135deg, #00f5ff, #00d4ff)'
               : 'rgba(0,245,255,0.1)',
-            color: hasDescription ? '#0a0a0f' : '#6b7280',
-            boxShadow: hasDescription ? '0 4px 15px rgba(0,245,255,0.3)' : 'none',
+            color: hasDescription && !isGenerateCooldown ? '#0a0a0f' : '#6b7280',
+            boxShadow: hasDescription && !isGenerateCooldown ? '0 4px 15px rgba(0,245,255,0.3)' : 'none',
           }}
         >
           <Plus size={14} />
-          生成分镜（<img src={CoinIcon} alt="代币" className="w-4 h-4 inline" />消耗：3）
+          {isGenerateCooldown
+            ? `请等待 ${cooldownSeconds}s`
+            : <>生成分镜（<img src={CoinIcon} alt="代币" className="w-4 h-4 inline" />消耗：3）</>
+          }
         </button>
         {!hasDescription && (
           <p className="text-[10px] text-center mt-2" style={{ color: '#ef4444' }}>
