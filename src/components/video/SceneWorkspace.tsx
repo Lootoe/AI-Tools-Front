@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useSceneStore } from '@/stores/sceneStore';
 import { generateSceneDesign, uploadImage } from '@/services/api';
 import { Scene } from '@/types/video';
+import CoinIcon from '@/img/coin.png';
 
 interface SceneWorkspaceProps {
   scriptId: string;
@@ -542,7 +543,7 @@ export const SceneWorkspace: React.FC<SceneWorkspaceProps> = ({ scriptId }) => {
                         }}
                       >
                         <Sparkles size={12} />
-                        生成
+                        生成（<img src={CoinIcon} alt="代币" className="w-4 h-4 inline" />消耗：{selectedModel === 'nano-banana-2' ? 4 : 2}）
                       </button>
                       {/* 上传按钮 */}
                       <button

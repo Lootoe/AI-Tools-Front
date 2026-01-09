@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { usePropStore } from '@/stores/propStore';
 import { generatePropDesign, uploadImage } from '@/services/api';
 import { Prop } from '@/types/video';
+import CoinIcon from '@/img/coin.png';
 
 interface PropsWorkspaceProps {
   scriptId: string;
@@ -542,7 +543,7 @@ export const PropsWorkspace: React.FC<PropsWorkspaceProps> = ({ scriptId }) => {
                         }}
                       >
                         <Sparkles size={12} />
-                        生成
+                        生成（<img src={CoinIcon} alt="代币" className="w-4 h-4 inline" />消耗：{selectedModel === 'nano-banana-2' ? 4 : 2}）
                       </button>
                       {/* 上传按钮 */}
                       <button

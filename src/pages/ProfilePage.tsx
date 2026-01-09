@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Wallet,
   History,
   Gift,
   Ticket,
@@ -18,6 +17,7 @@ import {
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
+import CoinIcon from '@/img/coin.png';
 
 interface BalanceRecord {
   id: string;
@@ -181,7 +181,7 @@ export const ProfilePage: React.FC = () => {
             {/* 余额 */}
             <div className="text-right shrink-0">
               <div className="flex items-center gap-1 justify-end mb-1" style={{ color: '#6b7280' }}>
-                <Wallet size={14} />
+                <img src={CoinIcon} alt="余额" className="w-5 h-5" />
                 <span className="text-xs">余额</span>
               </div>
               <div
@@ -192,7 +192,7 @@ export const ProfilePage: React.FC = () => {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                ¥{userInfo.balance.toFixed(2)}
+                {Math.floor(userInfo.balance)}
               </div>
             </div>
           </div>

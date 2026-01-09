@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Trash2, Check, Loader2, Play, Layers, AlertCircle } from 'lucide-react';
 import { Storyboard, StoryboardVariant } from '@/types/video';
+import CoinIcon from '@/img/coin.png';
 
 interface StoryboardVariantPoolProps {
   storyboard: Storyboard | null;
@@ -123,7 +124,7 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
           }}
         >
           <Plus size={14} />
-          生成分镜
+          生成分镜（<img src={CoinIcon} alt="代币" className="w-4 h-4 inline" />消耗：3）
         </button>
         {!hasDescription && (
           <p className="text-[10px] text-center mt-2" style={{ color: '#ef4444' }}>
