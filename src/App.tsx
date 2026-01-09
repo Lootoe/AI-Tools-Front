@@ -32,7 +32,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;
@@ -88,7 +88,7 @@ function App() {
               {/* 首页（落地页+登录） */}
               <Route path="/" element={<LandingPage />} />
               {/* 兼容旧的登录路由 */}
-              <Route path="/auth" element={<LandingPage />} />
+              <Route path="/home" element={<LandingPage />} />
               {/* 以下路由需要登录 */}
               <Route path="/home" element={
                 <ProtectedRoute>
