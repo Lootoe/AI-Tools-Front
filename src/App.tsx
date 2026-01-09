@@ -6,6 +6,7 @@ import { ScriptListPage } from '@/pages/ScriptListPage';
 import { ScriptEditorPage } from '@/pages/ScriptEditorPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { AuthPage } from '@/pages/AuthPage';
+import { LandingPage } from '@/pages/LandingPage';
 import { useAuthStore } from '@/stores/authStore';
 import { GlobalToastProvider, useGlobalToast, setGlobalShowToast } from '@/components/ui/Toast';
 
@@ -84,10 +85,10 @@ function App() {
 
             {/* 导航栏已移除，默认显示AI漫剧页面 */}
             <Routes>
-              {/* 根路径重定向到剧本页 */}
-              <Route path="/" element={<Navigate to="/video" replace />} />
-              {/* 登录页 */}
-              <Route path="/auth" element={<AuthPage />} />
+              {/* 首页（落地页+登录） */}
+              <Route path="/" element={<LandingPage />} />
+              {/* 兼容旧的登录路由 */}
+              <Route path="/auth" element={<LandingPage />} />
               {/* 以下路由需要登录 */}
               <Route path="/home" element={
                 <ProtectedRoute>
