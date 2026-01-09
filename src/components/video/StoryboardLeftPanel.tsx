@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { FileText, Settings, Box, Save } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { FileText, Settings, Box, Save, Image, Upload, X, Loader2 } from 'lucide-react';
 import { Storyboard } from '@/types/video';
 import { StoryboardApiPanel } from './StoryboardApiPanel';
 import { StoryboardAssetsPanel } from './StoryboardAssetsPanel';
+import { uploadImage } from '@/services/api';
 
 interface StoryboardLeftPanelProps {
   storyboard: Storyboard | null;
@@ -25,9 +26,12 @@ interface StoryboardLeftPanelProps {
     sceneIds: string[],
     propIds: string[]
   ) => void;
+  // 首帧相关
+  localFirstFrameUrl: string;
+  onFirstFrameUrlChange: (url: string) => void;
 }
 
-type TabType = 'script' | 'api' | 'assets';
+type TabType = 'script' | 'firstFrame' | 'api' | 'assets';
 
 export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   storyboard,
@@ -44,9 +48,13 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   localLinkedSceneIds,
   localLinkedPropIds,
   onUpdateLinkedAssets,
+  localFirstFrameUrl,
+  onFirstFrameUrlChange,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('script');
   const [isFocused, setIsFocused] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!storyboard) {
     return (
@@ -75,9 +83,37 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: 'script', label: '脚本', icon: <FileText size={12} /> },
+    { key: 'firstFrame', label: '首帧', icon: <Image size={12} /> },
     { key: 'api', label: 'API设置', icon: <Settings size={12} /> },
     { key: 'assets', label: '关联资产', icon: <Box size={12} /> },
   ];
+
+  // 首帧图片上传处理
+  const handleFirstFrameUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || isUploading) return;
+
+    setIsUploading(true);
+    try {
+      const response = await uploadImage(file);
+      if (response.success && response.url) {
+        onFirstFrameUrlChange(response.url);
+      }
+    } catch (error) {
+      console.error('首帧图片上传失败:', error);
+    } finally {
+      setIsUploading(false);
+      // 清空 input 以便重复上传同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // 删除首帧图片
+  const handleRemoveFirstFrame = () => {
+    onFirstFrameUrlChange('');
+  };
 
   return (
     <div
@@ -166,6 +202,79 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
             onAspectRatioChange={onAspectRatioChange}
             onDurationChange={onDurationChange}
           />
+        )}
+        {activeTab === 'firstFrame' && (
+          <div className="h-full flex flex-col p-3">
+            <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+              <Image size={12} style={{ color: '#ff9500' }} />
+              <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>
+                视频首帧
+              </span>
+            </div>
+            <p className="text-[10px] mb-3" style={{ color: '#6b7280' }}>
+              上传一张图片作为视频的首帧，生成的视频将以此图片开始
+            </p>
+
+            {localFirstFrameUrl ? (
+              <div className="relative group">
+                <img
+                  src={localFirstFrameUrl}
+                  alt="首帧图片"
+                  className="w-full rounded-lg object-cover"
+                  style={{
+                    border: '1px solid #1e1e2e',
+                    maxHeight: '200px',
+                  }}
+                />
+                <button
+                  onClick={handleRemoveFirstFrame}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    backgroundColor: 'rgba(239,68,68,0.9)',
+                    color: '#fff',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <label
+                className={`flex-1 flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all ${isUploading ? 'pointer-events-none' : 'hover:border-opacity-50'}`}
+                style={{
+                  backgroundColor: '#0a0a0f',
+                  border: '2px dashed rgba(255,149,0,0.3)',
+                  minHeight: '120px',
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFirstFrameUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+                {isUploading ? (
+                  <>
+                    <Loader2 size={24} className="animate-spin mb-2" style={{ color: '#ff9500' }} />
+                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
+                      上传中...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={24} className="mb-2" style={{ color: 'rgba(255,149,0,0.5)' }} />
+                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
+                      点击上传首帧图片
+                    </span>
+                    <span className="text-[10px] mt-1" style={{ color: '#4b5563' }}>
+                      支持 JPG、PNG 格式
+                    </span>
+                  </>
+                )}
+              </label>
+            )}
+          </div>
         )}
         {activeTab === 'assets' && (
           <StoryboardAssetsPanel

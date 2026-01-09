@@ -19,6 +19,7 @@ export interface Storyboard {
   sceneNumber: number;
   description: string;
   referenceImageUrls?: string[]; // 参考图URL数组（支持多张）
+  firstFrameUrl?: string;        // 首帧图片URL
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
   createdAt: string;

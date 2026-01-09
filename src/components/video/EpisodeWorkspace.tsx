@@ -57,6 +57,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [localLinkedCharacterIds, setLocalLinkedCharacterIds] = useState<string[]>([]);
   const [localLinkedSceneIds, setLocalLinkedSceneIds] = useState<string[]>([]);
   const [localLinkedPropIds, setLocalLinkedPropIds] = useState<string[]>([]);
+  // 首帧图片状态
+  const [localFirstFrameUrl, setLocalFirstFrameUrl] = useState<string>('');
 
   const script = scripts.find((s) => s.id === scriptId);
 
@@ -92,7 +94,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setLocalLinkedCharacterIds(selectedStoryboard?.linkedCharacterIds || []);
     setLocalLinkedSceneIds(selectedStoryboard?.linkedSceneIds || []);
     setLocalLinkedPropIds(selectedStoryboard?.linkedPropIds || []);
-  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.linkedCharacterIds, selectedStoryboard?.linkedSceneIds, selectedStoryboard?.linkedPropIds]);
+    setLocalFirstFrameUrl(selectedStoryboard?.firstFrameUrl || '');
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.linkedCharacterIds, selectedStoryboard?.linkedSceneIds, selectedStoryboard?.linkedPropIds, selectedStoryboard?.firstFrameUrl]);
 
   // 比较数组是否相等（忽略顺序）
   const arraysEqual = (a: string[], b: string[]) => {
@@ -107,6 +110,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     localDescription !== (selectedStoryboard?.description || '') ||
     localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
     localDuration !== (selectedStoryboard?.duration || '15') ||
+    localFirstFrameUrl !== (selectedStoryboard?.firstFrameUrl || '') ||
     !arraysEqual(localLinkedCharacterIds, selectedStoryboard?.linkedCharacterIds || []) ||
     !arraysEqual(localLinkedSceneIds, selectedStoryboard?.linkedSceneIds || []) ||
     !arraysEqual(localLinkedPropIds, selectedStoryboard?.linkedPropIds || []);
@@ -213,6 +217,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         aspect_ratio: storyboard.aspectRatio || '9:16',
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
+        firstFrameUrl: localFirstFrameUrl || undefined,
         linkedAssets,
         variantId,
       });
@@ -281,6 +286,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       }
       if (localDuration !== (selectedStoryboard.duration || '15')) {
         updates.duration = localDuration;
+      }
+      if (localFirstFrameUrl !== (selectedStoryboard.firstFrameUrl || '')) {
+        updates.firstFrameUrl = localFirstFrameUrl || undefined;
       }
       if (!arraysEqual(localLinkedCharacterIds, selectedStoryboard.linkedCharacterIds || [])) {
         updates.linkedCharacterIds = localLinkedCharacterIds;
@@ -483,6 +491,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               localLinkedSceneIds={localLinkedSceneIds}
               localLinkedPropIds={localLinkedPropIds}
               onUpdateLinkedAssets={handleUpdateLinkedAssets}
+              localFirstFrameUrl={localFirstFrameUrl}
+              onFirstFrameUrlChange={setLocalFirstFrameUrl}
             />
 
             {/* 中间视频播放器 */}
