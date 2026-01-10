@@ -355,6 +355,49 @@ export async function getPollingStatus(): Promise<{
 }
 
 
+// ============ 视频 Remix 相关 ============
+
+// 视频 Remix 请求
+export interface VideoRemixRequest {
+  prompt: string;
+  variantId: string;
+}
+
+// 视频 Remix 响应
+export interface VideoRemixResponse {
+  success: boolean;
+  data: {
+    task_id?: string;
+    id?: string;
+    [key: string]: unknown;
+  };
+  balance?: number;
+}
+
+// 视频 Remix - 基于已生成的视频进行编辑，生成新副本
+export async function remixVideo(taskId: string, request: VideoRemixRequest): Promise<VideoRemixResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/videos/remix/${taskId}/variant`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      prompt: request.prompt,
+      variantId: request.variantId,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`视频编辑失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
 // ============ 视频截屏相关 ============
 
 // 通过后端 ffmpeg 截取视频帧并下载

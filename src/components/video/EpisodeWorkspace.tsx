@@ -12,7 +12,7 @@ import { StoryboardLeftPanel } from './StoryboardLeftPanel';
 import { StoryboardVariantPool } from './StoryboardVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { generateStoryboardVideo, StoryboardLinkedAssets } from '@/services/api';
+import { generateStoryboardVideo, StoryboardLinkedAssets, remixVideo } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 import { Storyboard } from '@/types/video';
 
@@ -270,6 +270,59 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setDeleteConfirmVariantId(null);
   };
 
+  // 处理 Remix 编辑视频
+  const handleRemixVariant = async (_sourceVariantId: string, taskId: string, prompt: string) => {
+    if (!script || !selectedEpisode || !selectedStoryboardId) return;
+
+    // 乐观更新：立即扣除前端显示的代币
+    const tokenCost = 3;
+    updateBalance((prev) => prev - tokenCost);
+
+    try {
+      // 创建新的分镜副本
+      const newVariantId = await addVariant(script.id, selectedEpisode.id, selectedStoryboardId);
+
+      // 乐观更新：立即在前端显示生成中状态
+      await updateVariant(script.id, selectedEpisode.id, selectedStoryboardId, newVariantId, {
+        status: 'generating',
+        progress: '0',
+      });
+
+      // 调用后端 Remix API
+      const response = await remixVideo(taskId, {
+        prompt,
+        variantId: newVariantId,
+      });
+
+      const newTaskId = response.data.task_id || (response.data as { id?: string }).id;
+      if (response.success && newTaskId) {
+        // 同步后端返回的真实余额
+        if (response.balance !== undefined) {
+          updateBalance(response.balance);
+        }
+        // 刷新 variant 获取最新状态
+        await refreshVariant(script.id, selectedEpisode.id, selectedStoryboardId, newVariantId);
+        showToast('编辑已提交，正在生成新副本', 'success');
+      } else {
+        throw new Error('未获取到任务ID');
+      }
+    } catch (error) {
+      // 失败时恢复余额
+      updateBalance((prev) => prev + tokenCost);
+      console.error('视频编辑失败:', error);
+      showToast(error instanceof Error ? error.message : '视频编辑失败，请重试', 'error');
+      // 如果失败，需要找到刚创建的副本并更新状态
+      const updatedStoryboard = selectedEpisode.storyboards.find((sb) => sb.id === selectedStoryboardId);
+      const latestVariant = (updatedStoryboard?.variants || []).slice(-1)[0];
+      if (latestVariant) {
+        await updateVariant(script.id, selectedEpisode.id, selectedStoryboardId, latestVariant.id, {
+          status: 'failed',
+          progress: undefined,
+        });
+      }
+    }
+  };
+
   // 保存所有配置
   const handleSaveConfig = async () => {
     if (!script || !selectedEpisode || !selectedStoryboardId || !selectedStoryboard) return;
@@ -517,6 +570,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               onSelectVariant={handleSelectVariant}
               onDeleteVariant={handleDeleteVariant}
               onGenerate={() => selectedStoryboardId && handleGenerateVideo(selectedStoryboardId)}
+              onRemixVariant={handleRemixVariant}
             />
           </div>
 

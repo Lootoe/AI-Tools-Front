@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Check, Loader2, Play, Layers, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Check, Loader2, Play, Layers, AlertCircle, Pencil, X } from 'lucide-react';
 import { Storyboard, StoryboardVariant } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
 
@@ -8,6 +8,7 @@ interface StoryboardVariantPoolProps {
   onSelectVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onGenerate: () => void;
+  onRemixVariant?: (variantId: string, taskId: string, prompt: string) => void;
 }
 
 export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
@@ -15,9 +16,13 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
   onSelectVariant,
   onDeleteVariant,
   onGenerate,
+  onRemixVariant,
 }) => {
   const [isGenerateCooldown, setIsGenerateCooldown] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [remixModalVariant, setRemixModalVariant] = useState<StoryboardVariant | null>(null);
+  const [remixPrompt, setRemixPrompt] = useState('');
+  const [isRemixing, setIsRemixing] = useState(false);
 
   // 冷却倒计时
   useEffect(() => {
@@ -42,6 +47,28 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
     setIsGenerateCooldown(true);
     setCooldownSeconds(2);
   }, [isGenerateCooldown, onGenerate]);
+
+  const handleOpenRemixModal = useCallback((variant: StoryboardVariant) => {
+    setRemixModalVariant(variant);
+    setRemixPrompt('');
+  }, []);
+
+  const handleCloseRemixModal = useCallback(() => {
+    setRemixModalVariant(null);
+    setRemixPrompt('');
+    setIsRemixing(false);
+  }, []);
+
+  const handleSubmitRemix = useCallback(async () => {
+    if (!remixModalVariant || !remixModalVariant.taskId || !remixPrompt.trim() || !onRemixVariant) return;
+    setIsRemixing(true);
+    try {
+      await onRemixVariant(remixModalVariant.id, remixModalVariant.taskId, remixPrompt.trim());
+      handleCloseRemixModal();
+    } catch {
+      setIsRemixing(false);
+    }
+  }, [remixModalVariant, remixPrompt, onRemixVariant, handleCloseRemixModal]);
 
   if (!storyboard) {
     return (
@@ -131,6 +158,7 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
               isActive={variant.id === activeVariantId}
               onSelect={() => onSelectVariant(variant.id)}
               onDelete={() => onDeleteVariant(variant.id)}
+              onRemix={() => handleOpenRemixModal(variant)}
             />
           ))
         )}
@@ -162,6 +190,114 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
           </p>
         )}
       </div>
+
+      {/* Remix 编辑弹框 */}
+      {remixModalVariant && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          onClick={handleCloseRemixModal}
+        >
+          <div
+            className="w-[400px] rounded-xl p-5"
+            style={{
+              backgroundColor: '#12121a',
+              border: '1px solid #2e2e3e',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 弹框标题 */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.2))',
+                    border: '1px solid rgba(139,92,246,0.3)',
+                  }}
+                >
+                  <Pencil size={14} style={{ color: '#8b5cf6' }} />
+                </div>
+                <span className="text-sm font-medium text-white">编辑分镜视频</span>
+              </div>
+              <button
+                onClick={handleCloseRemixModal}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-white/10"
+                style={{ color: '#6b7280' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 编辑脚本输入 */}
+            <div className="mb-4">
+              <label className="block text-xs mb-2" style={{ color: '#9ca3af' }}>
+                编辑脚本
+              </label>
+              <textarea
+                value={remixPrompt}
+                onChange={(e) => setRemixPrompt(e.target.value)}
+                placeholder="输入你想要修改的内容，例如：让角色转向镜头微笑..."
+                className="w-full h-28 px-3 py-2 rounded-lg text-sm resize-none focus:outline-none"
+                style={{
+                  backgroundColor: '#0a0a0f',
+                  border: '1px solid #2e2e3e',
+                  color: '#e5e7eb',
+                }}
+              />
+            </div>
+
+            {/* 代币消耗提示 */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4"
+              style={{
+                backgroundColor: 'rgba(139,92,246,0.1)',
+                border: '1px solid rgba(139,92,246,0.2)',
+              }}
+            >
+              <img src={CoinIcon} alt="代币" className="w-4 h-4" />
+              <span className="text-xs" style={{ color: '#a78bfa' }}>
+                编辑将消耗 3 代币，生成一个新副本
+              </span>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseRemixModal}
+                className="flex-1 py-2 rounded-lg text-xs font-medium transition-colors hover:bg-white/10"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  color: '#9ca3af',
+                  border: '1px solid #2e2e3e',
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmitRemix}
+                disabled={!remixPrompt.trim() || isRemixing}
+                className="flex-1 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110"
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                  color: '#fff',
+                  boxShadow: '0 4px 15px rgba(139,92,246,0.3)',
+                }}
+              >
+                {isRemixing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 size={12} className="animate-spin" />
+                    提交中...
+                  </span>
+                ) : (
+                  '提交编辑'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -172,6 +308,7 @@ interface VariantCardProps {
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onRemix: () => void;
 }
 
 const VariantCard: React.FC<VariantCardProps> = ({
@@ -180,10 +317,12 @@ const VariantCard: React.FC<VariantCardProps> = ({
   isActive,
   onSelect,
   onDelete,
+  onRemix,
 }) => {
   const isGenerating = variant.status === 'generating' || variant.status === 'queued';
   const isCompleted = variant.status === 'completed';
   const isFailed = variant.status === 'failed';
+  const canRemix = isCompleted && !!variant.taskId;
 
   return (
     <div
@@ -288,6 +427,19 @@ const VariantCard: React.FC<VariantCardProps> = ({
             >
               <Check size={12} style={{ color: '#00f5ff' }} />
             </div>
+          )}
+          {canRemix && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemix();
+              }}
+              className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-purple-500/20"
+              style={{ color: '#8b5cf6' }}
+              title="编辑视频"
+            >
+              <Pencil size={12} />
+            </button>
           )}
           <button
             onClick={(e) => {
