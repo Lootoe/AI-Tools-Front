@@ -23,10 +23,6 @@ export interface Storyboard {
   aspectRatio?: '16:9' | '9:16'; // 视频比例
   duration?: '10' | '15';  // 视频时长（秒）
   createdAt: string;
-  // 关联资产ID数组
-  linkedCharacterIds?: string[]; // 关联的角色ID数组
-  linkedSceneIds?: string[];     // 关联的场景ID数组
-  linkedPropIds?: string[];      // 关联的物品ID数组
   // 分镜池相关
   variants: StoryboardVariant[];  // 分镜副本列表
   activeVariantId?: string;       // 当前选中的副本ID
@@ -36,20 +32,6 @@ export interface Storyboard {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
-}
-
-// 关联资产信息（用于视频生成时传递）
-export interface LinkedAsset {
-  id: string;
-  name: string;
-  imageUrl: string;
-}
-
-// 分镜关联资产（用于视频生成）
-export interface StoryboardLinkedAssets {
-  characters: LinkedAsset[];
-  scenes: LinkedAsset[];
-  props: LinkedAsset[];
 }
 
 // 剧集
@@ -80,43 +62,4 @@ export interface Script {
 export type VideoPhase = 'storyboard' | 'video';
 
 // 资产 Tab 类型
-export type AssetTabType = 'storyboard' | 'character' | 'scene' | 'props';
-
-// 角色资产
-export interface Character {
-  id: string;
-  scriptId: string;
-  name: string;
-  description: string;           // 角色设定/信息
-  designImageUrl?: string;       // 角色设计稿图片URL
-  thumbnailUrl?: string;         // 缩略图
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// 场景资产
-export interface Scene {
-  id: string;
-  scriptId: string;
-  name: string;
-  description: string;           // 场景设定/信息
-  designImageUrl?: string;       // 场景设计稿图片URL
-  thumbnailUrl?: string;         // 缩略图
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// 物品资产
-export interface Prop {
-  id: string;
-  scriptId: string;
-  name: string;
-  description: string;           // 物品设定/信息
-  designImageUrl?: string;       // 物品设计稿图片URL
-  thumbnailUrl?: string;         // 缩略图
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: string;
-  updatedAt: string;
-}
+export type AssetTabType = 'storyboard' | 'asset';

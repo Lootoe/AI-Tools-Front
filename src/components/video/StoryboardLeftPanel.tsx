@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { FileText, Settings, Box, Save, Image, Upload, X, Loader2 } from 'lucide-react';
+import { FileText, Settings, Save, Image, Upload, X, Loader2 } from 'lucide-react';
 import { Storyboard } from '@/types/video';
 import { StoryboardApiPanel } from './StoryboardApiPanel';
-import { StoryboardAssetsPanel } from './StoryboardAssetsPanel';
 import { uploadImage } from '@/services/api';
 
 interface StoryboardLeftPanelProps {
@@ -16,22 +15,12 @@ interface StoryboardLeftPanelProps {
   onLocalDescriptionChange: (value: string) => void;
   onSave?: () => void;
   hasUnsavedChanges?: boolean;
-  // 本地关联资产状态
-  localLinkedCharacterIds: string[];
-  localLinkedSceneIds: string[];
-  localLinkedPropIds: string[];
-  // 资产关联回调
-  onUpdateLinkedAssets?: (
-    characterIds: string[],
-    sceneIds: string[],
-    propIds: string[]
-  ) => void;
   // 首帧相关
   localFirstFrameUrl: string;
   onFirstFrameUrlChange: (url: string) => void;
 }
 
-type TabType = 'script' | 'firstFrame' | 'api' | 'assets';
+type TabType = 'script' | 'firstFrame' | 'api';
 
 export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   storyboard,
@@ -44,10 +33,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   onLocalDescriptionChange,
   onSave,
   hasUnsavedChanges,
-  localLinkedCharacterIds,
-  localLinkedSceneIds,
-  localLinkedPropIds,
-  onUpdateLinkedAssets,
   localFirstFrameUrl,
   onFirstFrameUrlChange,
 }) => {
@@ -85,7 +70,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
     { key: 'script', label: '脚本', icon: <FileText size={12} /> },
     { key: 'firstFrame', label: '首帧', icon: <Image size={12} /> },
     { key: 'api', label: 'API设置', icon: <Settings size={12} /> },
-    { key: 'assets', label: '关联资产', icon: <Box size={12} /> },
   ];
 
   // 首帧图片上传处理
@@ -275,15 +259,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
               </label>
             )}
           </div>
-        )}
-        {activeTab === 'assets' && (
-          <StoryboardAssetsPanel
-            storyboard={storyboard}
-            localLinkedCharacterIds={localLinkedCharacterIds}
-            localLinkedSceneIds={localLinkedSceneIds}
-            localLinkedPropIds={localLinkedPropIds}
-            onUpdateLinkedAssets={onUpdateLinkedAssets}
-          />
         )}
       </div>
 

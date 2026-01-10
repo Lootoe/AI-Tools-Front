@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
-import { useCharacterStore } from '@/stores/characterStore';
-import { useSceneStore } from '@/stores/sceneStore';
-import { usePropStore } from '@/stores/propStore';
 import { useAuthStore } from '@/stores/authStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
@@ -12,11 +9,9 @@ import { StoryboardLeftPanel } from './StoryboardLeftPanel';
 import { StoryboardVariantPool } from './StoryboardVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { generateStoryboardVideo, StoryboardLinkedAssets, remixVideo } from '@/services/api';
+import { generateStoryboardVideo, remixVideo } from '@/services/api';
 import { downloadEpisodeVideos } from '@/utils/downloadVideos';
 import { Storyboard } from '@/types/video';
-
-
 
 interface EpisodeWorkspaceProps {
   scriptId: string;
@@ -37,11 +32,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     refreshVariant,
   } = useVideoStore();
 
-  const { characters, loadCharacters } = useCharacterStore();
-  const { scenes, loadScenes } = useSceneStore();
-  const { props, loadProps } = usePropStore();
   const { updateBalance } = useAuthStore();
-
   const { showToast, ToastContainer } = useToast();
 
   const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
@@ -53,10 +44,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [localDescription, setLocalDescription] = useState('');
   const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
-  // 本地关联资产状态
-  const [localLinkedCharacterIds, setLocalLinkedCharacterIds] = useState<string[]>([]);
-  const [localLinkedSceneIds, setLocalLinkedSceneIds] = useState<string[]>([]);
-  const [localLinkedPropIds, setLocalLinkedPropIds] = useState<string[]>([]);
   // 首帧图片状态
   const [localFirstFrameUrl, setLocalFirstFrameUrl] = useState<string>('');
 
@@ -91,38 +78,15 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setLocalDescription(selectedStoryboard?.description || '');
     setLocalAspectRatio(selectedStoryboard?.aspectRatio || '9:16');
     setLocalDuration(selectedStoryboard?.duration || '15');
-    setLocalLinkedCharacterIds(selectedStoryboard?.linkedCharacterIds || []);
-    setLocalLinkedSceneIds(selectedStoryboard?.linkedSceneIds || []);
-    setLocalLinkedPropIds(selectedStoryboard?.linkedPropIds || []);
     setLocalFirstFrameUrl(selectedStoryboard?.firstFrameUrl || '');
-  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.linkedCharacterIds, selectedStoryboard?.linkedSceneIds, selectedStoryboard?.linkedPropIds, selectedStoryboard?.firstFrameUrl]);
-
-  // 比较数组是否相等（忽略顺序）
-  const arraysEqual = (a: string[], b: string[]) => {
-    if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
-    return sortedA.every((v, i) => v === sortedB[i]);
-  };
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.firstFrameUrl]);
 
   // 计算是否有未保存的更改
   const hasUnsavedChanges =
     localDescription !== (selectedStoryboard?.description || '') ||
     localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
     localDuration !== (selectedStoryboard?.duration || '15') ||
-    localFirstFrameUrl !== (selectedStoryboard?.firstFrameUrl || '') ||
-    !arraysEqual(localLinkedCharacterIds, selectedStoryboard?.linkedCharacterIds || []) ||
-    !arraysEqual(localLinkedSceneIds, selectedStoryboard?.linkedSceneIds || []) ||
-    !arraysEqual(localLinkedPropIds, selectedStoryboard?.linkedPropIds || []);
-
-  // 加载资产数据
-  useEffect(() => {
-    if (scriptId) {
-      loadCharacters(scriptId);
-      loadScenes(scriptId);
-      loadProps(scriptId);
-    }
-  }, [scriptId, loadCharacters, loadScenes, loadProps]);
+    localFirstFrameUrl !== (selectedStoryboard?.firstFrameUrl || '');
 
   // 定时刷新正在生成的 variant（后端独立轮询更新数据库，前端只需定时拉取最新数据）
   useEffect(() => {
@@ -207,18 +171,13 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
       const finalPrompt = storyboard.description;
 
-      // 构建关联资产信息（使用本地状态）
-      const linkedAssets = buildLinkedAssets();
-
       // 调用后端 API 生成视频
-      // 后端会自动更新 variant 状态为 generating，保存 taskId，并启动轮询
       const response = await generateStoryboardVideo({
         prompt: finalPrompt,
         aspect_ratio: storyboard.aspectRatio || '9:16',
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
         firstFrameUrl: localFirstFrameUrl || undefined,
-        linkedAssets,
         variantId,
       });
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
@@ -343,15 +302,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       if (localFirstFrameUrl !== (selectedStoryboard.firstFrameUrl || '')) {
         updates.firstFrameUrl = localFirstFrameUrl || undefined;
       }
-      if (!arraysEqual(localLinkedCharacterIds, selectedStoryboard.linkedCharacterIds || [])) {
-        updates.linkedCharacterIds = localLinkedCharacterIds;
-      }
-      if (!arraysEqual(localLinkedSceneIds, selectedStoryboard.linkedSceneIds || [])) {
-        updates.linkedSceneIds = localLinkedSceneIds;
-      }
-      if (!arraysEqual(localLinkedPropIds, selectedStoryboard.linkedPropIds || [])) {
-        updates.linkedPropIds = localLinkedPropIds;
-      }
 
       // 如果有变更，则保存
       if (Object.keys(updates).length > 0) {
@@ -369,45 +319,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const handleDurationChange = (duration: '10' | '15') => {
     setLocalDuration(duration);
-  };
-
-  // 资产关联处理函数 - 更新本地状态
-  const handleUpdateLinkedAssets = (
-    characterIds: string[],
-    sceneIds: string[],
-    propIds: string[]
-  ) => {
-    setLocalLinkedCharacterIds(characterIds);
-    setLocalLinkedSceneIds(sceneIds);
-    setLocalLinkedPropIds(propIds);
-  };
-
-  // 构建关联资产信息（使用本地状态）
-  const buildLinkedAssets = (): StoryboardLinkedAssets | undefined => {
-    const linkedCharacters = localLinkedCharacterIds
-      .map((id) => characters.find((c) => c.id === id))
-      .filter((c) => c && c.designImageUrl)
-      .map((c) => ({ name: c!.name, imageUrl: c!.designImageUrl! }));
-
-    const linkedScenes = localLinkedSceneIds
-      .map((id) => scenes.find((s) => s.id === id))
-      .filter((s) => s && s.designImageUrl)
-      .map((s) => ({ name: s!.name, imageUrl: s!.designImageUrl! }));
-
-    const linkedProps = localLinkedPropIds
-      .map((id) => props.find((p) => p.id === id))
-      .filter((p) => p && p.designImageUrl)
-      .map((p) => ({ name: p!.name, imageUrl: p!.designImageUrl! }));
-
-    if (linkedCharacters.length === 0 && linkedScenes.length === 0 && linkedProps.length === 0) {
-      return undefined;
-    }
-
-    return {
-      characters: linkedCharacters,
-      scenes: linkedScenes,
-      props: linkedProps,
-    };
   };
 
   const handleClearStoryboards = () => {
@@ -528,7 +439,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         <div className="flex-1 flex flex-col gap-3 overflow-hidden">
           {/* 上方：左侧配置面板 + 视频播放器 + 分镜池 */}
           <div className="flex-[3] flex gap-3 min-h-0 overflow-hidden">
-            {/* 左侧配置面板（脚本 + API设置 + 关联资产） */}
+            {/* 左侧配置面板（脚本 + API设置） */}
             <StoryboardLeftPanel
               storyboard={selectedStoryboard || null}
               storyboardIndex={currentStoryboardIndex}
@@ -540,10 +451,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               onLocalDescriptionChange={setLocalDescription}
               onSave={handleSaveConfig}
               hasUnsavedChanges={hasUnsavedChanges}
-              localLinkedCharacterIds={localLinkedCharacterIds}
-              localLinkedSceneIds={localLinkedSceneIds}
-              localLinkedPropIds={localLinkedPropIds}
-              onUpdateLinkedAssets={handleUpdateLinkedAssets}
               localFirstFrameUrl={localFirstFrameUrl}
               onFirstFrameUrlChange={setLocalFirstFrameUrl}
             />
@@ -629,4 +536,3 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     </>
   );
 };
-

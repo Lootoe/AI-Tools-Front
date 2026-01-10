@@ -76,19 +76,6 @@ export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse
   return response.json();
 }
 
-// 关联资产信息
-export interface LinkedAssetInfo {
-  name: string;
-  imageUrl: string;
-}
-
-// 分镜关联资产
-export interface StoryboardLinkedAssets {
-  characters: LinkedAssetInfo[];
-  scenes: LinkedAssetInfo[];
-  props: LinkedAssetInfo[];
-}
-
 // 分镜生成视频请求
 export interface StoryboardToVideoRequest {
   prompt: string;
@@ -98,7 +85,6 @@ export interface StoryboardToVideoRequest {
   private?: boolean;
   referenceImageUrls?: string[]; // 参考图URL数组
   firstFrameUrl?: string;        // 首帧图片URL
-  linkedAssets?: StoryboardLinkedAssets; // 关联资产信息
   variantId?: string; // 分镜副本ID，用于后端轮询更新状态
 }
 
@@ -120,7 +106,6 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       private: request.private ?? false,
       ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
       ...(request.firstFrameUrl ? { first_frame_url: request.firstFrameUrl } : {}),
-      ...(request.linkedAssets ? { linked_assets: request.linkedAssets } : {}),
       ...(request.variantId ? { variantId: request.variantId } : {}),
     }),
   });
@@ -181,101 +166,6 @@ function base64ToFile(base64: string, filename: string): File {
 export async function uploadBase64Image(base64: string): Promise<ImageUploadResponse> {
   const file = base64ToFile(base64, `image_${Date.now()}.png`);
   return uploadImage(file);
-}
-
-// ============ 角色设计稿生成 ============
-
-// 角色设计稿生成响应
-export interface CharacterDesignResponse {
-  success: boolean;
-  images: Array<{
-    url: string;
-    revisedPrompt?: string;
-  }>;
-  balance?: number; // 更新后的余额
-}
-
-// 生成角色设计稿（提示词模板在后端，前端只传角色描述）
-export async function generateCharacterDesign(description: string, model?: string): Promise<CharacterDesignResponse> {
-  const token = getAuthToken();
-
-  const response = await fetch(`${BACKEND_URL}/api/images/character-design`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ description, model }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || error.message || '生成失败');
-  }
-
-  return response.json();
-}
-
-// 场景设计稿生成响应
-export interface SceneDesignResponse {
-  success: boolean;
-  images: Array<{
-    url: string;
-    revisedPrompt?: string;
-  }>;
-  balance?: number; // 更新后的余额
-}
-
-// 生成场景设计稿（提示词模板在后端，前端只传场景描述）
-export async function generateSceneDesign(description: string, model?: string): Promise<SceneDesignResponse> {
-  const token = getAuthToken();
-
-  const response = await fetch(`${BACKEND_URL}/api/images/scene-design`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ description, model }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || error.message || '生成失败');
-  }
-
-  return response.json();
-}
-
-// 物品设计稿生成响应
-export interface PropDesignResponse {
-  success: boolean;
-  images: Array<{
-    url: string;
-    revisedPrompt?: string;
-  }>;
-  balance?: number; // 更新后的余额
-}
-
-// 生成物品设计稿（提示词模板在后端，前端只传物品描述）
-export async function generatePropDesign(description: string, model?: string): Promise<PropDesignResponse> {
-  const token = getAuthToken();
-
-  const response = await fetch(`${BACKEND_URL}/api/images/prop-design`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ description, model }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || error.message || '生成失败');
-  }
-
-  return response.json();
 }
 
 // 获取存储的 token (移到前面以便 uploadImage 使用)

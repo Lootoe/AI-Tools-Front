@@ -4,9 +4,7 @@ import { Film } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { CyberAssetSidebar } from '@/components/video/CyberAssetSidebar';
 import { EpisodeWorkspace } from '@/components/video/EpisodeWorkspace';
-import { CharacterWorkspace } from '@/components/video/CharacterWorkspace';
-import { SceneWorkspace } from '@/components/video/SceneWorkspace';
-import { PropsWorkspace } from '@/components/video/PropsWorkspace';
+import { AssetWorkspace } from '@/components/video/AssetWorkspace';
 import { AppNavbar } from '@/components/layout/AppNavbar';
 
 export const ScriptEditorPage: React.FC = () => {
@@ -46,12 +44,8 @@ export const ScriptEditorPage: React.FC = () => {
     switch (currentAssetTab) {
       case 'storyboard':
         return <EpisodeWorkspace scriptId={script.id} />;
-      case 'character':
-        return <CharacterWorkspace scriptId={script.id} />;
-      case 'scene':
-        return <SceneWorkspace scriptId={script.id} />;
-      case 'props':
-        return <PropsWorkspace scriptId={script.id} />;
+      case 'asset':
+        return <AssetWorkspace scriptId={script.id} />;
       default:
         return null;
     }

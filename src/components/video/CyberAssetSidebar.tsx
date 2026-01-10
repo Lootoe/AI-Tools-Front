@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Users, Mountain, Box, Layers } from 'lucide-react';
+import { LayoutGrid, Package, Layers } from 'lucide-react';
 import { AssetTabType } from '@/types/video';
 
 interface CyberAssetSidebarProps {
@@ -9,9 +9,7 @@ interface CyberAssetSidebarProps {
 
 const TAB_CONFIG: { type: AssetTabType; icon: React.ElementType; label: string }[] = [
   { type: 'storyboard', icon: LayoutGrid, label: '剧集' },
-  { type: 'character', icon: Users, label: '角色' },
-  { type: 'scene', icon: Mountain, label: '场景' },
-  { type: 'props', icon: Box, label: '道具' },
+  { type: 'asset', icon: Package, label: '资产' },
 ];
 
 export const CyberAssetSidebar: React.FC<CyberAssetSidebarProps> = ({
@@ -21,18 +19,18 @@ export const CyberAssetSidebar: React.FC<CyberAssetSidebarProps> = ({
   const [hoveredTab, setHoveredTab] = useState<AssetTabType | null>(null);
 
   return (
-    <div 
+    <div
       className="w-14 flex-shrink-0 flex flex-col items-center py-3 gap-1 rounded-xl"
-      style={{ 
+      style={{
         backgroundColor: 'rgba(10,10,15,0.8)',
         border: '1px solid #1e1e2e',
         boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
       }}
     >
       {/* Logo/Home */}
-      <div 
+      <div
         className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 cursor-pointer transition-all"
-        style={{ 
+        style={{
           background: 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(191,0,255,0.15))',
           border: '1px solid rgba(0,245,255,0.3)',
           boxShadow: '0 0 15px rgba(0,245,255,0.2)'
@@ -42,9 +40,9 @@ export const CyberAssetSidebar: React.FC<CyberAssetSidebarProps> = ({
       </div>
 
       {/* 分隔线 */}
-      <div 
+      <div
         className="w-8 h-[1px] mb-3"
-        style={{ 
+        style={{
           background: 'linear-gradient(90deg, transparent, #1e1e2e, transparent)'
         }}
       />
@@ -62,34 +60,34 @@ export const CyberAssetSidebar: React.FC<CyberAssetSidebarProps> = ({
             onMouseLeave={() => setHoveredTab(null)}
             className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all group"
             style={{
-              background: isActive 
+              background: isActive
                 ? 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))'
-                : isHovered 
-                  ? 'rgba(26,26,40,0.8)' 
+                : isHovered
+                  ? 'rgba(26,26,40,0.8)'
                   : 'transparent',
-              border: isActive 
+              border: isActive
                 ? '1px solid rgba(0,245,255,0.3)'
-                : isHovered 
-                  ? '1px solid #1e1e2e' 
+                : isHovered
+                  ? '1px solid #1e1e2e'
                   : '1px solid transparent',
               boxShadow: isActive ? '0 0 15px rgba(0,245,255,0.2)' : 'none'
             }}
             title={label}
           >
             {/* 激活指示器 - 移除渐变边框 */}
-            
-            <Icon 
-              size={18} 
-              style={{ 
+
+            <Icon
+              size={18}
+              style={{
                 color: isActive ? '#00f5ff' : isHovered ? '#9ca3af' : '#6b7280',
                 filter: isActive ? 'drop-shadow(0 0 4px rgba(0,245,255,0.5))' : 'none'
               }}
             />
 
             {/* Tooltip */}
-            <div 
+            <div
               className="absolute left-full ml-2 px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"
-              style={{ 
+              style={{
                 backgroundColor: '#12121a',
                 border: '1px solid #1e1e2e',
                 color: '#d1d5db',
