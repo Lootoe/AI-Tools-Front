@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Package, Layers } from 'lucide-react';
+import { LayoutGrid, Package, Image, Layers } from 'lucide-react';
 import { AssetTabType } from '@/types/video';
 
 interface CyberAssetSidebarProps {
@@ -8,7 +8,8 @@ interface CyberAssetSidebarProps {
 }
 
 const TAB_CONFIG: { type: AssetTabType; icon: React.ElementType; label: string }[] = [
-  { type: 'storyboard', icon: LayoutGrid, label: '剧集' },
+  { type: 'storyboard', icon: LayoutGrid, label: '分镜视频' },
+  { type: 'storyboardImage', icon: Image, label: '分镜参考图' },
   { type: 'asset', icon: Package, label: '资产' },
 ];
 

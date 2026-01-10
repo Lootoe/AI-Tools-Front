@@ -163,3 +163,49 @@ export async function editImage(
 
     return response.json();
 }
+
+
+// 分镜图生成响应
+export interface StoryboardImageResponse {
+    success: boolean;
+    images: Array<{
+        url: string;
+        revisedPrompt?: string;
+    }>;
+    balance?: number;
+}
+
+// 生成分镜图
+export async function generateStoryboardImage(
+    variantId: string,
+    scriptId: string,
+    description: string,
+    model: string,
+    referenceImageUrls?: string[],
+    aspectRatio?: '9:16' | '16:9' | '1:1'
+): Promise<StoryboardImageResponse> {
+    const token = getAuthToken();
+
+    const response = await fetch(`${BACKEND_URL}/api/images/storyboard-image`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            variantId,
+            scriptId,
+            description,
+            model,
+            referenceImageUrls,
+            aspectRatio,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(error.error || error.message || '生成失败');
+    }
+
+    return response.json();
+}

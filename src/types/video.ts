@@ -42,6 +42,7 @@ export interface Episode {
   title: string;
   content: string;         // 剧集内容
   storyboards: Storyboard[];
+  storyboardImages: StoryboardImage[]; // 分镜图列表（用于图片生成）
   createdAt: string;
   updatedAt: string;
 }
@@ -62,4 +63,36 @@ export interface Script {
 export type VideoPhase = 'storyboard' | 'video';
 
 // 资产 Tab 类型
-export type AssetTabType = 'storyboard' | 'asset';
+export type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset';
+
+// 分镜图副本（分镜图池中的单个图片）
+export interface ImageVariant {
+  id: string;
+  storyboardId: string;
+  imageUrl?: string;       // 生成的图片URL
+  thumbnailUrl?: string;
+  taskId?: string;         // 任务ID
+  progress?: string;       // 生成进度百分比
+  status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+}
+
+// 分镜图（用于图片生成）
+export interface StoryboardImage {
+  id: string;
+  episodeId: string;
+  sceneNumber: number;
+  description: string;
+  referenceImageUrls?: string[]; // 参考图URL数组（支持多张）
+  aspectRatio?: '16:9' | '1:1' | '4:3'; // 图片比例
+  createdAt: string;
+  // 分镜图池相关
+  imageVariants: ImageVariant[];  // 分镜图副本列表
+  activeImageVariantId?: string;  // 当前选中的副本ID
+  // 兼容旧数据
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  taskId?: string;
+  progress?: string;
+  status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+}
