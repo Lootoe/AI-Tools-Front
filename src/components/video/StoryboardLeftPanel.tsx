@@ -15,12 +15,12 @@ interface StoryboardLeftPanelProps {
   onLocalDescriptionChange: (value: string) => void;
   onSave?: () => void;
   hasUnsavedChanges?: boolean;
-  // 首帧相关
-  localFirstFrameUrl: string;
-  onFirstFrameUrlChange: (url: string) => void;
+  // 参考图相关
+  localReferenceImageUrl: string;
+  onReferenceImageUrlChange: (url: string) => void;
 }
 
-type TabType = 'script' | 'firstFrame' | 'api';
+type TabType = 'script' | 'referenceImage' | 'api';
 
 export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   storyboard,
@@ -33,8 +33,8 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   onLocalDescriptionChange,
   onSave,
   hasUnsavedChanges,
-  localFirstFrameUrl,
-  onFirstFrameUrlChange,
+  localReferenceImageUrl,
+  onReferenceImageUrlChange,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('script');
   const [isFocused, setIsFocused] = useState(false);
@@ -68,12 +68,12 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: 'script', label: '脚本', icon: <FileText size={12} /> },
-    { key: 'firstFrame', label: '首帧', icon: <Image size={12} /> },
+    { key: 'referenceImage', label: '参考图', icon: <Image size={12} /> },
     { key: 'api', label: 'API设置', icon: <Settings size={12} /> },
   ];
 
-  // 首帧图片上传处理
-  const handleFirstFrameUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 参考图上传处理
+  const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || isUploading) return;
 
@@ -81,10 +81,10 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
     try {
       const response = await uploadImage(file);
       if (response.success && response.url) {
-        onFirstFrameUrlChange(response.url);
+        onReferenceImageUrlChange(response.url);
       }
     } catch (error) {
-      console.error('首帧图片上传失败:', error);
+      console.error('参考图上传失败:', error);
     } finally {
       setIsUploading(false);
       // 清空 input 以便重复上传同一文件
@@ -94,9 +94,9 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
     }
   };
 
-  // 删除首帧图片
-  const handleRemoveFirstFrame = () => {
-    onFirstFrameUrlChange('');
+  // 删除参考图
+  const handleRemoveReferenceImage = () => {
+    onReferenceImageUrlChange('');
   };
 
   return (
@@ -187,23 +187,23 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
             onDurationChange={onDurationChange}
           />
         )}
-        {activeTab === 'firstFrame' && (
+        {activeTab === 'referenceImage' && (
           <div className="h-full flex flex-col p-3">
             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
               <Image size={12} style={{ color: '#ff9500' }} />
               <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>
-                视频首帧
+                参考图
               </span>
             </div>
             <p className="text-[10px] mb-3" style={{ color: '#6b7280' }}>
-              上传一张图片作为视频的首帧，生成的视频将以此图片开始
+              上传一张参考图，生成的视频将参考此图片的风格
             </p>
 
-            {localFirstFrameUrl ? (
+            {localReferenceImageUrl ? (
               <div className="relative group">
                 <img
-                  src={localFirstFrameUrl}
-                  alt="首帧图片"
+                  src={localReferenceImageUrl}
+                  alt="参考图"
                   className="w-full rounded-lg object-cover"
                   style={{
                     border: '1px solid #1e1e2e',
@@ -211,7 +211,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                   }}
                 />
                 <button
-                  onClick={handleRemoveFirstFrame}
+                  onClick={handleRemoveReferenceImage}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{
                     backgroundColor: 'rgba(239,68,68,0.9)',
@@ -234,7 +234,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handleFirstFrameUpload}
+                  onChange={handleReferenceImageUpload}
                   className="hidden"
                   disabled={isUploading}
                 />
@@ -249,7 +249,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                   <>
                     <Upload size={24} className="mb-2" style={{ color: 'rgba(255,149,0,0.5)' }} />
                     <span className="text-[10px]" style={{ color: '#6b7280' }}>
-                      点击上传首帧图片
+                      点击上传参考图
                     </span>
                     <span className="text-[10px] mt-1" style={{ color: '#4b5563' }}>
                       支持 JPG、PNG 格式

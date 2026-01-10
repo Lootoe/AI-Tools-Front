@@ -84,7 +84,7 @@ export interface StoryboardToVideoRequest {
   duration?: '10' | '15';
   private?: boolean;
   referenceImageUrls?: string[]; // 参考图URL数组
-  firstFrameUrl?: string;        // 首帧图片URL
+  referenceImageUrl?: string;    // 参考图URL（单张）
   variantId?: string; // 分镜副本ID，用于后端轮询更新状态
 }
 
@@ -105,7 +105,7 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
       duration: request.duration || '15',
       private: request.private ?? false,
       ...(request.referenceImageUrls?.length ? { reference_images: request.referenceImageUrls } : {}),
-      ...(request.firstFrameUrl ? { first_frame_url: request.firstFrameUrl } : {}),
+      ...(request.referenceImageUrl ? { first_frame_url: request.referenceImageUrl } : {}),
       ...(request.variantId ? { variantId: request.variantId } : {}),
     }),
   });

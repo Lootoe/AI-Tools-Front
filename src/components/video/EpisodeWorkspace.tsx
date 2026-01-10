@@ -44,8 +44,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [localDescription, setLocalDescription] = useState('');
   const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
-  // 首帧图片状态
-  const [localFirstFrameUrl, setLocalFirstFrameUrl] = useState<string>('');
+  // 参考图状态
+  const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
 
   const script = scripts.find((s) => s.id === scriptId);
 
@@ -78,15 +78,15 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     setLocalDescription(selectedStoryboard?.description || '');
     setLocalAspectRatio(selectedStoryboard?.aspectRatio || '9:16');
     setLocalDuration(selectedStoryboard?.duration || '15');
-    setLocalFirstFrameUrl(selectedStoryboard?.firstFrameUrl || '');
-  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.firstFrameUrl]);
+    setLocalReferenceImageUrl(selectedStoryboard?.referenceImageUrl || '');
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.referenceImageUrl]);
 
   // 计算是否有未保存的更改
   const hasUnsavedChanges =
     localDescription !== (selectedStoryboard?.description || '') ||
     localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
     localDuration !== (selectedStoryboard?.duration || '15') ||
-    localFirstFrameUrl !== (selectedStoryboard?.firstFrameUrl || '');
+    localReferenceImageUrl !== (selectedStoryboard?.referenceImageUrl || '');
 
   // 定时刷新正在生成的 variant（后端独立轮询更新数据库，前端只需定时拉取最新数据）
   useEffect(() => {
@@ -177,7 +177,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         aspect_ratio: storyboard.aspectRatio || '9:16',
         duration: storyboard.duration || '15',
         referenceImageUrls: storyboard.referenceImageUrls,
-        firstFrameUrl: localFirstFrameUrl || undefined,
+        referenceImageUrl: localReferenceImageUrl || undefined,
         variantId,
       });
       const taskId = response.data.task_id || (response.data as { id?: string }).id;
@@ -299,8 +299,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       if (localDuration !== (selectedStoryboard.duration || '15')) {
         updates.duration = localDuration;
       }
-      if (localFirstFrameUrl !== (selectedStoryboard.firstFrameUrl || '')) {
-        updates.firstFrameUrl = localFirstFrameUrl || undefined;
+      if (localReferenceImageUrl !== (selectedStoryboard.referenceImageUrl || '')) {
+        updates.referenceImageUrl = localReferenceImageUrl || undefined;
       }
 
       // 如果有变更，则保存
@@ -451,8 +451,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               onLocalDescriptionChange={setLocalDescription}
               onSave={handleSaveConfig}
               hasUnsavedChanges={hasUnsavedChanges}
-              localFirstFrameUrl={localFirstFrameUrl}
-              onFirstFrameUrlChange={setLocalFirstFrameUrl}
+              localReferenceImageUrl={localReferenceImageUrl}
+              onReferenceImageUrlChange={setLocalReferenceImageUrl}
             />
 
             {/* 中间视频播放器 */}

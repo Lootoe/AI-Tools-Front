@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '@/types/asset';
+import { Asset, PromptTemplateType } from '@/types/asset';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -27,7 +27,7 @@ export async function fetchAssets(scriptId: string): Promise<Asset[]> {
 // 创建资产
 export async function createAsset(
     scriptId: string,
-    data: { name: string; description: string; type: AssetType }
+    data: { name: string; description: string }
 ): Promise<Asset> {
     const token = getAuthToken();
     const response = await fetch(`${BACKEND_URL}/api/scripts/${scriptId}/assets`, {
@@ -96,12 +96,12 @@ export interface AssetDesignResponse {
     balance?: number;
 }
 
-// 生成资产设计稿（统一接口，根据类型使用不同的提示词模板）
+// 生成资产设计稿
 export async function generateAssetDesign(
     assetId: string,
     scriptId: string,
     description: string,
-    type: AssetType,
+    promptTemplate: PromptTemplateType,
     model?: string,
     referenceImageUrls?: string[]
 ): Promise<AssetDesignResponse> {
@@ -113,7 +113,7 @@ export async function generateAssetDesign(
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ assetId, scriptId, description, type, model, referenceImageUrls }),
+        body: JSON.stringify({ assetId, scriptId, description, promptTemplate, model, referenceImageUrls }),
     });
 
     if (!response.ok) {

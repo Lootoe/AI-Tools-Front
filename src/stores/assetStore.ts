@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Asset, AssetType } from '@/types/asset';
+import { Asset } from '@/types/asset';
 import * as api from '@/services/assetApi';
 
 interface AssetState {
@@ -9,14 +9,13 @@ interface AssetState {
     currentScriptId: string | null;
 
     loadAssets: (scriptId: string) => Promise<void>;
-    addAsset: (scriptId: string, name: string, description: string, type: AssetType) => Promise<string>;
+    addAsset: (scriptId: string, name: string, description: string) => Promise<string>;
     updateAsset: (scriptId: string, assetId: string, updates: Partial<Asset>) => Promise<void>;
     deleteAsset: (scriptId: string, assetId: string) => Promise<void>;
     clearAssets: () => void;
-    getAssetsByType: (type: AssetType) => Asset[];
 }
 
-export const useAssetStore = create<AssetState>((set, get) => ({
+export const useAssetStore = create<AssetState>((set) => ({
     assets: [],
     isLoading: false,
     error: null,
@@ -32,9 +31,9 @@ export const useAssetStore = create<AssetState>((set, get) => ({
         }
     },
 
-    addAsset: async (scriptId: string, name: string, description: string, type: AssetType) => {
+    addAsset: async (scriptId: string, name: string, description: string) => {
         try {
-            const newAsset = await api.createAsset(scriptId, { name, description, type });
+            const newAsset = await api.createAsset(scriptId, { name, description });
             set((state) => ({ assets: [...state.assets, newAsset] }));
             return newAsset.id;
         } catch (error) {
@@ -67,9 +66,5 @@ export const useAssetStore = create<AssetState>((set, get) => ({
 
     clearAssets: () => {
         set({ assets: [], currentScriptId: null });
-    },
-
-    getAssetsByType: (type: AssetType) => {
-        return get().assets.filter((a) => a.type === type);
     },
 }));
