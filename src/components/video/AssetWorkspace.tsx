@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, X, ImagePlus } from 'lucide-react';
+import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, X, ImagePlus, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
@@ -8,7 +8,7 @@ import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAssetStore } from '@/stores/assetStore';
 import { useAuthStore } from '@/stores/authStore';
-import { generateAssetDesign } from '@/services/assetApi';
+import { generateAssetDesign, editImage } from '@/services/assetApi';
 import { uploadImage } from '@/services/api';
 import { Asset, PromptTemplateType, PROMPT_TEMPLATES } from '@/types/asset';
 import CoinIcon from '@/img/coin.png';
@@ -61,6 +61,12 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; assetId: string | null; assetName: string }>({ isOpen: false, assetId: null, assetName: '' });
+    // 编辑弹框状态
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editPrompt, setEditPrompt] = useState('');
+    const [editModel, setEditModel] = useState<ImageModel>('nano-banana-2');
+    const [isEditModelDropdownOpen, setIsEditModelDropdownOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => { if (scriptId) loadAssets(scriptId); }, [scriptId, loadAssets]);
     useEffect(() => { const s = assets.find((a) => a.id === selectedAssetId); if (s) { setEditDescription(s.description || ''); setEditName(s.name || ''); } else { setEditDescription(''); setEditName(''); } }, [selectedAssetId, assets]);
@@ -104,10 +110,164 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const handleDeleteClick = (a: Asset) => setDeleteConfirm({ isOpen: true, assetId: a.id, assetName: a.name || '未命名资产' });
     const handleConfirmDelete = async () => { if (deleteConfirm.assetId) { try { await deleteAsset(scriptId, deleteConfirm.assetId); if (selectedAssetId === deleteConfirm.assetId) setSelectedAssetId(null); } catch { } } setDeleteConfirm({ isOpen: false, assetId: null, assetName: '' }); };
 
+    // 打开编辑弹框
+    const handleOpenEditModal = () => {
+        if (!selectedAsset?.designImageUrl) return;
+        setEditPrompt('');
+        setEditModel('nano-banana-2');
+        setIsEditModalOpen(true);
+    };
+
+    // 提交编辑
+    const handleSubmitEdit = async () => {
+        if (!selectedAsset?.designImageUrl || !editPrompt.trim() || isEditing) return;
+
+        setIsEditing(true);
+        const tokenCost = editModel === 'nano-banana-2' ? 4 : 2;
+        updateBalance((prev) => prev - tokenCost);
+
+        try {
+            // 先获取图片文件
+            const response = await fetch(selectedAsset.designImageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'image.png', { type: blob.type });
+
+            // 调用编辑接口
+            const result = await editImage(file, editPrompt.trim(), editModel);
+
+            if (result.success && result.images?.[0]?.url) {
+                // 更新资产的设计稿
+                await updateAsset(scriptId, selectedAsset.id, {
+                    designImageUrl: result.images[0].url,
+                    thumbnailUrl: result.images[0].url,
+                });
+                showToast('编辑成功', 'success');
+                setIsEditModalOpen(false);
+            } else {
+                showToast('编辑失败，代币已返还', 'error');
+            }
+
+            if (result.balance !== undefined) {
+                updateBalance(result.balance);
+            }
+        } catch (error) {
+            showToast('编辑失败，请重试', 'error');
+        } finally {
+            setIsEditing(false);
+        }
+    };
+
     return (
         <>
             <ToastContainer />
             <ConfirmDialog isOpen={deleteConfirm.isOpen} title="删除资产" message={`确定要删除资产「${deleteConfirm.assetName}」吗？`} type="danger" confirmText="删除" cancelText="取消" onConfirm={handleConfirmDelete} onCancel={() => setDeleteConfirm({ isOpen: false, assetId: null, assetName: '' })} />
+
+            {/* 编辑设计稿弹框 */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+                    <div className="w-[480px] rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.3)', boxShadow: '0 0 40px rgba(191,0,255,0.2)' }}>
+                        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))', border: '1px solid rgba(191,0,255,0.3)' }}>
+                                    <Edit3 size={16} style={{ color: '#bf00ff' }} />
+                                </div>
+                                <span className="text-sm font-medium text-white">编辑设计稿</span>
+                            </div>
+                            <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                                <X size={18} style={{ color: '#6b7280' }} />
+                            </button>
+                        </div>
+                        <div className="p-5 flex flex-col gap-4">
+                            {/* 当前图片预览 */}
+                            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(30,30,46,0.8)' }}>
+                                <img src={selectedAsset?.designImageUrl} alt="当前设计稿" className="w-16 h-16 object-cover rounded-lg" />
+                                <div className="flex-1">
+                                    <p className="text-xs text-white mb-1">当前设计稿</p>
+                                    <p className="text-[10px]" style={{ color: '#6b7280' }}>编辑后将生成新图覆盖当前图片</p>
+                                </div>
+                            </div>
+
+                            {/* 编辑提示词 */}
+                            <div>
+                                <label className="block text-xs font-medium mb-2" style={{ color: '#9ca3af' }}>编辑脚本</label>
+                                <Textarea
+                                    value={editPrompt}
+                                    onChange={(e) => setEditPrompt(e.target.value)}
+                                    placeholder="描述你想要对图片进行的修改，例如：将背景改为夜晚、添加一个帽子、改变服装颜色..."
+                                    className="h-28 resize-none text-sm"
+                                />
+                            </div>
+
+                            {/* 模型选择 */}
+                            <div>
+                                <label className="block text-xs font-medium mb-2" style={{ color: '#9ca3af' }}>选择模型</label>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsEditModelDropdownOpen(!isEditModelDropdownOpen)}
+                                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm"
+                                        style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', color: '#00f5ff' }}
+                                    >
+                                        <span>{IMAGE_MODELS.find(m => m.value === editModel)?.label}</span>
+                                        <ChevronDown size={14} />
+                                    </button>
+                                    {isEditModelDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setIsEditModelDropdownOpen(false)} />
+                                            <div className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(0,245,255,0.2)' }}>
+                                                {IMAGE_MODELS.map((m) => (
+                                                    <button
+                                                        key={m.value}
+                                                        onClick={() => { setEditModel(m.value); setIsEditModelDropdownOpen(false); }}
+                                                        className="w-full px-3 py-2 text-sm text-left"
+                                                        style={{ color: editModel === m.value ? '#00f5ff' : '#d1d5db', backgroundColor: editModel === m.value ? 'rgba(0,245,255,0.1)' : 'transparent' }}
+                                                    >
+                                                        {m.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 flex items-center justify-end gap-3" style={{ borderTop: '1px solid #1e1e2e' }}>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                disabled={isEditing}
+                                className="px-4 py-2 rounded-lg text-sm"
+                                style={{ backgroundColor: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.3)', color: '#9ca3af' }}
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleSubmitEdit}
+                                disabled={isEditing || !editPrompt.trim()}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                                style={{
+                                    background: isEditing || !editPrompt.trim() ? 'rgba(191,0,255,0.1)' : 'linear-gradient(135deg, rgba(191,0,255,0.3), rgba(255,0,255,0.3))',
+                                    border: '1px solid rgba(191,0,255,0.4)',
+                                    color: '#bf00ff',
+                                    opacity: isEditing || !editPrompt.trim() ? 0.5 : 1
+                                }}
+                            >
+                                {isEditing ? (
+                                    <>
+                                        <InlineLoading size={14} color="#bf00ff" />
+                                        <span>编辑中...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles size={14} />
+                                        <span>提交编辑</span>
+                                        <span className="flex items-center">（<img src={CoinIcon} alt="" className="w-4 h-4" />{editModel === 'nano-banana-2' ? 4 : 2}）</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex-1 flex gap-3 overflow-hidden">
                 <div className="w-[280px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
                     <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
@@ -155,14 +315,34 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                                 {isModelDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(0,245,255,0.2)' }}>{IMAGE_MODELS.map((m) => <button key={m.value} onClick={() => { setSelectedModel(m.value); setIsModelDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedModel === m.value ? '#00f5ff' : '#d1d5db', backgroundColor: selectedModel === m.value ? 'rgba(0,245,255,0.1)' : 'transparent' }}>{m.label}</button>)}</div></>}
                                             </div>
                                             <button onClick={handleGenerateDesign} disabled={isProcessing || !editDescription.trim()} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ background: isProcessing || !editDescription.trim() ? 'rgba(191,0,255,0.1)' : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))', border: '1px solid rgba(191,0,255,0.3)', color: '#bf00ff', opacity: isProcessing || !editDescription.trim() ? 0.5 : 1 }}><Sparkles size={12} />生成（<img src={CoinIcon} alt="" className="w-4 h-4 inline" />{selectedModel === 'nano-banana-2' ? 4 : 2}）</button>
-                                            <button onClick={() => !isProcessing && fileInputRef.current?.click()} disabled={isProcessing} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.3)', color: '#9ca3af', opacity: isProcessing ? 0.5 : 1 }}><Upload size={12} />上传</button>
-                                            {hasDesignImage && !isProcessing ? <a href={selectedAsset.designImageUrl} download className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff' }}><Download size={12} />下载</a> : <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)', color: '#6b7280', opacity: 0.5 }}><Download size={12} />下载</span>}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col overflow-hidden">
+                                        <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative">
+                                            {isProcessing && <Loading overlay size={28} color="#bf00ff" text={isUploading ? '正在上传...' : '正在生成设计稿...'} />}
+                                            {selectedAsset.designImageUrl ? <img src={selectedAsset.designImageUrl} alt="设计稿" className="max-w-full max-h-full object-contain rounded-lg" style={{ boxShadow: '0 0 30px rgba(0,245,255,0.1)' }} /> : <div className="flex flex-col items-center gap-3 text-center"><div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.05), rgba(191,0,255,0.05))', border: '1px solid rgba(0,245,255,0.1)' }}><ImageIcon size={32} style={{ color: 'rgba(0,245,255,0.3)' }} /></div><p className="text-sm" style={{ color: '#6b7280' }}>点击下方"生成"或"上传"添加资产设计稿</p></div>}
+                                        </div>
+                                        {/* 底部工具栏 */}
+                                        <div className="px-4 py-3 flex items-center justify-center gap-3">
+                                            <button onClick={() => !isProcessing && fileInputRef.current?.click()} disabled={isProcessing} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.15)', border: '1px solid rgba(107,114,128,0.3)', color: '#9ca3af', opacity: isProcessing ? 0.5 : 1 }} title="上传图片">
+                                                <Upload size={14} />上传
+                                            </button>
+                                            {hasDesignImage && !isProcessing ? (
+                                                <a href={selectedAsset.designImageUrl} download className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff' }} title="下载图片">
+                                                    <Download size={14} />下载
+                                                </a>
+                                            ) : (
+                                                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)', color: '#6b7280', opacity: 0.5 }} title="下载图片">
+                                                    <Download size={14} />下载
+                                                </span>
+                                            )}
+                                            {hasDesignImage && !isProcessing && (
+                                                <button onClick={handleOpenEditModal} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))', border: '1px solid rgba(191,0,255,0.3)', color: '#bf00ff' }} title="编辑设计稿">
+                                                    <Edit3 size={14} />编辑
+                                                </button>
+                                            )}
                                         </div>
                                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
-                                    </div>
-                                    <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative">
-                                        {isProcessing && <Loading overlay size={28} color="#bf00ff" text={isUploading ? '正在上传...' : '正在生成设计稿...'} />}
-                                        {selectedAsset.designImageUrl ? <img src={selectedAsset.designImageUrl} alt="设计稿" className="max-w-full max-h-full object-contain rounded-lg" style={{ boxShadow: '0 0 30px rgba(0,245,255,0.1)' }} /> : <div className="flex flex-col items-center gap-3 text-center"><div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.05), rgba(191,0,255,0.05))', border: '1px solid rgba(0,245,255,0.1)' }}><ImageIcon size={32} style={{ color: 'rgba(0,245,255,0.3)' }} /></div><p className="text-sm" style={{ color: '#6b7280' }}>点击"生成"或"上传"添加资产设计稿</p></div>}
                                     </div>
                                 </div>
                             </div>

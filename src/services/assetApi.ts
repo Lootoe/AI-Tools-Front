@@ -123,3 +123,43 @@ export async function generateAssetDesign(
 
     return response.json();
 }
+
+
+// 图片编辑响应
+export interface ImageEditResponse {
+    success: boolean;
+    images: Array<{
+        url: string;
+        revisedPrompt?: string;
+    }>;
+    balance?: number;
+}
+
+// 编辑图片 - 基于现有图片进行编辑生成新图
+export async function editImage(
+    imageFile: File,
+    prompt: string,
+    model: string = 'nano-banana-2'
+): Promise<ImageEditResponse> {
+    const token = getAuthToken();
+
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('prompt', prompt);
+    formData.append('model', model);
+
+    const response = await fetch(`${BACKEND_URL}/api/images/edits`, {
+        method: 'POST',
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(error.error || error.message || '图片编辑失败');
+    }
+
+    return response.json();
+}
