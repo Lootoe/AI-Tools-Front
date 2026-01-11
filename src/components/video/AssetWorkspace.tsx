@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, Edit3, X } from 'lucide-react';
+import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, Edit3, X, FileText } from 'lucide-react';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
@@ -175,6 +175,53 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
             <ToastContainer />
             <ConfirmDialog isOpen={deleteConfirm.isOpen} title="删除资产" message={`确定要删除资产「${deleteConfirm.assetName}」吗？`} type="danger" confirmText="删除" cancelText="取消" onConfirm={handleConfirmDelete} onCancel={() => setDeleteConfirm({ isOpen: false, assetId: null, assetName: '' })} />
 
+            {/* 提示词模板选择弹框 */}
+            {isTemplateDropdownOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} onClick={() => setIsTemplateDropdownOpen(false)}>
+                    <div className="w-[600px] rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.3)', boxShadow: '0 0 40px rgba(191,0,255,0.2)' }} onClick={(e) => e.stopPropagation()}>
+                        {/* 弹框头部 */}
+                        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
+                            <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))', border: '1px solid rgba(191,0,255,0.3)' }}>
+                                    <FileText size={14} style={{ color: '#bf00ff' }} />
+                                </div>
+                                <span className="text-sm font-medium text-white">选择提示词模板</span>
+                            </div>
+                            <button onClick={() => setIsTemplateDropdownOpen(false)} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
+                                <X size={16} style={{ color: '#6b7280' }} />
+                            </button>
+                        </div>
+                        {/* 模板列表 */}
+                        <div className="p-3 max-h-[500px] overflow-y-auto">
+                            <div className="grid gap-2">
+                                {promptTemplates.map((t) => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => { setSelectedPromptTemplateId(t.id); setIsTemplateDropdownOpen(false); }}
+                                        className="w-full px-3 py-2.5 rounded-lg text-left transition-all hover:brightness-110"
+                                        style={{
+                                            backgroundColor: selectedPromptTemplateId === t.id ? 'rgba(191,0,255,0.1)' : 'rgba(0,0,0,0.2)',
+                                            border: selectedPromptTemplateId === t.id ? '1px solid rgba(191,0,255,0.4)' : '1px solid rgba(30,30,46,0.6)',
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: selectedPromptTemplateId === t.id ? '#bf00ff' : '#4b5563' }} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-medium" style={{ color: selectedPromptTemplateId === t.id ? '#bf00ff' : '#e5e7eb' }}>{t.label}</div>
+                                                {t.description && <div className="text-[10px] mt-0.5 truncate" style={{ color: '#6b7280' }}>{t.description}</div>}
+                                            </div>
+                                            {selectedPromptTemplateId === t.id && (
+                                                <div className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(191,0,255,0.2)', color: '#bf00ff' }}>当前</div>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* 编辑设计稿弹框 */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
@@ -325,10 +372,7 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                     <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
                                         <div className="flex items-center gap-2"><ImageIcon size={14} style={{ color: '#00f5ff' }} /><span className="text-sm font-medium text-white">资产设计稿</span></div>
                                         <div className="flex items-center gap-2">
-                                            <div className="relative">
-                                                <button onClick={() => setIsTemplateDropdownOpen(!isTemplateDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(191,0,255,0.1)', border: '1px solid rgba(191,0,255,0.2)', color: '#bf00ff', opacity: isProcessing ? 0.5 : 1 }}><span>{promptTemplates.find(t => t.id === selectedPromptTemplateId)?.label || '无模板'}</span><ChevronDown size={12} /></button>
-                                                {isTemplateDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsTemplateDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[160px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.2)' }}>{promptTemplates.map((t) => <button key={t.id} onClick={() => { setSelectedPromptTemplateId(t.id); setIsTemplateDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left" style={{ color: selectedPromptTemplateId === t.id ? '#bf00ff' : '#d1d5db', backgroundColor: selectedPromptTemplateId === t.id ? 'rgba(191,0,255,0.1)' : 'transparent' }}>{t.label}</button>)}</div></>}
-                                            </div>
+                                            <button onClick={() => !isProcessing && setIsTemplateDropdownOpen(true)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(191,0,255,0.1)', border: '1px solid rgba(191,0,255,0.2)', color: '#bf00ff', opacity: isProcessing ? 0.5 : 1 }}><span className="max-w-[80px] truncate">{promptTemplates.find(t => t.id === selectedPromptTemplateId)?.label || '无模板'}</span><ChevronDown size={12} /></button>
                                             <div className="relative">
                                                 <button onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', color: '#00f5ff', opacity: isProcessing ? 0.5 : 1 }}><span>{IMAGE_MODELS.find(m => m.value === selectedModel)?.label}</span><ChevronDown size={12} /></button>
                                                 {isModelDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(0,245,255,0.2)' }}>{IMAGE_MODELS.map((m) => <button key={m.value} onClick={() => { setSelectedModel(m.value); setIsModelDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedModel === m.value ? '#00f5ff' : '#d1d5db', backgroundColor: selectedModel === m.value ? 'rgba(0,245,255,0.1)' : 'transparent' }}>{m.label}</button>)}</div></>}
