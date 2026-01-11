@@ -128,26 +128,7 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
                             )}
                         </div>
 
-                        {displayUrl && (
-                            <>
-                                <button onClick={() => setShowFullscreen(true)}
-                                    className="p-1.5 rounded transition-colors"
-                                    style={{ color: '#6b7280' }}
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#00f5ff'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                                    title="放大查看">
-                                    <ZoomIn size={14} />
-                                </button>
-                                <button onClick={handleDownload}
-                                    className="p-1.5 rounded transition-colors"
-                                    style={{ color: '#6b7280' }}
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#00f5ff'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                                    title="下载图片">
-                                    <Download size={14} />
-                                </button>
-                            </>
-                        )}
+
                     </div>
                 </div>
 
@@ -188,6 +169,31 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
                         </>
                     )}
                 </div>
+
+                {/* 底部控制栏 */}
+                {displayUrl && (
+                    <div className="flex items-center justify-end px-3 py-2"
+                        style={{ backgroundColor: 'rgba(10,10,15,0.9)' }}>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setShowFullscreen(true)}
+                                className="p-1.5 rounded transition-colors"
+                                style={{ color: '#6b7280' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#00f5ff'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                                title="放大查看">
+                                <ZoomIn size={14} />
+                            </button>
+                            <button onClick={handleDownload}
+                                className="p-1.5 rounded transition-colors"
+                                style={{ color: '#6b7280' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#00f5ff'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                                title="下载图片">
+                                <Download size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* 底部霓虹边框 */}
                 <div className="absolute bottom-0 left-0 right-0 h-[1px]"
