@@ -440,6 +440,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
               hasUnsavedChanges={hasUnsavedChanges}
               localReferenceImageUrl={localReferenceImageUrl}
               onReferenceImageUrlChange={setLocalReferenceImageUrl}
+              storyboardImages={selectedEpisode?.storyboardImages || []}
             />
 
             {/* 中间视频播放器 */}

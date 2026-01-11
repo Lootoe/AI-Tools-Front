@@ -38,6 +38,7 @@
 - **分镜池**：右侧面板管理多个视频版本
 - **视频生成**：支持 16:9/9:16 比例，10s/15s 时长
 - **视频编辑（Remix）**：基于已生成视频进行二次编辑
+- **关联设计稿**：在参考图 Tab 中可关联同剧集、同分镜序号的分镜图版本作为视频生成参考图
 
 #### 1.3.4 分镜图工作区（ImageWorkspace）
 - **分镜图列表**：底部横向滚动列表
@@ -159,7 +160,8 @@ AI-Tools-Front/
 │   │   │   ├── Toast.tsx
 │   │   │   ├── ConfirmDialog.tsx
 │   │   │   ├── ReferenceImageGrid.tsx      # 参考图网格展示（支持放大预览）
-│   │   │   └── ReferenceImageUploader.tsx  # 参考图上传组件
+│   │   │   ├── ReferenceImageUploader.tsx  # 参考图上传组件
+│   │   │   └── LinkDesignImageDialog.tsx   # 关联设计稿弹窗
 │   │   ├── video/            # 视频相关组件
 │   │   │   ├── ScriptCard.tsx
 │   │   │   ├── EpisodeWorkspace.tsx
@@ -621,3 +623,4 @@ VITE_BACKEND_URL=http://localhost:3000
 |------|------|------|
 | 1.0.0 | 2026-01-11 | 初始版本，包含完整产品需求描述 |
 | 1.0.1 | 2026-01-11 | 新增 ReferenceImageGrid、ReferenceImageUploader 公共组件，统一参考图上传与预览 |
+| 1.0.2 | 2026-01-11 | 新增关联设计稿功能：分镜配置的参考图 Tab 中可关联同剧集同分镜序号的分镜图版本 |
