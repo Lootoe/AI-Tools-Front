@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Loader2, Upload } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
 import { uploadImage } from '@/services/api';
 import { ReferenceImageGrid } from './ReferenceImageGrid';
 
@@ -26,24 +26,25 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
     multiple = true,
     disabled = false,
     emptyText,
-    uploadText = '点击添加参考图',
+    uploadText = '点击或拖拽上传',
     hint = '支持 JPG、PNG 格式',
     imageSize = 'sm',
     gridClassName = 'flex flex-wrap gap-1.5',
     onError,
 }) => {
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const canUpload = images.length < maxCount && !disabled && !isUploading;
+    const canUpload = images.length < maxCount && !disabled;
     const remainingCount = maxCount - images.length;
+    const showUploadArea = canUpload || isUploading;
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0 || isUploading) return;
+    const processFiles = useCallback(async (files: FileList | File[]) => {
+        if (isUploading) return;
 
-        // 检查数量限制
-        const allowedCount = Math.min(files.length, remainingCount);
+        const fileArray = Array.from(files);
+        const allowedCount = Math.min(fileArray.length, remainingCount);
         if (allowedCount <= 0) {
             onError?.(`最多只能上传 ${maxCount} 张图片`);
             return;
@@ -51,8 +52,11 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
 
         const filesToUpload: File[] = [];
         for (let i = 0; i < allowedCount; i++) {
-            const file = files[i];
-            // 检查文件大小
+            const file = fileArray[i];
+            if (!file.type.startsWith('image/')) {
+                onError?.(`${file.name} 不是图片文件`);
+                continue;
+            }
             if (file.size > maxSizeMB * 1024 * 1024) {
                 onError?.(`图片 ${file.name} 超过 ${maxSizeMB}MB 限制`);
                 continue;
@@ -60,10 +64,7 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
             filesToUpload.push(file);
         }
 
-        if (filesToUpload.length === 0) {
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
-        }
+        if (filesToUpload.length === 0) return;
 
         setIsUploading(true);
         try {
@@ -78,7 +79,36 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
             onError?.('上传失败，请重试');
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    }, [images, isUploading, maxCount, maxSizeMB, onChange, onError, remainingCount]);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        await processFiles(files);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (canUpload) setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (!canUpload) return;
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            await processFiles(files);
         }
     };
 
@@ -98,10 +128,17 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
                 />
             )}
 
-            {canUpload && (
+            {showUploadArea && (
                 <label
                     className={`flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all ${isUploading ? 'pointer-events-none' : 'hover:border-opacity-60'}`}
-                    style={{ backgroundColor: '#0a0a0f', border: '2px dashed rgba(0,245,255,0.3)', minHeight: '80px' }}
+                    style={{
+                        backgroundColor: isDragging ? 'rgba(0,245,255,0.05)' : '#0a0a0f',
+                        border: isDragging ? '2px dashed rgba(0,245,255,0.6)' : '2px dashed rgba(0,245,255,0.3)',
+                        minHeight: '80px',
+                    }}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
                 >
                     <input
                         ref={fileInputRef}
@@ -110,7 +147,7 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
                         multiple={multiple && remainingCount > 1}
                         onChange={handleUpload}
                         className="hidden"
-                        disabled={!canUpload}
+                        disabled={isUploading}
                     />
                     {isUploading ? (
                         <>
@@ -119,8 +156,8 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
                         </>
                     ) : (
                         <>
-                            <Plus size={20} className="mb-1" style={{ color: 'rgba(0,245,255,0.5)' }} />
-                            <span className="text-[10px]" style={{ color: '#6b7280' }}>{uploadText}</span>
+                            <Plus size={20} className="mb-1" style={{ color: isDragging ? '#00f5ff' : 'rgba(0,245,255,0.5)' }} />
+                            <span className="text-[10px]" style={{ color: isDragging ? '#00f5ff' : '#6b7280' }}>{uploadText}</span>
                             <span className="text-[10px] mt-0.5" style={{ color: '#4b5563' }}>
                                 {hint}（{remainingCount}/{maxCount}）
                             </span>
