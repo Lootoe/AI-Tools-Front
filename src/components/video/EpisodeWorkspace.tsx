@@ -45,6 +45,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   // API设置（不保存到分镜配置，仅作为生成时的临时参数）
   const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('16:9');
   const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
+  const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('video-default');
   // 参考图状态
   const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
 
@@ -171,6 +172,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       // 调用后端 API 生成视频（使用本地的API设置）
       const response = await generateStoryboardVideo({
         prompt: finalPrompt,
+        promptTemplateId: localPromptTemplateId,
         aspect_ratio: localAspectRatio,
         duration: localDuration,
         referenceImageUrls: storyboard.referenceImageUrls,
@@ -456,6 +458,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
                 scriptName={script?.title}
                 episodeNumber={selectedEpisode?.episodeNumber}
                 storyboardNumber={currentStoryboardIndex + 1}
+                promptTemplateId={localPromptTemplateId}
+                onPromptTemplateChange={setLocalPromptTemplateId}
                 aspectRatio={localAspectRatio}
                 onAspectRatioChange={handleAspectRatioChange}
                 duration={localDuration}

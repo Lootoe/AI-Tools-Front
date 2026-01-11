@@ -79,6 +79,7 @@ export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse
 // 分镜生成视频请求
 export interface StoryboardToVideoRequest {
   prompt: string;
+  promptTemplateId?: string;
   model?: 'sora-2';
   aspect_ratio?: '16:9' | '9:16';
   duration?: '10' | '15';
@@ -100,6 +101,7 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
     },
     body: JSON.stringify({
       prompt: request.prompt,
+      promptTemplateId: request.promptTemplateId || 'video-none',
       model: request.model || 'sora-2',
       aspect_ratio: request.aspect_ratio || '9:16',
       duration: request.duration || '15',

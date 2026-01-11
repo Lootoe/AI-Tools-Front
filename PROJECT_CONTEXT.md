@@ -508,6 +508,20 @@ deleteAsset(scriptId: string, assetId: string)
 - 生成进度显示
 - 激活副本选择
 
+**CyberVideoPlayer**
+- 视频播放器
+- 提示词模板选择（从后端 API 获取 video 分类模板）
+- 画面比例选择（9:16/16:9）
+- 视频时长选择（10s/15s）
+
+**CyberImageViewer**
+- 图片查看器
+- 提示词模板选择（从后端 API 获取 storyboardImage 分类模板）
+- 画面比例选择（16:9/1:1/4:3）
+- 模型选择
+
+> 更新于 2026-01-12：CyberVideoPlayer 和 CyberImageViewer 新增提示词模板选择功能，放置于顶部工具栏与其他 API 设置一起
+
 **StoryboardCard**
 - 分镜卡片
 - 描述编辑
@@ -524,23 +538,27 @@ deleteAsset(scriptId: string, assetId: string)
 
 ### 9.1 视频生成流程
 ```
-1. 用户在 EpisodeWorkspace 点击"生成视频"
+1. 用户在 EpisodeWorkspace 选择提示词模板，点击"生成视频"
 2. 调用 videoStore.addVariant() 创建新副本
-3. 调用 api.generateStoryboardVideo() 发起生成请求
+3. 调用 api.generateStoryboardVideo() 发起生成请求（携带 promptTemplateId）
 4. 后端返回 taskId，更新副本状态为 'queued'
 5. 前端轮询 api.getVideoStatus(taskId) 查询状态
 6. 状态更新时调用 videoStore.updateVariant() 更新本地状态
 7. 完成后显示视频预览
 ```
 
+> 更新于 2026-01-12：视频生成流程新增提示词模板选择步骤
+
 ### 9.2 图片生成流程
 ```
-1. 用户在 ImageWorkspace 或 AssetWorkspace 点击"生成"
+1. 用户在 ImageWorkspace 选择提示词模板，或在 AssetWorkspace 点击"生成"
 2. 调用相应的 addImageVariant() 或 updateAsset()
-3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()
+3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()（携带 promptTemplateId）
 4. 后端同步返回生成结果（图片生成较快）
 5. 更新本地状态，显示图片
 ```
+
+> 更新于 2026-01-12：分镜图生成流程新增提示词模板选择步骤
 
 ### 9.3 状态同步策略
 - 乐观更新：先更新本地状态，再发送 API 请求
@@ -635,3 +653,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.1 | 2026-01-11 | 新增 ReferenceImageGrid、ReferenceImageUploader 公共组件，统一参考图上传与预览 |
 | 1.0.2 | 2026-01-11 | 新增关联设计稿功能：分镜配置的参考图 Tab 中可关联同剧集同分镜序号的分镜图版本 |
 | 1.0.3 | 2026-01-11 | 提示词模板改为从后端 API 动态获取，按 video/storyboardImage/asset 分类，通过 ID 查询 |
+| 1.0.4 | 2026-01-12 | 分镜视频和分镜图工作区新增提示词模板选择功能，位于 CyberVideoPlayer/CyberImageViewer 顶部工具栏 |

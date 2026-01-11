@@ -181,6 +181,7 @@ export async function generateStoryboardImage(
     variantId: string,
     scriptId: string,
     description: string,
+    promptTemplateId: string,
     model: string,
     referenceImageUrls?: string[],
     aspectRatio?: '9:16' | '16:9' | '1:1'
@@ -197,6 +198,7 @@ export async function generateStoryboardImage(
             variantId,
             scriptId,
             description,
+            promptTemplateId,
             model,
             referenceImageUrls,
             aspectRatio,

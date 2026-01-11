@@ -44,6 +44,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>('16:9');
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
+    const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('image-9grid');
 
     const script = scripts.find((s) => s.id === scriptId);
 
@@ -146,6 +147,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                 variantId,
                 scriptId,
                 storyboardImage.description,
+                localPromptTemplateId,
                 selectedModel,
                 storyboardImage.referenceImageUrls || [],
                 localAspectRatio
@@ -294,6 +296,8 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                                 scriptName={script?.title}
                                 episodeNumber={selectedEpisode?.episodeNumber}
                                 storyboardNumber={currentStoryboardImageIndex + 1}
+                                promptTemplateId={localPromptTemplateId}
+                                onPromptTemplateChange={setLocalPromptTemplateId}
                                 aspectRatio={localAspectRatio}
                                 onAspectRatioChange={setLocalAspectRatio}
                                 selectedModel={selectedModel}

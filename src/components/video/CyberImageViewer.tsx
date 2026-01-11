@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Download, ZoomIn, Image, X, ChevronDown } from 'lucide-react';
 import { ImageModel, IMAGE_MODELS } from './ImageLeftPanel';
+import { getPromptTemplates, PromptTemplateConfig } from '@/services/api';
 
 interface CyberImageViewerProps {
     imageUrl?: string;
@@ -17,6 +18,9 @@ interface CyberImageViewerProps {
     onAspectRatioChange: (ratio: '16:9' | '1:1' | '4:3') => void;
     selectedModel: ImageModel;
     onModelChange: (model: ImageModel) => void;
+    // 提示词模板
+    promptTemplateId?: string;
+    onPromptTemplateChange?: (templateId: string) => void;
     isProcessing?: boolean;
 }
 
@@ -35,14 +39,25 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
     onAspectRatioChange,
     selectedModel,
     onModelChange,
+    promptTemplateId = 'image-9grid',
+    onPromptTemplateChange,
     isProcessing = false,
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [showFullscreen, setShowFullscreen] = useState(false);
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
+    const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
+    const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
     const displayUrl = imageUrl || thumbnailUrl;
+
+    // 加载提示词模板列表
+    useEffect(() => {
+        getPromptTemplates('storyboardImage')
+            .then((res) => { if (res.success) setPromptTemplates(res.data); })
+            .catch(() => { });
+    }, []);
 
     const handleDownload = () => {
         if (!displayUrl) return;
@@ -76,6 +91,35 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
                     <span className="text-xs font-medium" style={{ color: '#00f5ff' }}>{title || '分镜图预览'}</span>
 
                     <div className="flex items-center gap-2">
+                        {/* 提示词模板选择 */}
+                        {onPromptTemplateChange && (
+                            <div className="relative">
+                                <button onClick={() => !isProcessing && setIsTemplateDropdownOpen(!isTemplateDropdownOpen)}
+                                    disabled={isProcessing}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                                    style={{ backgroundColor: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#8b5cf6', opacity: isProcessing ? 0.5 : 1 }}>
+                                    <span className="max-w-[80px] truncate">{promptTemplates.find(t => t.id === promptTemplateId)?.label || '选择模板'}</span>
+                                    <ChevronDown size={12} />
+                                </button>
+                                {isTemplateDropdownOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setIsTemplateDropdownOpen(false)} />
+                                        <div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[160px] max-h-60 overflow-y-auto"
+                                            style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                                            {promptTemplates.map((t) => (
+                                                <button key={t.id} onClick={() => { onPromptTemplateChange(t.id); setIsTemplateDropdownOpen(false); }}
+                                                    className="w-full px-3 py-1.5 text-xs text-left"
+                                                    style={{ color: promptTemplateId === t.id ? '#8b5cf6' : '#d1d5db', backgroundColor: promptTemplateId === t.id ? 'rgba(139,92,246,0.1)' : 'transparent' }}>
+                                                    <div>{t.label}</div>
+                                                    {t.description && <div className="text-[10px] mt-0.5" style={{ color: '#6b7280' }}>{t.description}</div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
                         {/* 比例选择 */}
                         <div className="relative">
                             <button onClick={() => !isProcessing && setIsRatioDropdownOpen(!isRatioDropdownOpen)}
