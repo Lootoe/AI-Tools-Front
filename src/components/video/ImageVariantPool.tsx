@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Check, Loader2, Image, Layers, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, Image, Layers, AlertCircle } from 'lucide-react';
 import { StoryboardImage, ImageVariant } from '@/types/video';
 import { ImageModel, getModelCost } from './ImageLeftPanel';
 import CoinIcon from '@/img/coin.png';
@@ -143,7 +143,6 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                     {variant.taskId && <div className="text-[9px] mt-0.5 truncate max-w-[140px]" style={{ color: '#4b5563' }} title={variant.taskId}>ID: {variant.taskId}</div>}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isActive && isCompleted && <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(0,245,255,0.15)' }}><Check size={12} style={{ color: '#00f5ff' }} /></div>}
                     <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20" style={{ color: '#6b7280' }}><Trash2 size={12} /></button>
                 </div>
             </div>

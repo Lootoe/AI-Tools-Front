@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { FileText, Save, Image, Upload, X, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Save, Image } from 'lucide-react';
 import { Storyboard } from '@/types/video';
-import { uploadImage } from '@/services/api';
+import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 
 interface StoryboardLeftPanelProps {
   storyboard: Storyboard | null;
@@ -29,8 +29,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('script');
   const [isFocused, setIsFocused] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!storyboard) {
     return (
@@ -61,33 +59,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
     { key: 'script', label: '脚本', icon: <FileText size={12} /> },
     { key: 'referenceImage', label: '参考图', icon: <Image size={12} /> },
   ];
-
-  // 参考图上传处理
-  const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || isUploading) return;
-
-    setIsUploading(true);
-    try {
-      const response = await uploadImage(file);
-      if (response.success && response.url) {
-        onReferenceImageUrlChange(response.url);
-      }
-    } catch (error) {
-      console.error('参考图上传失败:', error);
-    } finally {
-      setIsUploading(false);
-      // 清空 input 以便重复上传同一文件
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  // 删除参考图
-  const handleRemoveReferenceImage = () => {
-    onReferenceImageUrlChange('');
-  };
 
   return (
     <div
@@ -179,66 +150,15 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
             <p className="text-[10px] mb-3" style={{ color: '#6b7280' }}>
               上传一张参考图，生成的视频将参考此图片的风格
             </p>
-
-            {localReferenceImageUrl ? (
-              <div className="relative group">
-                <img
-                  src={localReferenceImageUrl}
-                  alt="参考图"
-                  className="w-full rounded-lg object-cover"
-                  style={{
-                    border: '1px solid #1e1e2e',
-                    maxHeight: '200px',
-                  }}
-                />
-                <button
-                  onClick={handleRemoveReferenceImage}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{
-                    backgroundColor: 'rgba(239,68,68,0.9)',
-                    color: '#fff',
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <label
-                className={`flex-1 flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all ${isUploading ? 'pointer-events-none' : 'hover:border-opacity-50'}`}
-                style={{
-                  backgroundColor: '#0a0a0f',
-                  border: '2px dashed rgba(255,149,0,0.3)',
-                  minHeight: '120px',
-                }}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleReferenceImageUpload}
-                  className="hidden"
-                  disabled={isUploading}
-                />
-                {isUploading ? (
-                  <>
-                    <Loader2 size={24} className="animate-spin mb-2" style={{ color: '#ff9500' }} />
-                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
-                      上传中...
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={24} className="mb-2" style={{ color: 'rgba(255,149,0,0.5)' }} />
-                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
-                      点击上传参考图
-                    </span>
-                    <span className="text-[10px] mt-1" style={{ color: '#4b5563' }}>
-                      支持 JPG、PNG 格式
-                    </span>
-                  </>
-                )}
-              </label>
-            )}
+            <ReferenceImageUploader
+              images={localReferenceImageUrl ? [localReferenceImageUrl] : []}
+              onChange={(urls) => onReferenceImageUrlChange(urls[0] || '')}
+              maxCount={1}
+              maxSizeMB={2}
+              multiple={false}
+              imageSize="lg"
+              hint="单张不超过2MB"
+            />
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { FileText, Save, Image, X, Loader2, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Save, Image } from 'lucide-react';
 import { StoryboardImage } from '@/types/video';
-import { uploadImage } from '@/services/api';
+import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 
 // 图片生成模型配置
 export const IMAGE_MODELS = [
@@ -40,8 +40,6 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('script');
     const [isFocused, setIsFocused] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!storyboardImage) {
         return (
@@ -60,23 +58,6 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
         { key: 'script', label: '脚本', icon: <FileText size={12} /> },
         { key: 'referenceImages', label: '参考图', icon: <Image size={12} /> },
     ];
-
-    const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0 || isUploading) return;
-        setIsUploading(true);
-        try {
-            const uploadPromises = Array.from(files).map(file => uploadImage(file));
-            const responses = await Promise.all(uploadPromises);
-            const newUrls = responses.filter(r => r.success && r.url).map(r => r.url as string);
-            if (newUrls.length > 0) onReferenceImageUrlsChange([...localReferenceImageUrls, ...newUrls]);
-        } catch (error) { console.error('参考图上传失败:', error); }
-        finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
-    };
-
-    const handleRemoveReferenceImage = (index: number) => {
-        onReferenceImageUrlsChange(localReferenceImageUrls.filter((_, i) => i !== index));
-    };
 
     return (
         <div className="w-72 flex-shrink-0 rounded-xl flex flex-col overflow-hidden"
@@ -117,28 +98,18 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
                     <div className="h-full flex flex-col p-3 overflow-y-auto">
                         <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                             <Image size={12} style={{ color: '#00f5ff' }} />
-                            <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>参考图（可上传多张）</span>
+                            <span className="text-[10px] font-medium" style={{ color: '#9ca3af' }}>参考图（最多5张）</span>
                         </div>
                         <p className="text-[10px] mb-3" style={{ color: '#6b7280' }}>上传参考图，生成的图片将参考这些图片的风格</p>
-                        {localReferenceImageUrls.length > 0 && (
-                            <div className="grid grid-cols-2 gap-2 mb-3">
-                                {localReferenceImageUrls.map((url, index) => (
-                                    <div key={index} className="relative group">
-                                        <img src={url} alt={`参考图 ${index + 1}`} className="w-full h-20 rounded-lg object-cover" style={{ border: '1px solid #1e1e2e' }} />
-                                        <button onClick={() => handleRemoveReferenceImage(index)}
-                                            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            style={{ backgroundColor: 'rgba(239,68,68,0.9)', color: '#fff' }}>
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <label className={`flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all ${isUploading ? 'pointer-events-none' : 'hover:border-opacity-50'}`}
-                            style={{ backgroundColor: '#0a0a0f', border: '2px dashed rgba(0,245,255,0.3)', minHeight: '80px' }}>
-                            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleReferenceImageUpload} className="hidden" disabled={isUploading} />
-                            {isUploading ? (<><Loader2 size={20} className="animate-spin mb-1" style={{ color: '#00f5ff' }} /><span className="text-[10px]" style={{ color: '#6b7280' }}>上传中...</span></>) : (<><Plus size={20} className="mb-1" style={{ color: 'rgba(0,245,255,0.5)' }} /><span className="text-[10px]" style={{ color: '#6b7280' }}>点击添加参考图</span></>)}
-                        </label>
+                        <ReferenceImageUploader
+                            images={localReferenceImageUrls}
+                            onChange={onReferenceImageUrlsChange}
+                            maxCount={5}
+                            maxSizeMB={2}
+                            imageSize="lg"
+                            gridClassName="grid grid-cols-2 gap-2"
+                            hint="单张不超过2MB"
+                        />
                     </div>
                 )}
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, X, ImagePlus, Edit3 } from 'lucide-react';
+import { Package, Sparkles, Plus, Trash2, Wand2, Image as ImageIcon, Download, Upload, Save, ChevronDown, Edit3, X } from 'lucide-react';
+import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
@@ -62,9 +63,7 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<PromptTemplateType>('none');
     const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const refImageInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [isUploadingRef, setIsUploadingRef] = useState(false);
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>('16:9');
@@ -108,14 +107,11 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
         finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
     };
 
-    const handleUploadRefImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files; if (!files || !selectedAsset) return;
-        setIsUploadingRef(true);
-        try { const urls: string[] = []; for (const f of Array.from(files)) { const r = await uploadImage(f); if (r.success && r.url) urls.push(r.url); } if (urls.length) { await updateAsset(scriptId, selectedAsset.id, { referenceImageUrls: [...(selectedAsset.referenceImageUrls || []), ...urls] }); showToast(`上传 ${urls.length} 张参考图`, 'success'); } } catch { }
-        finally { setIsUploadingRef(false); if (refImageInputRef.current) refImageInputRef.current.value = ''; }
+    const handleRefImagesChange = async (urls: string[]) => {
+        if (!selectedAsset) return;
+        await updateAsset(scriptId, selectedAsset.id, { referenceImageUrls: urls });
     };
 
-    const handleDeleteRefImage = async (i: number) => { if (!selectedAsset) return; await updateAsset(scriptId, selectedAsset.id, { referenceImageUrls: (selectedAsset.referenceImageUrls || []).filter((_, idx) => idx !== i) }); showToast('参考图已删除', 'success'); };
     const handleDeleteClick = (a: Asset) => setDeleteConfirm({ isOpen: true, assetId: a.id, assetName: a.name || '未命名资产' });
     const handleConfirmDelete = async () => { if (deleteConfirm.assetId) { try { await deleteAsset(scriptId, deleteConfirm.assetId); if (selectedAssetId === deleteConfirm.assetId) setSelectedAssetId(null); } catch { } } setDeleteConfirm({ isOpen: false, assetId: null, assetName: '' }); };
 
@@ -301,11 +297,17 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                     <div><label className="block text-xs font-medium mb-1.5" style={{ color: '#9ca3af' }}>资产名称</label><Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="输入资产名称..." className="h-9 text-sm" /></div>
                                     <div className="flex-1 flex flex-col min-h-0"><label className="block text-xs font-medium mb-1.5" style={{ color: '#9ca3af' }}>资产描述</label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="描述资产的外观、风格、细节等信息..." className="flex-1 min-h-0 resize-none text-sm" /></div>
                                     <div>
-                                        <div className="flex items-center justify-between mb-1.5"><label className="text-xs font-medium" style={{ color: '#9ca3af' }}>参考图</label><button onClick={() => !isUploadingRef && refImageInputRef.current?.click()} disabled={isUploadingRef} className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', color: '#00f5ff', opacity: isUploadingRef ? 0.5 : 1 }}><ImagePlus size={14} />{isUploadingRef ? '上传中...' : '添加参考图'}</button><input ref={refImageInputRef} type="file" accept="image/*" multiple onChange={handleUploadRefImage} className="hidden" /></div>
-                                        <div className="flex flex-wrap gap-1.5 p-2 rounded-lg min-h-[60px]" style={{ backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(30,30,46,0.8)' }}>
-                                            {!(selectedAsset.referenceImageUrls?.length) ? <div className="w-full flex items-center justify-center text-xs" style={{ color: '#4b5563' }}>点击上方按钮上传参考图</div> : selectedAsset.referenceImageUrls.map((url, i) => (
-                                                <div key={i} className="relative group w-12 h-12 rounded overflow-hidden" style={{ border: '1px solid rgba(30,30,46,0.8)' }}><img src={url} alt="" className="w-full h-full object-cover" /><button onClick={() => handleDeleteRefImage(i)} className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100" style={{ backgroundColor: 'rgba(239,68,68,0.9)' }}><X size={8} className="text-white" /></button></div>
-                                            ))}
+                                        <label className="block text-xs font-medium mb-1.5" style={{ color: '#9ca3af' }}>参考图（最多5张）</label>
+                                        <div className="p-2 rounded-lg min-h-[120px]" style={{ backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(30,30,46,0.8)' }}>
+                                            <ReferenceImageUploader
+                                                images={selectedAsset.referenceImageUrls || []}
+                                                onChange={handleRefImagesChange}
+                                                maxCount={5}
+                                                maxSizeMB={2}
+                                                imageSize="md"
+                                                hint="单张不超过2MB"
+                                                onError={(msg) => showToast(msg, 'error')}
+                                            />
                                         </div>
                                     </div>
                                     <button onClick={handleSave} disabled={isSaving} className="w-full h-10 rounded-lg flex items-center justify-center text-sm font-medium" style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,212,170,0.1))', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? <><InlineLoading size={16} color="#00f5ff" /><span className="ml-2">保存中...</span></> : <><Save size={16} className="mr-2" />保存资产信息</>}</button>

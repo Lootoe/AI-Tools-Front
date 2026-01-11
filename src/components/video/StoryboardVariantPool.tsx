@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Check, Loader2, Play, Layers, AlertCircle, Pencil, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, Play, Layers, AlertCircle, Pencil, X } from 'lucide-react';
 import { Storyboard, StoryboardVariant } from '@/types/video';
 import CoinIcon from '@/img/coin.png';
 
@@ -420,14 +420,6 @@ const VariantCard: React.FC<VariantCardProps> = ({
 
         {/* 操作按钮 */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {isActive && isCompleted && (
-            <div
-              className="w-5 h-5 rounded flex items-center justify-center"
-              style={{ backgroundColor: 'rgba(0,245,255,0.15)' }}
-            >
-              <Check size={12} style={{ color: '#00f5ff' }} />
-            </div>
-          )}
           {canRemix && (
             <button
               onClick={(e) => {

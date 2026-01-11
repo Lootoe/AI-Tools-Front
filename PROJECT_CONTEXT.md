@@ -157,7 +157,9 @@ AI-Tools-Front/
 │   │   │   ├── Input.tsx
 │   │   │   ├── Dialog.tsx
 │   │   │   ├── Toast.tsx
-│   │   │   └── ConfirmDialog.tsx
+│   │   │   ├── ConfirmDialog.tsx
+│   │   │   ├── ReferenceImageGrid.tsx      # 参考图网格展示（支持放大预览）
+│   │   │   └── ReferenceImageUploader.tsx  # 参考图上传组件
 │   │   ├── video/            # 视频相关组件
 │   │   │   ├── ScriptCard.tsx
 │   │   │   ├── EpisodeWorkspace.tsx
@@ -618,3 +620,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 1.0.0 | 2026-01-11 | 初始版本，包含完整产品需求描述 |
+| 1.0.1 | 2026-01-11 | 新增 ReferenceImageGrid、ReferenceImageUploader 公共组件，统一参考图上传与预览 |
