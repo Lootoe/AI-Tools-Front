@@ -103,7 +103,8 @@ export async function generateAssetDesign(
     description: string,
     promptTemplate: PromptTemplateType,
     model?: string,
-    referenceImageUrls?: string[]
+    referenceImageUrls?: string[],
+    aspectRatio?: '1:1' | '4:3' | '16:9'
 ): Promise<AssetDesignResponse> {
     const token = getAuthToken();
 
@@ -113,7 +114,7 @@ export async function generateAssetDesign(
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ assetId, scriptId, description, promptTemplate, model, referenceImageUrls }),
+        body: JSON.stringify({ assetId, scriptId, description, promptTemplate, model, referenceImageUrls, aspectRatio }),
     });
 
     if (!response.ok) {

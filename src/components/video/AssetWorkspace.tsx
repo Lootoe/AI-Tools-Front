@@ -21,6 +21,13 @@ const IMAGE_MODELS = [
 ] as const;
 type ImageModel = typeof IMAGE_MODELS[number]['value'];
 
+const ASPECT_RATIOS = [
+    { value: '1:1', label: '1:1 方形' },
+    { value: '4:3', label: '4:3 标准' },
+    { value: '16:9', label: '16:9 横版' },
+] as const;
+type AspectRatio = typeof ASPECT_RATIOS[number]['value'];
+
 const AssetCard: React.FC<{ asset: Asset; isSelected: boolean; onSelect: () => void; onDelete: () => void }> = ({ asset, isSelected, onSelect, onDelete }) => {
     const isGenerating = asset.status === 'generating';
     return (
@@ -60,6 +67,8 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+    const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>('16:9');
+    const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; assetId: string | null; assetName: string }>({ isOpen: false, assetId: null, assetName: '' });
     // 编辑弹框状态
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -83,7 +92,7 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
         updateBalance((prev) => prev - tokenCost);
         await updateAsset(scriptId, selectedAsset.id, { status: 'generating' });
         try {
-            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplate, selectedModel, selectedAsset.referenceImageUrls || []);
+            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplate, selectedModel, selectedAsset.referenceImageUrls || [], selectedAspectRatio);
             await loadAssets(scriptId);
             if (response.balance !== undefined) updateBalance(response.balance);
             showToast(response.success ? '设计稿生成成功' : '生成失败，代币已返还', response.success ? 'success' : 'error');
@@ -313,6 +322,10 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                             <div className="relative">
                                                 <button onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', color: '#00f5ff', opacity: isProcessing ? 0.5 : 1 }}><span>{IMAGE_MODELS.find(m => m.value === selectedModel)?.label}</span><ChevronDown size={12} /></button>
                                                 {isModelDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(0,245,255,0.2)' }}>{IMAGE_MODELS.map((m) => <button key={m.value} onClick={() => { setSelectedModel(m.value); setIsModelDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedModel === m.value ? '#00f5ff' : '#d1d5db', backgroundColor: selectedModel === m.value ? 'rgba(0,245,255,0.1)' : 'transparent' }}>{m.label}</button>)}</div></>}
+                                            </div>
+                                            <div className="relative">
+                                                <button onClick={() => setIsRatioDropdownOpen(!isRatioDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(77,124,255,0.1)', border: '1px solid rgba(77,124,255,0.2)', color: '#4d7cff', opacity: isProcessing ? 0.5 : 1 }}><span>{selectedAspectRatio}</span><ChevronDown size={12} /></button>
+                                                {isRatioDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsRatioDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[100px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(77,124,255,0.2)' }}>{ASPECT_RATIOS.map((r) => <button key={r.value} onClick={() => { setSelectedAspectRatio(r.value); setIsRatioDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedAspectRatio === r.value ? '#4d7cff' : '#d1d5db', backgroundColor: selectedAspectRatio === r.value ? 'rgba(77,124,255,0.1)' : 'transparent' }}>{r.label}</button>)}</div></>}
                                             </div>
                                             <button onClick={handleGenerateDesign} disabled={isProcessing || !editDescription.trim()} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ background: isProcessing || !editDescription.trim() ? 'rgba(191,0,255,0.1)' : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))', border: '1px solid rgba(191,0,255,0.3)', color: '#bf00ff', opacity: isProcessing || !editDescription.trim() ? 0.5 : 1 }}><Sparkles size={12} />生成（<img src={CoinIcon} alt="" className="w-4 h-4 inline" />{selectedModel === 'nano-banana-2' ? 4 : 2}）</button>
                                         </div>
