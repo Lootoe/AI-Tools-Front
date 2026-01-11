@@ -44,7 +44,6 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>('16:9');
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
-    const [isGenerating, setIsGenerating] = useState(false);
 
     const script = scripts.find((s) => s.id === scriptId);
 
@@ -128,14 +127,14 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     };
 
     const handleGenerateImage = async (storyboardImageId: string) => {
-        if (!script || !selectedEpisode || isGenerating) return;
+        if (!script || !selectedEpisode) return;
+
         const storyboardImage = storyboardImages.find((sb) => sb.id === storyboardImageId);
         if (!storyboardImage || !storyboardImage.description) {
             showToast('请先填写分镜图脚本', 'warning');
             return;
         }
 
-        setIsGenerating(true);
         const tokenCost = getModelCost(selectedModel);
         updateBalance((prev) => prev - tokenCost);
 
@@ -173,8 +172,6 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
             if (latestVariant) {
                 await updateImageVariant(script.id, selectedEpisode.id, storyboardImageId, latestVariant.id, { status: 'failed', progress: undefined });
             }
-        } finally {
-            setIsGenerating(false);
         }
     };
 
@@ -301,7 +298,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                                 onAspectRatioChange={setLocalAspectRatio}
                                 selectedModel={selectedModel}
                                 onModelChange={setSelectedModel}
-                                isProcessing={isGenerating}
+                                isProcessing={selectedStoryboardImage?.imageVariants?.some(v => v.status === 'generating' || v.status === 'queued') ?? false}
                             />
                         </div>
                         <ImageVariantPool
