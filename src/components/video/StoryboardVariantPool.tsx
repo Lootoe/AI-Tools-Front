@@ -137,13 +137,13 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
         </div>
       </div>
 
-      {/* 副本列表 */}
+      {/* 素材列表 */}
       <div className="flex-1 overflow-y-auto p-2 space-y-2 cyber-scrollbar">
         {variants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Layers size={32} style={{ color: '#4b5563' }} className="mb-3" />
             <p className="text-xs" style={{ color: '#6b7280' }}>
-              暂无分镜副本
+              暂无分镜素材
             </p>
             <p className="text-[10px] mt-1" style={{ color: '#4b5563' }}>
               点击下方按钮生成
@@ -258,7 +258,7 @@ export const StoryboardVariantPool: React.FC<StoryboardVariantPoolProps> = ({
             >
               <img src={CoinIcon} alt="代币" className="w-4 h-4" />
               <span className="text-xs" style={{ color: '#a78bfa' }}>
-                编辑将消耗 3 代币，生成一个新副本
+                编辑将消耗 3 代币，生成一个新素材
               </span>
             </div>
 
@@ -345,7 +345,7 @@ const VariantCard: React.FC<VariantCardProps> = ({
           {variant.thumbnailUrl ? (
             <img
               src={variant.thumbnailUrl}
-              alt={`副本 ${index + 1}`}
+              alt={`素材 ${index + 1}`}
               className="w-full h-full object-cover"
             />
           ) : variant.videoUrl ? (
@@ -370,7 +370,7 @@ const VariantCard: React.FC<VariantCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-medium" style={{ color: '#d1d5db' }}>
-              副本 {index + 1}
+              素材 {index + 1}
             </span>
             {isActive && (
               <span

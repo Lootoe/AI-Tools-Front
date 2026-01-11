@@ -174,9 +174,9 @@ export const ImageStoryboardGrid: React.FC<ImageStoryboardGridProps> = ({
                         const isSelected = selectedId === storyboardImage.id;
                         const isHovered = hoveredId === storyboardImage.id;
 
-                        // 获取当前选中副本的信息
+                        // 获取当前选中素材的信息
                         const activeVariant = storyboardImage.imageVariants?.find(v => v.id === storyboardImage.activeImageVariantId);
-                        // 优先使用选中副本的数据，否则使用旧数据（兼容）
+                        // 优先使用选中素材的数据，否则使用旧数据（兼容）
                         const currentImageUrl = activeVariant?.imageUrl || storyboardImage.imageUrl;
                         const currentThumbnailUrl = activeVariant?.thumbnailUrl || storyboardImage.thumbnailUrl;
                         const currentStatus = activeVariant?.status || storyboardImage.status;

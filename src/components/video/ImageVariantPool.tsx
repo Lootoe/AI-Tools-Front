@@ -50,7 +50,7 @@ export const ImageVariantPool: React.FC<ImageVariantPoolProps> = ({
                     style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))', border: '1px solid rgba(0,245,255,0.2)' }}>
                     <Layers size={24} style={{ color: 'rgba(0,245,255,0.4)' }} />
                 </div>
-                <p className="text-xs text-center" style={{ color: '#6b7280' }}>选择分镜图查看参考图副本</p>
+                <p className="text-xs text-center" style={{ color: '#6b7280' }}>选择分镜图查看参考图素材</p>
             </div>
         );
     }
@@ -76,7 +76,7 @@ export const ImageVariantPool: React.FC<ImageVariantPoolProps> = ({
                 {variants.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                         <Layers size={32} style={{ color: '#4b5563' }} className="mb-3" />
-                        <p className="text-xs" style={{ color: '#6b7280' }}>暂无分镜图副本</p>
+                        <p className="text-xs" style={{ color: '#6b7280' }}>暂无分镜图素材</p>
                         <p className="text-[10px] mt-1" style={{ color: '#4b5563' }}>点击下方按钮生成</p>
                     </div>
                 ) : (
@@ -120,7 +120,7 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                 <div className="w-16 h-10 rounded flex-shrink-0 flex items-center justify-center overflow-hidden"
                     style={{ backgroundColor: '#0a0a0f', border: '1px solid #1e1e2e' }}>
                     {variant.imageUrl || variant.thumbnailUrl ? (
-                        <img src={variant.thumbnailUrl || variant.imageUrl} alt={`副本 ${index + 1}`} className="w-full h-full object-cover" />
+                        <img src={variant.thumbnailUrl || variant.imageUrl} alt={`素材 ${index + 1}`} className="w-full h-full object-cover" />
                     ) : isGenerating ? (
                         <Loader2 size={14} className="animate-spin" style={{ color: '#8b5cf6' }} />
                     ) : isFailed ? (
@@ -131,7 +131,7 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium" style={{ color: '#d1d5db' }}>副本 {index + 1}</span>
+                        <span className="text-xs font-medium" style={{ color: '#d1d5db' }}>素材 {index + 1}</span>
                         {isActive && <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(0,245,255,0.15)', color: '#00f5ff' }}>当前</span>}
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">

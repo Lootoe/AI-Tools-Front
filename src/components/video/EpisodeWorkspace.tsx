@@ -160,7 +160,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     updateBalance((prev) => prev - tokenCost);
 
     try {
-      // 创建新的分镜副本
+      // 创建新的分镜素材
       const variantId = await addVariant(script.id, selectedEpisode.id, storyboardId);
 
       // 乐观更新：立即在前端显示生成中状态
@@ -196,7 +196,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       updateBalance((prev) => prev + tokenCost);
       console.error('分镜视频生成失败:', error);
       showToast(error instanceof Error ? error.message : '视频生成失败，请重试', 'error');
-      // 如果失败，需要找到刚创建的副本并更新状态
+      // 如果失败，需要找到刚创建的素材并更新状态
       const updatedStoryboard = selectedEpisode.storyboards.find((sb) => sb.id === storyboardId);
       const latestVariant = (updatedStoryboard?.variants || []).slice(-1)[0];
       if (latestVariant) {
@@ -208,7 +208,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     }
   };
 
-  // 分镜副本操作
+  // 分镜素材操作
   const handleSelectVariant = async (variantId: string) => {
     if (!script || !selectedEpisode || !selectedStoryboardId) return;
     await setActiveVariant(script.id, selectedEpisode.id, selectedStoryboardId, variantId);
@@ -222,9 +222,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     if (!script || !selectedEpisode || !selectedStoryboardId || !deleteConfirmVariantId) return;
     try {
       await deleteVariant(script.id, selectedEpisode.id, selectedStoryboardId, deleteConfirmVariantId);
-      showToast('副本已删除', 'success');
+      showToast('素材已删除', 'success');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : '删除副本失败', 'error');
+      showToast(error instanceof Error ? error.message : '删除素材失败', 'error');
     }
     setDeleteConfirmVariantId(null);
   };
@@ -238,7 +238,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     updateBalance((prev) => prev - tokenCost);
 
     try {
-      // 创建新的分镜副本
+      // 创建新的分镜素材
       const newVariantId = await addVariant(script.id, selectedEpisode.id, selectedStoryboardId);
 
       // 乐观更新：立即在前端显示生成中状态
@@ -261,7 +261,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         }
         // 刷新 variant 获取最新状态
         await refreshVariant(script.id, selectedEpisode.id, selectedStoryboardId, newVariantId);
-        showToast('编辑已提交，正在生成新副本', 'success');
+        showToast('编辑已提交，正在生成新素材', 'success');
       } else {
         throw new Error('未获取到任务ID');
       }
@@ -270,7 +270,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       updateBalance((prev) => prev + tokenCost);
       console.error('视频编辑失败:', error);
       showToast(error instanceof Error ? error.message : '视频编辑失败，请重试', 'error');
-      // 如果失败，需要找到刚创建的副本并更新状态
+      // 如果失败，需要找到刚创建的素材并更新状态
       const updatedStoryboard = selectedEpisode.storyboards.find((sb) => sb.id === selectedStoryboardId);
       const latestVariant = (updatedStoryboard?.variants || []).slice(-1)[0];
       if (latestVariant) {
@@ -375,12 +375,12 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       ? selectedEpisode.storyboards.findIndex((sb) => sb.id === deleteConfirmStoryboardId)
       : -1;
 
-  // 获取当前选中副本的信息
+  // 获取当前选中素材的信息
   const activeVariant = selectedStoryboard?.variants?.find(
     (v) => v.id === selectedStoryboard.activeVariantId
   );
 
-  // 获取当前显示的视频URL（优先使用选中副本的，否则使用旧数据）
+  // 获取当前显示的视频URL（优先使用选中素材的，否则使用旧数据）
   const currentVideoUrl = activeVariant?.videoUrl || selectedStoryboard?.videoUrl;
   const currentThumbnailUrl = activeVariant?.thumbnailUrl || selectedStoryboard?.thumbnailUrl;
 
@@ -509,11 +509,11 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         onCancel={() => setDeleteConfirmStoryboardId(null)}
       />
 
-      {/* 删除副本确认弹框 */}
+      {/* 删除素材确认弹框 */}
       <ConfirmDialog
         isOpen={!!deleteConfirmVariantId}
-        title="确认删除副本"
-        message="确定要删除这个分镜副本吗？此操作不可撤销。"
+        title="确认删除素材"
+        message="确定要删除这个分镜素材吗？此操作不可撤销。"
         type="danger"
         confirmText="确认删除"
         onConfirm={confirmDeleteVariant}
