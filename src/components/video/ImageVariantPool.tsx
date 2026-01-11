@@ -144,7 +144,7 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {isActive && isCompleted && <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(0,245,255,0.15)' }}><Check size={12} style={{ color: '#00f5ff' }} /></div>}
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20" style={{ color: '#6b7280' }} disabled={isGenerating}><Trash2 size={12} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20" style={{ color: '#6b7280' }}><Trash2 size={12} /></button>
                 </div>
             </div>
             {isGenerating && <div className="h-0.5" style={{ backgroundColor: 'rgba(139,92,246,0.3)' }}><div className="h-full animate-pulse" style={{ width: '100%', background: 'linear-gradient(90deg, #6366f1, #8b5cf6)' }} /></div>}

@@ -324,7 +324,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                 </div>
             </div>
             <ConfirmDialog isOpen={!!deleteConfirmStoryboardImageId} title="确认删除" message={`确定要删除分镜图 #${deleteStoryboardImageIndex + 1} 吗？此操作不可撤销。`} type="danger" confirmText="确认删除" onConfirm={confirmDeleteStoryboardImage} onCancel={() => setDeleteConfirmStoryboardImageId(null)} />
-            <ConfirmDialog isOpen={!!deleteConfirmVariantId} title="确认删除素材" message="确定要删除这个参考图素材吗？此操作不可撤销。" type="danger" confirmText="确认删除" onConfirm={confirmDeleteVariant} onCancel={() => setDeleteConfirmVariantId(null)} />
+            <ConfirmDialog isOpen={!!deleteConfirmVariantId} title="确认删除" message="删除后无法恢复，确定要删除吗？" type="warning" confirmText="确认删除" onConfirm={confirmDeleteVariant} onCancel={() => setDeleteConfirmVariantId(null)} />
             <ConfirmDialog isOpen={showClearConfirm} title="确认清空" message="确定要清空当前剧集的所有分镜图吗？此操作不可撤销。" type="danger" confirmText="确认清空" onConfirm={handleClearStoryboardImages} onCancel={() => setShowClearConfirm(false)} />
             <ToastContainer />
         </>

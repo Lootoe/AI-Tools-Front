@@ -503,9 +503,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
       {/* 删除素材确认弹框 */}
       <ConfirmDialog
         isOpen={!!deleteConfirmVariantId}
-        title="确认删除素材"
-        message="确定要删除这个分镜素材吗？此操作不可撤销。"
-        type="danger"
+        title="确认删除"
+        message="删除后无法恢复，确定要删除吗？"
+        type="warning"
         confirmText="确认删除"
         onConfirm={confirmDeleteVariant}
         onCancel={() => setDeleteConfirmVariantId(null)}

@@ -448,7 +448,6 @@ const VariantCard: React.FC<VariantCardProps> = ({
             }}
             className="w-5 h-5 rounded flex items-center justify-center transition-colors hover:bg-red-500/20"
             style={{ color: '#6b7280' }}
-            disabled={isGenerating}
           >
             <Trash2 size={12} />
           </button>
