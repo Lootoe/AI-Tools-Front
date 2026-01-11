@@ -1,4 +1,4 @@
-import { Asset, PromptTemplateType } from '@/types/asset';
+import { Asset } from '@/types/asset';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -101,7 +101,7 @@ export async function generateAssetDesign(
     assetId: string,
     scriptId: string,
     description: string,
-    promptTemplate: PromptTemplateType,
+    promptTemplateId: string,
     model?: string,
     referenceImageUrls?: string[],
     aspectRatio?: '1:1' | '4:3' | '16:9'
@@ -114,7 +114,7 @@ export async function generateAssetDesign(
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ assetId, scriptId, description, promptTemplate, model, referenceImageUrls, aspectRatio }),
+        body: JSON.stringify({ assetId, scriptId, description, promptTemplateId, model, referenceImageUrls, aspectRatio }),
     });
 
     if (!response.ok) {

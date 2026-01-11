@@ -287,6 +287,13 @@ interface Asset {
 
 // 资产 Tab 类型
 type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset';
+
+// 提示词模板配置（从后端 API 获取）
+interface PromptTemplateConfig {
+  id: string;
+  label: string;
+  description: string;
+}
 ```
 
 ---
@@ -436,6 +443,9 @@ uploadImage(file: File)
 
 // 余额记录
 getBalanceRecords(page: number, pageSize: number)
+
+// 配置
+getPromptTemplates(category: 'video' | 'storyboardImage' | 'asset'): Promise<{ success: boolean; data: PromptTemplateConfig[] }>
 ```
 
 ### 7.4 assetApi.ts
@@ -624,3 +634,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.0 | 2026-01-11 | 初始版本，包含完整产品需求描述 |
 | 1.0.1 | 2026-01-11 | 新增 ReferenceImageGrid、ReferenceImageUploader 公共组件，统一参考图上传与预览 |
 | 1.0.2 | 2026-01-11 | 新增关联设计稿功能：分镜配置的参考图 Tab 中可关联同剧集同分镜序号的分镜图版本 |
+| 1.0.3 | 2026-01-11 | 提示词模板改为从后端 API 动态获取，按 video/storyboardImage/asset 分类，通过 ID 查询 |

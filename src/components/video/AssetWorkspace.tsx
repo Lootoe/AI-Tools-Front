@@ -10,8 +10,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAssetStore } from '@/stores/assetStore';
 import { useAuthStore } from '@/stores/authStore';
 import { generateAssetDesign, editImage } from '@/services/assetApi';
-import { uploadImage } from '@/services/api';
-import { Asset, PromptTemplateType, PROMPT_TEMPLATES } from '@/types/asset';
+import { uploadImage, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
+import { Asset } from '@/types/asset';
 import CoinIcon from '@/img/coin.png';
 
 interface AssetWorkspaceProps { scriptId: string; }
@@ -60,7 +60,8 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const [editDescription, setEditDescription] = useState('');
     const [editName, setEditName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedPromptTemplate, setSelectedPromptTemplate] = useState<PromptTemplateType>('none');
+    const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<string>('asset-none');
+    const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
     const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -79,6 +80,13 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     useEffect(() => { if (scriptId) loadAssets(scriptId); }, [scriptId, loadAssets]);
     useEffect(() => { const s = assets.find((a) => a.id === selectedAssetId); if (s) { setEditDescription(s.description || ''); setEditName(s.name || ''); } else { setEditDescription(''); setEditName(''); } }, [selectedAssetId, assets]);
 
+    // 加载提示词模板列表
+    useEffect(() => {
+        getPromptTemplates('asset')
+            .then((res) => { if (res.success) setPromptTemplates(res.data); })
+            .catch(() => { /* 静默失败 */ });
+    }, []);
+
     const selectedAsset = assets.find((a) => a.id === selectedAssetId);
     const isProcessing = selectedAsset?.status === 'generating' || isUploading;
     const hasDesignImage = !!selectedAsset?.designImageUrl;
@@ -91,7 +99,7 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
         updateBalance((prev) => prev - tokenCost);
         await updateAsset(scriptId, selectedAsset.id, { status: 'generating' });
         try {
-            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplate, selectedModel, selectedAsset.referenceImageUrls || [], selectedAspectRatio);
+            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplateId, selectedModel, selectedAsset.referenceImageUrls || [], selectedAspectRatio);
             await loadAssets(scriptId);
             if (response.balance !== undefined) updateBalance(response.balance);
             showToast(response.success ? '设计稿生成成功' : '生成失败，代币已返还', response.success ? 'success' : 'error');
@@ -318,8 +326,8 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                         <div className="flex items-center gap-2"><ImageIcon size={14} style={{ color: '#00f5ff' }} /><span className="text-sm font-medium text-white">资产设计稿</span></div>
                                         <div className="flex items-center gap-2">
                                             <div className="relative">
-                                                <button onClick={() => setIsTemplateDropdownOpen(!isTemplateDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(191,0,255,0.1)', border: '1px solid rgba(191,0,255,0.2)', color: '#bf00ff', opacity: isProcessing ? 0.5 : 1 }}><span>{PROMPT_TEMPLATES.find(t => t.type === selectedPromptTemplate)?.label}</span><ChevronDown size={12} /></button>
-                                                {isTemplateDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsTemplateDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[160px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.2)' }}>{PROMPT_TEMPLATES.map((t) => <button key={t.type} onClick={() => { setSelectedPromptTemplate(t.type); setIsTemplateDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left" style={{ color: selectedPromptTemplate === t.type ? '#bf00ff' : '#d1d5db', backgroundColor: selectedPromptTemplate === t.type ? 'rgba(191,0,255,0.1)' : 'transparent' }}>{t.label}</button>)}</div></>}
+                                                <button onClick={() => setIsTemplateDropdownOpen(!isTemplateDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(191,0,255,0.1)', border: '1px solid rgba(191,0,255,0.2)', color: '#bf00ff', opacity: isProcessing ? 0.5 : 1 }}><span>{promptTemplates.find(t => t.id === selectedPromptTemplateId)?.label || '无模板'}</span><ChevronDown size={12} /></button>
+                                                {isTemplateDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsTemplateDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[160px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.2)' }}>{promptTemplates.map((t) => <button key={t.id} onClick={() => { setSelectedPromptTemplateId(t.id); setIsTemplateDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left" style={{ color: selectedPromptTemplateId === t.id ? '#bf00ff' : '#d1d5db', backgroundColor: selectedPromptTemplateId === t.id ? 'rgba(191,0,255,0.1)' : 'transparent' }}>{t.label}</button>)}</div></>}
                                             </div>
                                             <div className="relative">
                                                 <button onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', color: '#00f5ff', opacity: isProcessing ? 0.5 : 1 }}><span>{IMAGE_MODELS.find(m => m.value === selectedModel)?.label}</span><ChevronDown size={12} /></button>

@@ -321,3 +321,30 @@ export async function captureVideoFrame(videoUrl: string, timestamp: number, fil
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+
+// ============ 配置相关 ============
+
+// 提示词模板配置
+export interface PromptTemplateConfig {
+  id: string;
+  label: string;
+  description: string;
+}
+
+// 提示词分类
+export type PromptCategory = 'video' | 'storyboardImage' | 'asset';
+
+// 获取提示词模板列表
+export async function getPromptTemplates(category: PromptCategory): Promise<{ success: boolean; data: PromptTemplateConfig[] }> {
+  const response = await fetch(`${BACKEND_URL}/api/config/prompt-templates?category=${category}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`获取提示词模板失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
