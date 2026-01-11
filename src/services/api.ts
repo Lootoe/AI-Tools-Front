@@ -126,14 +126,17 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
 export interface ImageUploadResponse {
   success: boolean;
   url: string;
+  key?: string;
+  hash?: string;
 }
 
-// 上传图片到图床（使用 File 对象）
-export async function uploadImage(file: File): Promise<ImageUploadResponse> {
+// 上传图片到七牛云（通过后端中转）
+export async function uploadImage(file: File, prefix: string = 'uploads'): Promise<ImageUploadResponse> {
   const token = getAuthToken();
 
   const formData = new FormData();
   formData.append('image', file);
+  formData.append('prefix', prefix);
 
   const response = await fetch(`${BACKEND_URL}/api/upload/image`, {
     method: 'POST',
@@ -146,6 +149,27 @@ export async function uploadImage(file: File): Promise<ImageUploadResponse> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`图片上传失败: ${error.error || error.message || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// 将远程 URL 图片保存到七牛云
+export async function fetchImageToStorage(url: string, prefix: string = 'ai-generated'): Promise<ImageUploadResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/upload/fetch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ url, prefix }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`保存图片失败: ${error.error || error.message || response.statusText}`);
   }
 
   return response.json();
