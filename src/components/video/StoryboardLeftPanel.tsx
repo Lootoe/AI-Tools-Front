@@ -1,16 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { FileText, Settings, Save, Image, Upload, X, Loader2 } from 'lucide-react';
+import { FileText, Save, Image, Upload, X, Loader2 } from 'lucide-react';
 import { Storyboard } from '@/types/video';
-import { StoryboardApiPanel } from './StoryboardApiPanel';
 import { uploadImage } from '@/services/api';
 
 interface StoryboardLeftPanelProps {
   storyboard: Storyboard | null;
   storyboardIndex: number;
-  localAspectRatio: '9:16' | '16:9';
-  localDuration: '10' | '15';
-  onAspectRatioChange: (ratio: '9:16' | '16:9') => void;
-  onDurationChange: (duration: '10' | '15') => void;
   localDescription: string;
   onLocalDescriptionChange: (value: string) => void;
   onSave?: () => void;
@@ -20,15 +15,11 @@ interface StoryboardLeftPanelProps {
   onReferenceImageUrlChange: (url: string) => void;
 }
 
-type TabType = 'script' | 'referenceImage' | 'api';
+type TabType = 'script' | 'referenceImage';
 
 export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   storyboard,
   storyboardIndex,
-  localAspectRatio,
-  localDuration,
-  onAspectRatioChange,
-  onDurationChange,
   localDescription,
   onLocalDescriptionChange,
   onSave,
@@ -69,7 +60,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
     { key: 'script', label: '脚本', icon: <FileText size={12} /> },
     { key: 'referenceImage', label: '参考图', icon: <Image size={12} /> },
-    { key: 'api', label: 'API设置', icon: <Settings size={12} /> },
   ];
 
   // 参考图上传处理
@@ -177,15 +167,6 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
               }}
             />
           </div>
-        )}
-        {activeTab === 'api' && (
-          <StoryboardApiPanel
-            storyboard={storyboard}
-            localAspectRatio={localAspectRatio}
-            localDuration={localDuration}
-            onAspectRatioChange={onAspectRatioChange}
-            onDurationChange={onDurationChange}
-          />
         )}
         {activeTab === 'referenceImage' && (
           <div className="h-full flex flex-col p-3">

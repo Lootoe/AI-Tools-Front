@@ -42,7 +42,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [localDescription, setLocalDescription] = useState('');
-  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('9:16');
+  // API设置（不保存到分镜配置，仅作为生成时的临时参数）
+  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('16:9');
   const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
   // 参考图状态
   const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
@@ -73,19 +74,15 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     (sb) => sb.id === selectedStoryboardId
   );
 
-  // 当选中的分镜变化时，同步本地状态
+  // 当选中的分镜变化时，同步本地状态（不包括API设置）
   useEffect(() => {
     setLocalDescription(selectedStoryboard?.description || '');
-    setLocalAspectRatio(selectedStoryboard?.aspectRatio || '9:16');
-    setLocalDuration(selectedStoryboard?.duration || '15');
     setLocalReferenceImageUrl(selectedStoryboard?.referenceImageUrl || '');
-  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.aspectRatio, selectedStoryboard?.duration, selectedStoryboard?.referenceImageUrl]);
+  }, [selectedStoryboard?.id, selectedStoryboard?.description, selectedStoryboard?.referenceImageUrl]);
 
-  // 计算是否有未保存的更改
+  // 计算是否有未保存的更改（不包括API设置）
   const hasUnsavedChanges =
     localDescription !== (selectedStoryboard?.description || '') ||
-    localAspectRatio !== (selectedStoryboard?.aspectRatio || '9:16') ||
-    localDuration !== (selectedStoryboard?.duration || '15') ||
     localReferenceImageUrl !== (selectedStoryboard?.referenceImageUrl || '');
 
   // 定时刷新正在生成的 variant（后端独立轮询更新数据库，前端只需定时拉取最新数据）
@@ -171,11 +168,11 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
       const finalPrompt = storyboard.description;
 
-      // 调用后端 API 生成视频
+      // 调用后端 API 生成视频（使用本地的API设置）
       const response = await generateStoryboardVideo({
         prompt: finalPrompt,
-        aspect_ratio: storyboard.aspectRatio || '9:16',
-        duration: storyboard.duration || '15',
+        aspect_ratio: localAspectRatio,
+        duration: localDuration,
         referenceImageUrls: storyboard.referenceImageUrls,
         referenceImageUrl: localReferenceImageUrl || undefined,
         variantId,
@@ -282,22 +279,16 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     }
   };
 
-  // 保存所有配置
+  // 保存所有配置（不包括API设置）
   const handleSaveConfig = async () => {
     if (!script || !selectedEpisode || !selectedStoryboardId || !selectedStoryboard) return;
 
     try {
-      // 构建更新数据
+      // 构建更新数据（不包括aspectRatio和duration）
       const updates: Partial<Storyboard> = {};
 
       if (localDescription !== selectedStoryboard.description) {
         updates.description = localDescription;
-      }
-      if (localAspectRatio !== (selectedStoryboard.aspectRatio || '9:16')) {
-        updates.aspectRatio = localAspectRatio;
-      }
-      if (localDuration !== (selectedStoryboard.duration || '15')) {
-        updates.duration = localDuration;
       }
       if (localReferenceImageUrl !== (selectedStoryboard.referenceImageUrl || '')) {
         updates.referenceImageUrl = localReferenceImageUrl || undefined;
@@ -439,14 +430,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         <div className="flex-1 flex flex-col gap-3 overflow-hidden">
           {/* 上方：左侧配置面板 + 视频播放器 + 分镜池 */}
           <div className="flex-[3] flex gap-3 min-h-0 overflow-hidden">
-            {/* 左侧配置面板（脚本 + API设置） */}
+            {/* 左侧配置面板（脚本 + 参考图） */}
             <StoryboardLeftPanel
               storyboard={selectedStoryboard || null}
               storyboardIndex={currentStoryboardIndex}
-              localAspectRatio={localAspectRatio}
-              localDuration={localDuration}
-              onAspectRatioChange={handleAspectRatioChange}
-              onDurationChange={handleDurationChange}
               localDescription={localDescription}
               onLocalDescriptionChange={setLocalDescription}
               onSave={handleSaveConfig}
@@ -468,6 +455,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
                 scriptName={script?.title}
                 episodeNumber={selectedEpisode?.episodeNumber}
                 storyboardNumber={currentStoryboardIndex + 1}
+                aspectRatio={localAspectRatio}
+                onAspectRatioChange={handleAspectRatioChange}
+                duration={localDuration}
+                onDurationChange={handleDurationChange}
               />
             </div>
 

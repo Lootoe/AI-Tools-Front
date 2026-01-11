@@ -15,6 +15,7 @@ import {
   Save,
   Repeat,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { captureVideoFrame } from '@/services/api';
 
@@ -33,6 +34,12 @@ interface CyberVideoPlayerProps {
   // 保存功能
   onSave?: () => void;
   hasUnsavedChanges?: boolean;
+  // API设置
+  aspectRatio?: '9:16' | '16:9';
+  onAspectRatioChange?: (ratio: '9:16' | '16:9') => void;
+  duration?: '10' | '15';
+  onDurationChange?: (duration: '10' | '15') => void;
+  isProcessing?: boolean;
 }
 
 export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
@@ -48,12 +55,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   storyboardNumber,
   onSave,
   hasUnsavedChanges = false,
+  aspectRatio = '9:16',
+  onAspectRatioChange,
+  duration = '15',
+  onDurationChange,
+  isProcessing = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -63,12 +75,14 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekingProgress, setSeekingProgress] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
+  const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false);
 
   // 当 videoUrl 变化时，重置播放状态
   useEffect(() => {
     setIsPlaying(false);
     setCurrentTime(0);
-    setDuration(0);
+    setVideoDuration(0);
     // 如果开启自动连播，自动播放新视频
     if (autoPlay && videoUrl) {
       const video = videoRef.current;
@@ -94,7 +108,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
         setCurrentTime(video.currentTime);
       }
     };
-    const handleLoadedMetadata = () => setDuration(video.duration);
+    const handleLoadedMetadata = () => setVideoDuration(video.duration);
     const handleEnded = () => {
       setIsPlaying(false);
       // 自动连播：如果开启且有下一个分镜，自动切换
@@ -150,7 +164,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const handleProgressMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
     const progress = progressRef.current;
-    if (!video || !progress || !videoUrl || duration <= 0) return;
+    if (!video || !progress || !videoUrl || videoDuration <= 0) return;
 
     setIsSeeking(true);
 
@@ -159,13 +173,13 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       // 立即更新UI显示的进度
       setSeekingProgress(pos * 100);
-      setCurrentTime(pos * duration);
+      setCurrentTime(pos * videoDuration);
     };
 
     const applySeek = (clientX: number) => {
       const rect = progress.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      video.currentTime = pos * duration;
+      video.currentTime = pos * videoDuration;
     };
 
     updateProgress(e.clientX);
@@ -189,12 +203,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
     const progress = progressRef.current;
-    if (!video || !progress || !videoUrl || duration <= 0) return;
+    if (!video || !progress || !videoUrl || videoDuration <= 0) return;
 
     const rect = progress.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    setCurrentTime(pos * duration);
-    video.currentTime = pos * duration;
+    setCurrentTime(pos * videoDuration);
+    video.currentTime = pos * videoDuration;
   };
 
   const toggleMute = () => {
@@ -279,7 +293,17 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     return `${type}-${Date.now()}.${extension}`;
   };
 
-  const progress = duration > 0 ? (isSeeking ? seekingProgress : (currentTime / duration) * 100) : 0;
+  const progress = videoDuration > 0 ? (isSeeking ? seekingProgress : (currentTime / videoDuration) * 100) : 0;
+
+  const ratioOptions = [
+    { value: '9:16', label: '竖屏 9:16' },
+    { value: '16:9', label: '横屏 16:9' },
+  ] as const;
+
+  const durationOptions = [
+    { value: '10', label: '10秒' },
+    { value: '15', label: '15秒' },
+  ] as const;
 
   return (
     <div
@@ -305,33 +329,133 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
           <span className="text-xs font-medium" style={{ color: '#00f5ff' }}>
             {title}
           </span>
-          {onSave && (
-            <div className="flex items-center gap-2">
-              {hasUnsavedChanges && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: 'rgba(255,193,7,0.15)', color: '#ffc107' }}
+          <div className="flex items-center gap-2">
+            {/* 画面比例选择 */}
+            {onAspectRatioChange && (
+              <div className="relative">
+                <button
+                  onClick={() => !isProcessing && setIsRatioDropdownOpen(!isRatioDropdownOpen)}
+                  disabled={isProcessing}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: 'rgba(77,124,255,0.1)',
+                    border: '1px solid rgba(77,124,255,0.2)',
+                    color: '#4d7cff',
+                    opacity: isProcessing ? 0.5 : 1,
+                  }}
                 >
-                  未保存
-                </span>
-              )}
-              <button
-                onClick={onSave}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: hasUnsavedChanges ? 'rgba(0,245,255,0.15)' : 'transparent',
-                  border: hasUnsavedChanges
-                    ? '1px solid rgba(0,245,255,0.5)'
-                    : '1px solid rgba(107,114,128,0.3)',
-                  color: hasUnsavedChanges ? '#00f5ff' : '#6b7280',
-                  boxShadow: hasUnsavedChanges ? '0 0 10px rgba(0,245,255,0.2)' : 'none',
-                }}
-              >
-                <Save size={12} />
-                保存
-              </button>
-            </div>
-          )}
+                  <span>{aspectRatio}</span>
+                  <ChevronDown size={12} />
+                </button>
+                {isRatioDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsRatioDropdownOpen(false)} />
+                    <div
+                      className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[100px]"
+                      style={{
+                        backgroundColor: 'rgba(18,18,26,0.98)',
+                        border: '1px solid rgba(77,124,255,0.2)',
+                      }}
+                    >
+                      {ratioOptions.map((r) => (
+                        <button
+                          key={r.value}
+                          onClick={() => {
+                            onAspectRatioChange(r.value);
+                            setIsRatioDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap"
+                          style={{
+                            color: aspectRatio === r.value ? '#4d7cff' : '#d1d5db',
+                            backgroundColor: aspectRatio === r.value ? 'rgba(77,124,255,0.1)' : 'transparent',
+                          }}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 视频时长选择 */}
+            {onDurationChange && (
+              <div className="relative">
+                <button
+                  onClick={() => !isProcessing && setIsDurationDropdownOpen(!isDurationDropdownOpen)}
+                  disabled={isProcessing}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: 'rgba(255,0,255,0.1)',
+                    border: '1px solid rgba(255,0,255,0.2)',
+                    color: '#ff00ff',
+                    opacity: isProcessing ? 0.5 : 1,
+                  }}
+                >
+                  <span>{duration}秒</span>
+                  <ChevronDown size={12} />
+                </button>
+                {isDurationDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsDurationDropdownOpen(false)} />
+                    <div
+                      className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[80px]"
+                      style={{
+                        backgroundColor: 'rgba(18,18,26,0.98)',
+                        border: '1px solid rgba(255,0,255,0.2)',
+                      }}
+                    >
+                      {durationOptions.map((d) => (
+                        <button
+                          key={d.value}
+                          onClick={() => {
+                            onDurationChange(d.value);
+                            setIsDurationDropdownOpen(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap"
+                          style={{
+                            color: duration === d.value ? '#ff00ff' : '#d1d5db',
+                            backgroundColor: duration === d.value ? 'rgba(255,0,255,0.1)' : 'transparent',
+                          }}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {onSave && (
+              <>
+                {hasUnsavedChanges && (
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: 'rgba(255,193,7,0.15)', color: '#ffc107' }}
+                  >
+                    未保存
+                  </span>
+                )}
+                <button
+                  onClick={onSave}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: hasUnsavedChanges ? 'rgba(0,245,255,0.15)' : 'transparent',
+                    border: hasUnsavedChanges
+                      ? '1px solid rgba(0,245,255,0.5)'
+                      : '1px solid rgba(107,114,128,0.3)',
+                    color: hasUnsavedChanges ? '#00f5ff' : '#6b7280',
+                    boxShadow: hasUnsavedChanges ? '0 0 10px rgba(0,245,255,0.2)' : 'none',
+                  }}
+                >
+                  <Save size={12} />
+                  保存
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -534,7 +658,7 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             <SkipForward size={14} />
           </button>
           <span className="text-xs ml-2" style={{ color: '#6b7280' }}>
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {formatTime(currentTime)} / {formatTime(videoDuration)}
           </span>
 
           {/* 自动连播开关 */}

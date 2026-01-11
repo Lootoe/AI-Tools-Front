@@ -20,8 +20,6 @@ export interface Storyboard {
   description: string;
   referenceImageUrls?: string[]; // 参考图URL数组（支持多张）
   referenceImageUrl?: string;    // 参考图URL（单张）
-  aspectRatio?: '16:9' | '9:16'; // 视频比例
-  duration?: '10' | '15';  // 视频时长（秒）
   createdAt: string;
   // 分镜池相关
   variants: StoryboardVariant[];  // 分镜副本列表
