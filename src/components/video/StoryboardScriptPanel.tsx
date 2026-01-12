@@ -18,7 +18,6 @@ export const StoryboardScriptPanel: React.FC<StoryboardScriptPanelProps> = ({
   onLocalDescriptionChange,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const _hasChanges = localDescription !== (storyboard?.description || '');
 
   if (!storyboard) {
     return (

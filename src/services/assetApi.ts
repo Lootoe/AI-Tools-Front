@@ -184,7 +184,7 @@ export async function generateStoryboardImage(
     promptTemplateId: string,
     model: string,
     referenceImageUrls?: string[],
-    aspectRatio?: '9:16' | '16:9' | '1:1'
+    aspectRatio?: '16:9' | '1:1' | '4:3'
 ): Promise<StoryboardImageResponse> {
     const token = getAuthToken();
 

@@ -74,7 +74,7 @@ export function uploadToQiniu(
 
             const putExtra = {
                 fname: file.name,
-                mimeType: [file.type],
+                mimeType: file.type,
             };
 
             // 3. 创建上传任务
