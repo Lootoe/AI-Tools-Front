@@ -1,0 +1,9 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL}
+    ports:
+      - "80:80"
+    restart: unless-stopped
