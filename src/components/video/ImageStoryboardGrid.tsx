@@ -180,7 +180,7 @@ export const ImageStoryboardGrid: React.FC<ImageStoryboardGridProps> = ({
                         const currentImageUrl = activeVariant?.imageUrl || storyboardImage.imageUrl;
                         const currentThumbnailUrl = activeVariant?.thumbnailUrl || storyboardImage.thumbnailUrl;
                         const currentStatus = activeVariant?.status || storyboardImage.status;
-                        const currentProgress = activeVariant?.progress || storyboardImage.progress;
+                        const _currentProgress = activeVariant?.progress || storyboardImage.progress;
 
                         const isGenerating = currentStatus === 'generating' || currentStatus === 'queued';
                         const isDragging = draggedIndex === index;

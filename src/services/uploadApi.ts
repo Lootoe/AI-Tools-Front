@@ -67,14 +67,14 @@ export function uploadToQiniu(
             }
 
             // 2. 配置上传参数
-            const config: qiniu.Config = {
+            const config = {
                 useCdnDomain: true,
                 region: null, // 自动检测区域
             };
 
-            const putExtra: Partial<qiniu.Extra> = {
+            const putExtra = {
                 fname: file.name,
-                mimeType: [file.type] as unknown as string[],
+                mimeType: [file.type],
             };
 
             // 3. 创建上传任务

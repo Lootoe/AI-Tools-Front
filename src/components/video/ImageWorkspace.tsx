@@ -39,9 +39,9 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [deleteConfirmStoryboardImageId, setDeleteConfirmStoryboardImageId] = useState<string | null>(null);
     const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
-    const [isDownloading, setIsDownloading] = useState(false);
+    const [isDownloading, _setIsDownloading] = useState(false);
     const [localDescription, setLocalDescription] = useState('');
-    const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>('16:9');
+    const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '9:16'>('16:9');
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
     const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
     const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('image-9grid');

@@ -36,7 +36,7 @@ async function downloadSingleVideo(
     }
 
     // 合并所有块
-    const blob = new Blob(chunks);
+    const blob = new Blob(chunks as BlobPart[]);
     
     // 创建下载链接
     const blobUrl = URL.createObjectURL(blob);

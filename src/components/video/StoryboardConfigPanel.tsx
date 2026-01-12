@@ -84,8 +84,8 @@ export const StoryboardConfigPanel: React.FC<StoryboardConfigPanelProps> = ({
     );
   }
 
-  const aspectRatio = storyboard.aspectRatio || '9:16';
-  const duration = storyboard.duration || '15';
+  const aspectRatio = '9:16';
+  const duration = '15';
 
   return (
     <div
