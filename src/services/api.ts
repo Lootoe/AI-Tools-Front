@@ -359,7 +359,7 @@ export interface PromptTemplateConfig {
 }
 
 // 提示词分类
-export type PromptCategory = 'video' | 'storyboardImage' | 'asset';
+export type PromptCategory = 'video' | 'storyboardImage' | 'asset' | 'character';
 
 // 获取提示词模板列表
 export async function getPromptTemplates(category: PromptCategory): Promise<{ success: boolean; data: PromptTemplateConfig[] }> {

@@ -61,7 +61,23 @@ export interface Script {
 export type VideoPhase = 'storyboard' | 'video';
 
 // 资产 Tab 类型
-export type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset';
+export type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
+
+// Sora2角色
+export interface Character {
+  id: string;
+  scriptId: string;
+  name: string;
+  description: string;
+  referenceImageUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  taskId?: string;
+  progress?: string;
+  status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
 
 // 分镜图副本（分镜图池中的单个图片）
 export interface ImageVariant {

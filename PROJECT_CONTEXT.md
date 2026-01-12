@@ -53,7 +53,17 @@
 - **设计稿生成**：支持提示词模板（角色/场景/物品）
 - **设计稿编辑**：基于已生成图片进行 AI 编辑
 
-#### 1.3.6 代币系统
+#### 1.3.6 角色工作区（CharacterWorkspace）
+- **角色池**：左侧网格展示所有角色
+- **角色编辑器**：中间编辑角色姓名、设定、参考图
+- **参考图**：支持上传1张参考图或关联资产图片
+- **视频预览区**：右侧预览生成的角色视频
+- **视频生成**：支持比例、时长、提示词模板选择
+- **轮询状态**：实时显示视频生成进度
+
+> 更新于 2026-01-12：新增角色工作区
+
+#### 1.3.7 代币系统
 - **代币消耗**：
   - 视频生成：3 代币/次
   - 图片生成（Nano Banana 2）：4 代币/次
@@ -77,10 +87,16 @@
     │   └── 分镜列表（底）
     ├── 分镜图工作区（Tab: storyboardImage）
     │   └── 结构同上，图片替代视频
-    └── 资产工作区（Tab: asset）
-        ├── 资产池（左）
-        └── 资产编辑器（右）
+    ├── 资产工作区（Tab: asset）
+    │   ├── 资产池（左）
+    │   └── 资产编辑器（右）
+    └── 角色工作区（Tab: character）
+        ├── 角色池（左）
+        ├── 角色编辑器（中）
+        └── 视频预览区（右）
 ```
+
+> 更新于 2026-01-12：新增角色工作区 Tab
 
 ### 1.5 交互规范
 
@@ -167,6 +183,7 @@ AI-Tools-Front/
 │   │   │   ├── EpisodeWorkspace.tsx
 │   │   │   ├── ImageWorkspace.tsx
 │   │   │   ├── AssetWorkspace.tsx
+│   │   │   ├── CharacterWorkspace.tsx
 │   │   │   ├── CyberAssetSidebar.tsx
 │   │   │   ├── StoryboardCard.tsx
 │   │   │   ├── VariantPool.tsx
@@ -176,12 +193,14 @@ AI-Tools-Front/
 │   │   ├── authStore.ts      # 用户认证状态
 │   │   ├── videoStore.ts     # 剧本/分镜状态
 │   │   ├── editingStore.ts   # 编辑状态
-│   │   └── assetStore.ts     # 资产状态
+│   │   ├── assetStore.ts     # 资产状态
+│   │   └── characterStore.ts # 角色状态
 │   ├── services/             # API 服务
 │   │   ├── api.ts            # 视频/图片生成 API
 │   │   ├── authApi.ts        # 认证 API
 │   │   ├── scriptApi.ts      # 剧本/分镜 CRUD API
-│   │   └── assetApi.ts       # 资产 API
+│   │   ├── assetApi.ts       # 资产 API
+│   │   └── characterApi.ts   # 角色 API
 │   ├── types/                # TypeScript 类型定义
 │   │   └── video.ts          # 视频相关类型
 │   ├── hooks/                # 自定义 Hooks
@@ -285,8 +304,26 @@ interface Asset {
   createdAt: string;
 }
 
+// Sora2角色
+interface Character {
+  id: string;
+  scriptId: string;
+  name: string;
+  description: string;
+  referenceImageUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  taskId?: string;
+  progress?: string;
+  status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 资产 Tab 类型
-type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset';
+type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
+
+> 更新于 2026-01-12：新增 Character 类型和 character Tab
 
 // 提示词模板配置（从后端 API 获取）
 interface PromptTemplateConfig {
@@ -373,6 +410,21 @@ interface AssetState {
   deleteAsset: (scriptId: string, assetId: string) => Promise<void>;
 }
 ```
+
+### 5.4 characterStore（角色管理）
+```typescript
+interface CharacterState {
+  characters: Character[];
+  isLoading: boolean;
+  loadCharacters: (scriptId: string) => Promise<void>;
+  addCharacter: (scriptId: string, name: string, description?: string) => Promise<string>;
+  updateCharacter: (scriptId: string, characterId: string, data: Partial<Character>) => Promise<void>;
+  deleteCharacter: (scriptId: string, characterId: string) => Promise<void>;
+  refreshCharacter: (scriptId: string, characterId: string) => Promise<void>;
+}
+```
+
+> 更新于 2026-01-12：新增 characterStore
 
 ---
 
@@ -529,8 +581,19 @@ deleteAsset(scriptId: string, assetId: string)
 - 视频/图片预览
 
 **CyberAssetSidebar**
-- 资产 Tab 切换
+- 资产 Tab 切换（分镜视频/分镜图/资产/角色）
 - 赛博朋克风格设计
+
+> 更新于 2026-01-12：新增角色 Tab
+
+**CharacterWorkspace**
+- 角色池：左侧网格展示所有角色
+- 角色编辑器：中间编辑角色姓名、设定、参考图
+- 视频预览区：右侧预览生成的角色视频
+- 支持上传参考图或关联资产图片
+- 视频生成设置：比例、时长、提示词模板
+
+> 更新于 2026-01-12：新增角色工作区组件
 
 ---
 
@@ -560,7 +623,20 @@ deleteAsset(scriptId: string, assetId: string)
 
 > 更新于 2026-01-12：分镜图生成流程新增提示词模板选择步骤
 
-### 9.3 状态同步策略
+### 9.3 角色视频生成流程
+```
+1. 用户在 CharacterWorkspace 选择角色，填写角色设定
+2. 选择提示词模板、比例、时长
+3. 点击"生成视频"，前端乐观扣除代币
+4. 调用 characterApi.generateCharacterVideo() 发起生成请求
+5. 后端返回 taskId，更新角色状态为 'generating'
+6. 前端轮询 characterStore.refreshCharacter() 查询状态
+7. 完成后显示角色视频预览
+```
+
+> 更新于 2026-01-12：新增角色视频生成流程
+
+### 9.4 状态同步策略
 - 乐观更新：先更新本地状态，再发送 API 请求
 - 失败回滚：API 失败时恢复原状态
 - 定期刷新：关键数据定期从服务器同步
@@ -654,3 +730,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.2 | 2026-01-11 | 新增关联设计稿功能：分镜配置的参考图 Tab 中可关联同剧集同分镜序号的分镜图版本 |
 | 1.0.3 | 2026-01-11 | 提示词模板改为从后端 API 动态获取，按 video/storyboardImage/asset 分类，通过 ID 查询 |
 | 1.0.4 | 2026-01-12 | 分镜视频和分镜图工作区新增提示词模板选择功能，位于 CyberVideoPlayer/CyberImageViewer 顶部工具栏 |
+| 1.0.5 | 2026-01-12 | 新增 Sora2 角色视频生成功能：CharacterWorkspace 组件、characterStore、characterApi、角色 Tab |

@@ -6,6 +6,7 @@ import { CyberAssetSidebar } from '@/components/video/CyberAssetSidebar';
 import { EpisodeWorkspace } from '@/components/video/EpisodeWorkspace';
 import { ImageWorkspace } from '@/components/video/ImageWorkspace';
 import { AssetWorkspace } from '@/components/video/AssetWorkspace';
+import { CharacterWorkspace } from '@/components/video/CharacterWorkspace';
 import { AppNavbar } from '@/components/layout/AppNavbar';
 
 export const ScriptEditorPage: React.FC = () => {
@@ -49,6 +50,8 @@ export const ScriptEditorPage: React.FC = () => {
         return <ImageWorkspace scriptId={script.id} />;
       case 'asset':
         return <AssetWorkspace scriptId={script.id} />;
+      case 'character':
+        return <CharacterWorkspace scriptId={script.id} />;
       default:
         return null;
     }
