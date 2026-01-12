@@ -69,7 +69,7 @@ export function uploadToQiniu(
             // 2. 配置上传参数
             const config = {
                 useCdnDomain: true,
-                region: null, // 自动检测区域
+                region: undefined, // 自动检测区域
             };
 
             const putExtra = {
@@ -78,7 +78,8 @@ export function uploadToQiniu(
             };
 
             // 3. 创建上传任务
-            const observable = qiniu.upload(file, key, token, putExtra, config);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const observable = qiniu.upload(file, key, token, putExtra as any, config as any);
 
             // 4. 订阅上传事件
             observable.subscribe({
