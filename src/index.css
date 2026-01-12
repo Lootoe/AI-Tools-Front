@@ -374,28 +374,6 @@
         }
     }
 
-    /* 幻境AI Logo 渐变流动动画 */
-    @keyframes gradient-flow {
-        0% {
-            background-position: 0% 50%;
-        }
-        100% {
-            background-position: 200% 50%;
-        }
-    }
-
-    /* 幻境AI Logo 脉冲发光动画 */
-    @keyframes pulse-glow {
-        0%, 100% {
-            opacity: 1;
-            box-shadow: 0 0 6px #00f5ff, 0 0 12px #00f5ff;
-        }
-        50% {
-            opacity: 0.5;
-            box-shadow: 0 0 3px #00f5ff, 0 0 6px #00f5ff;
-        }
-    }
-
     /* 淡入缩放动画 */
     .animate-fade-in {
         animation: fade-in 0.2s ease-out;

@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { generateAssetDesign, editImage } from '@/services/assetApi';
 import { uploadImage, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
 import { Asset } from '@/types/asset';
-import CoinIcon from '@/img/coin.png';
+import CoinIcon from '@/img/coin.webp';
 
 interface AssetWorkspaceProps { scriptId: string; }
 

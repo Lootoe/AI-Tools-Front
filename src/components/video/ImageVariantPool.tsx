@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Loader2, Image, Layers, AlertCircle } from 'lucide-react';
 import { StoryboardImage, ImageVariant } from '@/types/video';
 import { ImageModel, getModelCost } from './ImageLeftPanel';
-import CoinIcon from '@/img/coin.png';
+import CoinIcon from '@/img/coin.webp';
 
 interface ImageVariantPoolProps {
     storyboardImage: StoryboardImage | null;

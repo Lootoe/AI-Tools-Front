@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Loader2, Play, Layers, AlertCircle, Pencil, X } from 'lucide-react';
 import { Storyboard, StoryboardVariant } from '@/types/video';
-import CoinIcon from '@/img/coin.png';
+import CoinIcon from '@/img/coin.webp';
 
 interface StoryboardVariantPoolProps {
   storyboard: Storyboard | null;

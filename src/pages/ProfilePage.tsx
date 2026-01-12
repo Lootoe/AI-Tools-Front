@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import { getBalanceRecords, BalanceRecord } from '@/services/api';
-import CoinIcon from '@/img/coin.png';
+import CoinIcon from '@/img/coin.webp';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();

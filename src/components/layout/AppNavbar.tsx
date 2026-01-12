@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import Logo from '@/img/Logo.png';
-import CoinIcon from '@/img/coin.png';
+import Logo from '@/img/logo.webp';
+import CoinIcon from '@/img/coin.webp';
 
 interface AppNavbarProps {
   rightContent?: React.ReactNode;

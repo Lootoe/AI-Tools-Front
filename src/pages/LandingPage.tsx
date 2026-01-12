@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { sendVerificationCode, register, login } from '@/services/authApi';
 import { useAuthStore } from '@/stores/authStore';
-import Logo from '@/img/Logo.png';
+import Logo from '@/img/logo.webp';
 
 type AuthMode = 'login' | 'register';
 type ViewState = 'landing' | 'auth';
