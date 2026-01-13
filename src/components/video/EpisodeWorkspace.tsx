@@ -15,9 +15,19 @@ import { Storyboard } from '@/types/video';
 
 interface EpisodeWorkspaceProps {
   scriptId: string;
+  episodeId?: string;
+  storyboardId?: string;
+  onEpisodeChange: (episodeId: string | null) => void;
+  onStoryboardChange: (storyboardId: string | null) => void;
 }
 
-export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) => {
+export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
+  scriptId,
+  episodeId: urlEpisodeId,
+  storyboardId: urlStoryboardId,
+  onEpisodeChange,
+  onStoryboardChange,
+}) => {
   const {
     scripts,
     addStoryboard,
@@ -35,8 +45,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const { updateBalance } = useAuthStore();
   const { showToast, ToastContainer } = useToast();
 
-  const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
-  const [selectedStoryboardId, setSelectedStoryboardId] = useState<string | null>(null);
+  // 使用 URL 参数作为选中状态
+  const selectedEpisodeId = urlEpisodeId || null;
+  const selectedStoryboardId = urlStoryboardId || null;
+
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deleteConfirmStoryboardId, setDeleteConfirmStoryboardId] = useState<string | null>(null);
   const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
@@ -51,25 +63,22 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const script = scripts.find((s) => s.id === scriptId);
 
-  // 初始化选中第一个剧集
+  // 初始化：如果 URL 没有 episodeId，自动导航到第一个剧集
   useEffect(() => {
-    if (script && script.episodes.length > 0) {
-      setSelectedEpisodeId(script.episodes[0].id);
-    } else {
-      setSelectedEpisodeId(null);
+    if (script && script.episodes.length > 0 && !urlEpisodeId) {
+      const firstEpisode = script.episodes[0];
+      onEpisodeChange(firstEpisode.id);
     }
-  }, [script?.id]);
+  }, [script?.id, script?.episodes.length, urlEpisodeId, onEpisodeChange]);
 
   const selectedEpisode = script?.episodes.find((e) => e.id === selectedEpisodeId);
 
-  // 自动选择第一个分镜
+  // 初始化：如果 URL 没有 storyboardId，自动导航到第一个分镜
   useEffect(() => {
-    if (selectedEpisode && selectedEpisode.storyboards.length > 0) {
-      setSelectedStoryboardId(selectedEpisode.storyboards[0].id);
-    } else {
-      setSelectedStoryboardId(null);
+    if (selectedEpisode && selectedEpisode.storyboards.length > 0 && !urlStoryboardId) {
+      onStoryboardChange(selectedEpisode.storyboards[0].id);
     }
-  }, [selectedEpisode?.id, selectedEpisode?.storyboards.length]);
+  }, [selectedEpisode?.id, selectedEpisode?.storyboards.length, urlStoryboardId, onStoryboardChange]);
 
   const selectedStoryboard = selectedEpisode?.storyboards.find(
     (sb) => sb.id === selectedStoryboardId
@@ -121,7 +130,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         sceneNumber,
         description: `分镜 ${sceneNumber}`,
       });
-      setSelectedStoryboardId(newId);
+      onStoryboardChange(newId);
     } catch (error) {
       showToast(error instanceof Error ? error.message : '添加分镜失败', 'error');
     }
@@ -136,7 +145,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
     try {
       await deleteStoryboard(script.id, selectedEpisode.id, deleteConfirmStoryboardId);
       if (selectedStoryboardId === deleteConfirmStoryboardId) {
-        setSelectedStoryboardId(null);
+        // 删除当前选中的分镜后，选择第一个分镜
+        const remainingStoryboards = selectedEpisode.storyboards.filter(sb => sb.id !== deleteConfirmStoryboardId);
+        onStoryboardChange(remainingStoryboards[0]?.id || null);
       }
       showToast('分镜已删除', 'success');
     } catch (error) {
@@ -317,7 +328,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
   const handleClearStoryboards = () => {
     if (!script || !selectedEpisode) return;
     clearStoryboards(script.id, selectedEpisode.id);
-    setSelectedStoryboardId(null);
+    onStoryboardChange(null);
     setShowClearConfirm(false);
   };
 
@@ -354,13 +365,13 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
 
   const handlePreviousStoryboard = () => {
     if (!selectedEpisode || currentStoryboardIndex <= 0) return;
-    setSelectedStoryboardId(selectedEpisode.storyboards[currentStoryboardIndex - 1].id);
+    onStoryboardChange(selectedEpisode.storyboards[currentStoryboardIndex - 1].id);
   };
 
   const handleNextStoryboard = () => {
     if (!selectedEpisode || currentStoryboardIndex >= selectedEpisode.storyboards.length - 1)
       return;
-    setSelectedStoryboardId(selectedEpisode.storyboards[currentStoryboardIndex + 1].id);
+    onStoryboardChange(selectedEpisode.storyboards[currentStoryboardIndex + 1].id);
   };
 
   const deleteStoryboardIndex =
@@ -384,7 +395,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         <EpisodePanel
           scriptId={scriptId}
           selectedEpisodeId={selectedEpisodeId}
-          onSelectEpisode={setSelectedEpisodeId}
+          onSelectEpisode={onEpisodeChange}
         />
 
         {/* 空状态 */}
@@ -425,7 +436,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
         <EpisodePanel
           scriptId={scriptId}
           selectedEpisodeId={selectedEpisodeId}
-          onSelectEpisode={setSelectedEpisodeId}
+          onSelectEpisode={onEpisodeChange}
         />
 
         {/* 主工作区 */}
@@ -482,7 +493,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({ scriptId }) 
             <StoryboardGrid
               storyboards={selectedEpisode.storyboards}
               selectedId={selectedStoryboardId}
-              onSelect={setSelectedStoryboardId}
+              onSelect={onStoryboardChange}
               onAdd={handleAddStoryboard}
               onDelete={handleDeleteStoryboard}
               onReorder={handleReorderStoryboards}

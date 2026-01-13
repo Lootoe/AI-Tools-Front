@@ -102,6 +102,27 @@ function App() {
                   </main>
                 </ProtectedRoute>
               } />
+              <Route path="/video/script/:scriptId/:tab" element={
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-hidden relative">
+                    <ScriptEditorPage />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/video/script/:scriptId/:tab/:episodeId" element={
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-hidden relative">
+                    <ScriptEditorPage />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/video/script/:scriptId/:tab/:episodeId/:storyboardId" element={
+                <ProtectedRoute>
+                  <main className="flex-1 overflow-hidden relative">
+                    <ScriptEditorPage />
+                  </main>
+                </ProtectedRoute>
+              } />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <main className="flex-1 overflow-auto relative">

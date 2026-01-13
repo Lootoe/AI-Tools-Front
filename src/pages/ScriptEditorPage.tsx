@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Film } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
@@ -8,18 +8,25 @@ import { ImageWorkspace } from '@/components/video/ImageWorkspace';
 import { AssetWorkspace } from '@/components/video/AssetWorkspace';
 import { CharacterWorkspace } from '@/components/video/CharacterWorkspace';
 import { AppNavbar } from '@/components/layout/AppNavbar';
+import { AssetTabType } from '@/types/video';
 
 export const ScriptEditorPage: React.FC = () => {
-  const { scriptId } = useParams<{ scriptId: string }>();
+  const { scriptId, tab, episodeId, storyboardId } = useParams<{
+    scriptId: string;
+    tab?: string;
+    episodeId?: string;
+    storyboardId?: string;
+  }>();
   const navigate = useNavigate();
   const {
     scripts,
     loadScripts,
     selectScript,
     isLoading,
-    currentAssetTab,
-    setAssetTab,
   } = useVideoStore();
+
+  // 从 URL 获取当前 tab，默认为 storyboard
+  const currentAssetTab: AssetTabType = (tab as AssetTabType) || 'storyboard';
 
   useEffect(() => {
     if (scripts.length === 0) {
@@ -32,22 +39,112 @@ export const ScriptEditorPage: React.FC = () => {
       const scriptExists = scripts.some((s) => s.id === scriptId);
       if (scriptExists) {
         selectScript(scriptId);
+        // 如果没有 tab 参数，重定向到默认 tab
+        if (!tab) {
+          const script = scripts.find((s) => s.id === scriptId);
+          const firstEpisode = script?.episodes[0];
+          const firstStoryboard = firstEpisode?.storyboards[0];
+          if (firstEpisode && firstStoryboard) {
+            navigate(`/video/script/${scriptId}/storyboard/${firstEpisode.id}/${firstStoryboard.id}`, { replace: true });
+          } else if (firstEpisode) {
+            navigate(`/video/script/${scriptId}/storyboard/${firstEpisode.id}`, { replace: true });
+          } else {
+            navigate(`/video/script/${scriptId}/storyboard`, { replace: true });
+          }
+        }
       } else {
         navigate('/video');
       }
     }
-  }, [scriptId, scripts, selectScript, navigate]);
+  }, [scriptId, scripts, selectScript, navigate, tab]);
 
   const script = scripts.find((s) => s.id === scriptId);
+
+  // TAB 切换处理
+  const handleTabChange = useCallback((newTab: AssetTabType) => {
+    if (!scriptId) return;
+
+    // 对于需要 episodeId 的 tab，尝试保留当前 episodeId
+    if (newTab === 'storyboard' || newTab === 'storyboardImage') {
+      const currentEpisodeId = episodeId || script?.episodes[0]?.id;
+      if (currentEpisodeId) {
+        const episode = script?.episodes.find(e => e.id === currentEpisodeId);
+        if (newTab === 'storyboard') {
+          const firstStoryboard = episode?.storyboards[0];
+          if (firstStoryboard) {
+            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}/${firstStoryboard.id}`);
+          } else {
+            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}`);
+          }
+        } else {
+          const firstStoryboardImage = episode?.storyboardImages[0];
+          if (firstStoryboardImage) {
+            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}/${firstStoryboardImage.id}`);
+          } else {
+            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}`);
+          }
+        }
+      } else {
+        navigate(`/video/script/${scriptId}/${newTab}`);
+      }
+    } else {
+      // asset 和 character 不需要 episodeId
+      navigate(`/video/script/${scriptId}/${newTab}`);
+    }
+  }, [scriptId, episodeId, script, navigate]);
+
+  // 剧集切换处理
+  const handleEpisodeChange = useCallback((newEpisodeId: string | null) => {
+    if (!scriptId || !newEpisodeId) return;
+
+    const episode = script?.episodes.find(e => e.id === newEpisodeId);
+    if (currentAssetTab === 'storyboard') {
+      const firstStoryboard = episode?.storyboards[0];
+      if (firstStoryboard) {
+        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}/${firstStoryboard.id}`);
+      } else {
+        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}`);
+      }
+    } else if (currentAssetTab === 'storyboardImage') {
+      const firstStoryboardImage = episode?.storyboardImages[0];
+      if (firstStoryboardImage) {
+        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}/${firstStoryboardImage.id}`);
+      } else {
+        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}`);
+      }
+    }
+  }, [scriptId, script, currentAssetTab, navigate]);
+
+  // 分镜切换处理
+  const handleStoryboardChange = useCallback((newStoryboardId: string | null) => {
+    if (!scriptId || !episodeId || !newStoryboardId) return;
+    navigate(`/video/script/${scriptId}/${currentAssetTab}/${episodeId}/${newStoryboardId}`);
+  }, [scriptId, episodeId, currentAssetTab, navigate]);
 
   const renderWorkspace = () => {
     if (!script) return null;
 
     switch (currentAssetTab) {
       case 'storyboard':
-        return <EpisodeWorkspace scriptId={script.id} />;
+        return (
+          <EpisodeWorkspace
+            scriptId={script.id}
+            episodeId={episodeId}
+            storyboardId={storyboardId}
+            onEpisodeChange={handleEpisodeChange}
+            onStoryboardChange={handleStoryboardChange}
+          />
+        );
       case 'storyboardImage':
-        return <ImageWorkspace scriptId={script.id} />;
+        return (
+          <ImageWorkspace
+            scriptId={script.id}
+            episodeId={episodeId}
+            storyboardImageId={storyboardId}
+            onEpisodeChange={handleEpisodeChange}
+            onStoryboardImageChange={handleStoryboardChange}
+          />
+        );
       case 'asset':
         return <AssetWorkspace scriptId={script.id} />;
       case 'character':
@@ -109,7 +206,7 @@ export const ScriptEditorPage: React.FC = () => {
       {/* 主内容区 */}
       <div className="flex-1 flex overflow-hidden p-3 gap-3">
         {/* 最左侧资产Tab */}
-        <CyberAssetSidebar activeTab={currentAssetTab} onTabChange={setAssetTab} />
+        <CyberAssetSidebar activeTab={currentAssetTab} onTabChange={handleTabChange} />
 
         {/* 工作区 */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

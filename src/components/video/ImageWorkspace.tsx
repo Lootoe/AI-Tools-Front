@@ -15,9 +15,19 @@ import { StoryboardImage } from '@/types/video';
 
 interface ImageWorkspaceProps {
     scriptId: string;
+    episodeId?: string;
+    storyboardImageId?: string;
+    onEpisodeChange: (episodeId: string | null) => void;
+    onStoryboardImageChange: (storyboardImageId: string | null) => void;
 }
 
-export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
+export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
+    scriptId,
+    episodeId: urlEpisodeId,
+    storyboardImageId: urlStoryboardImageId,
+    onEpisodeChange,
+    onStoryboardImageChange,
+}) => {
     const {
         scripts,
         addStoryboardImage,
@@ -36,8 +46,10 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const { assets, loadAssets } = useAssetStore();
     const { showToast, ToastContainer } = useToast();
 
-    const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
-    const [selectedStoryboardImageId, setSelectedStoryboardImageId] = useState<string | null>(null);
+    // 使用 URL 参数作为选中状态
+    const selectedEpisodeId = urlEpisodeId || null;
+    const selectedStoryboardImageId = urlStoryboardImageId || null;
+
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [deleteConfirmStoryboardImageId, setDeleteConfirmStoryboardImageId] = useState<string | null>(null);
     const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
@@ -57,24 +69,22 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
         }
     }, [scriptId, loadAssets]);
 
+    // 初始化：如果 URL 没有 episodeId，自动导航到第一个剧集
     useEffect(() => {
-        if (script && script.episodes.length > 0) {
-            setSelectedEpisodeId(script.episodes[0].id);
-        } else {
-            setSelectedEpisodeId(null);
+        if (script && script.episodes.length > 0 && !urlEpisodeId) {
+            onEpisodeChange(script.episodes[0].id);
         }
-    }, [script?.id]);
+    }, [script?.id, script?.episodes.length, urlEpisodeId, onEpisodeChange]);
 
     const selectedEpisode = script?.episodes.find((e) => e.id === selectedEpisodeId);
 
+    // 初始化：如果 URL 没有 storyboardImageId，自动导航到第一个分镜图
     useEffect(() => {
         const storyboardImages = selectedEpisode?.storyboardImages || [];
-        if (storyboardImages.length > 0) {
-            setSelectedStoryboardImageId(storyboardImages[0].id);
-        } else {
-            setSelectedStoryboardImageId(null);
+        if (storyboardImages.length > 0 && !urlStoryboardImageId) {
+            onStoryboardImageChange(storyboardImages[0].id);
         }
-    }, [selectedEpisode?.id, selectedEpisode?.storyboardImages?.length]);
+    }, [selectedEpisode?.id, selectedEpisode?.storyboardImages?.length, urlStoryboardImageId, onStoryboardImageChange]);
 
     const storyboardImages = selectedEpisode?.storyboardImages || [];
     const selectedStoryboardImage = storyboardImages.find((sb) => sb.id === selectedStoryboardImageId);
@@ -114,7 +124,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
         try {
             const sceneNumber = storyboardImages.length + 1;
             const newId = await addStoryboardImage(script.id, selectedEpisode.id, { sceneNumber, description: `分镜图 ${sceneNumber}` });
-            setSelectedStoryboardImageId(newId);
+            onStoryboardImageChange(newId);
         } catch (error) {
             showToast(error instanceof Error ? error.message : '添加分镜图失败', 'error');
         }
@@ -128,7 +138,10 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
         if (!script || !selectedEpisode || !deleteConfirmStoryboardImageId) return;
         try {
             await deleteStoryboardImage(script.id, selectedEpisode.id, deleteConfirmStoryboardImageId);
-            if (selectedStoryboardImageId === deleteConfirmStoryboardImageId) setSelectedStoryboardImageId(null);
+            if (selectedStoryboardImageId === deleteConfirmStoryboardImageId) {
+                const remainingImages = storyboardImages.filter(sb => sb.id !== deleteConfirmStoryboardImageId);
+                onStoryboardImageChange(remainingImages[0]?.id || null);
+            }
             showToast('分镜图已删除', 'success');
         } catch (error) {
             showToast(error instanceof Error ? error.message : '删除分镜图失败', 'error');
@@ -227,7 +240,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const handleClearStoryboardImages = () => {
         if (!script || !selectedEpisode) return;
         clearStoryboardImages(script.id, selectedEpisode.id);
-        setSelectedStoryboardImageId(null);
+        onStoryboardImageChange(null);
         setShowClearConfirm(false);
     };
 
@@ -240,12 +253,12 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
 
     const handlePreviousStoryboardImage = () => {
         if (currentStoryboardImageIndex <= 0) return;
-        setSelectedStoryboardImageId(storyboardImages[currentStoryboardImageIndex - 1].id);
+        onStoryboardImageChange(storyboardImages[currentStoryboardImageIndex - 1].id);
     };
 
     const handleNextStoryboardImage = () => {
         if (currentStoryboardImageIndex >= storyboardImages.length - 1) return;
-        setSelectedStoryboardImageId(storyboardImages[currentStoryboardImageIndex + 1].id);
+        onStoryboardImageChange(storyboardImages[currentStoryboardImageIndex + 1].id);
     };
 
     const deleteStoryboardImageIndex = deleteConfirmStoryboardImageId && selectedEpisode
@@ -258,7 +271,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     if (!selectedEpisode) {
         return (
             <div className="flex-1 flex">
-                <EpisodePanel scriptId={scriptId} selectedEpisodeId={selectedEpisodeId} onSelectEpisode={setSelectedEpisodeId} />
+                <EpisodePanel scriptId={scriptId} selectedEpisodeId={selectedEpisodeId} onSelectEpisode={onEpisodeChange} />
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                     <div className="relative mb-6">
                         <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
@@ -280,7 +293,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     return (
         <>
             <div className="flex-1 flex gap-3 overflow-hidden">
-                <EpisodePanel scriptId={scriptId} selectedEpisodeId={selectedEpisodeId} onSelectEpisode={setSelectedEpisodeId} />
+                <EpisodePanel scriptId={scriptId} selectedEpisodeId={selectedEpisodeId} onSelectEpisode={onEpisodeChange} />
                 <div className="flex-1 flex flex-col gap-3 overflow-hidden">
                     <div className="flex-[3] flex gap-3 min-h-0 overflow-hidden">
                         <ImageLeftPanel
@@ -327,7 +340,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                         <ImageStoryboardGrid
                             storyboardImages={storyboardImages}
                             selectedId={selectedStoryboardImageId}
-                            onSelect={setSelectedStoryboardImageId}
+                            onSelect={onStoryboardImageChange}
                             onAdd={handleAddStoryboardImage}
                             onDelete={handleDeleteStoryboardImage}
                             onReorder={handleReorderStoryboardImages}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Image as ImageIcon, Check, Palette } from 'lucide-react';
+import { X, Check, Palette } from 'lucide-react';
 import { Asset } from '@/types/asset';
 
 interface LinkAssetImageDialogProps {
