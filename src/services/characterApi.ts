@@ -92,3 +92,21 @@ export async function generateCharacterVideo(request: CharacterToVideoRequest): 
     }
     return response.json();
 }
+
+// 注册 Sora2 角色（用于多视频角色一致性）
+export async function registerSoraCharacter(characterId: string, timestamps: string): Promise<{ success: boolean; data: Character }> {
+    const token = getAuthToken();
+    const response = await fetch(`${BACKEND_URL}/api/videos/register-sora-character`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ characterId, timestamps }),
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(error.error || '角色注册失败');
+    }
+    return response.json();
+}

@@ -75,6 +75,11 @@ export interface Character {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  // Sora2 角色注册信息（用于多视频角色一致性）
+  soraCharacterId?: string;   // Sora2 角色ID (ch_xxx)
+  soraUsername?: string;      // Sora2 用户名
+  soraPermalink?: string;     // Sora2 角色主页链接
+  soraProfilePicUrl?: string; // Sora2 角色头像URL
   createdAt: string;
   updatedAt: string;
 }

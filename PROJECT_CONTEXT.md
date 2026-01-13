@@ -54,14 +54,19 @@
 - **设计稿编辑**：基于已生成图片进行 AI 编辑
 
 #### 1.3.6 角色工作区（CharacterWorkspace）
-- **角色池**：左侧网格展示所有角色
-- **角色编辑器**：中间编辑角色姓名、设定、参考图
-- **参考图**：支持上传1张参考图或关联资产图片
+- **角色身份卡片**：左上角展示角色认证状态
+  - 已认证：显示 Sora2 头像、Username、Task ID、绿色对勾
+  - 未认证：显示 UNREGISTERED 水印、注册按钮
+- **角色池**：左下角网格展示所有角色
 - **视频预览区**：右侧预览生成的角色视频
+- **角色编辑器**：右侧编辑角色姓名、设定、参考图
 - **视频生成**：支持比例、时长、提示词模板选择
-- **轮询状态**：实时显示视频生成进度
+- **角色注册**：视频生成完成后可注册 Sora2 角色，用于多视频角色一致性
+  - 点击注册按钮弹出视频预览弹窗
+  - 选择角色出现的时间范围（1-3秒）
+  - 注册成功后显示已认证状态
 
-> 更新于 2026-01-12：新增角色工作区
+> 更新于 2026-01-13：新增 Sora2 角色注册功能，支持多视频角色一致性
 
 #### 1.3.7 代币系统
 - **代币消耗**：
@@ -316,6 +321,11 @@ interface Character {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  // Sora2 角色注册信息（用于多视频角色一致性）
+  soraCharacterId?: string;   // Sora2 角色ID (ch_xxx)
+  soraUsername?: string;      // Sora2 用户名
+  soraPermalink?: string;     // Sora2 角色主页链接
+  soraProfilePicUrl?: string; // Sora2 角色头像URL
   createdAt: string;
   updatedAt: string;
 }
@@ -323,7 +333,7 @@ interface Character {
 // 资产 Tab 类型
 type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
 
-> 更新于 2026-01-12：新增 Character 类型和 character Tab
+> 更新于 2026-01-13：Character 类型新增 Sora2 角色注册字段
 
 // 提示词模板配置（从后端 API 获取）
 interface PromptTemplateConfig {
@@ -590,10 +600,11 @@ deleteAsset(scriptId: string, assetId: string)
 - 角色池：左侧网格展示所有角色
 - 角色编辑器：中间编辑角色姓名、设定、参考图
 - 视频预览区：右侧预览生成的角色视频
-- 支持上传参考图或关联资产图片
+- 支持上传参考图或关联资产图片（使用公用 ReferenceImageUploader 组件）
 - 视频生成设置：比例、时长、提示词模板
 
 > 更新于 2026-01-12：新增角色工作区组件
+> 更新于 2026-01-13：参考图上传改用公用 ReferenceImageUploader 组件
 
 ---
 
@@ -634,9 +645,20 @@ deleteAsset(scriptId: string, assetId: string)
 7. 完成后显示角色视频预览
 ```
 
-> 更新于 2026-01-12：新增角色视频生成流程
+### 9.4 Sora2 角色注册流程（多视频角色一致性）
+```
+1. 角色视频生成完成后，用户点击"注册角色"按钮
+2. 弹出视频预览弹窗，显示视频播放器和时间范围滑块
+3. 用户选择角色出现的时间范围（1-3秒）
+4. 点击确认，调用 characterApi.registerSoraCharacter()
+5. 后端调用 Sora2 API 注册角色
+6. 注册成功后，角色身份卡片显示"已认证"状态
+7. 显示 Sora2 头像、Username、Task ID
+```
 
-### 9.4 状态同步策略
+> 更新于 2026-01-13：新增 Sora2 角色注册流程
+
+### 9.5 状态同步策略
 - 乐观更新：先更新本地状态，再发送 API 请求
 - 失败回滚：API 失败时恢复原状态
 - 定期刷新：关键数据定期从服务器同步
@@ -731,3 +753,5 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.3 | 2026-01-11 | 提示词模板改为从后端 API 动态获取，按 video/storyboardImage/asset 分类，通过 ID 查询 |
 | 1.0.4 | 2026-01-12 | 分镜视频和分镜图工作区新增提示词模板选择功能，位于 CyberVideoPlayer/CyberImageViewer 顶部工具栏 |
 | 1.0.5 | 2026-01-12 | 新增 Sora2 角色视频生成功能：CharacterWorkspace 组件、characterStore、characterApi、角色 Tab |
+| 1.0.6 | 2026-01-13 | 新增 Sora2 角色注册功能：支持多视频角色一致性，角色身份卡片显示认证状态 |
+| 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
