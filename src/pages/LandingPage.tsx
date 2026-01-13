@@ -99,7 +99,7 @@ export const LandingPage: React.FC = () => {
                 className="absolute inset-0 w-full h-full object-cover"
                 style={{ zIndex: 0 }}
             >
-                <source src="https://oss.filenest.top/uploads/9c854c04-ed33-47e1-b8b1-e24cbdd4f1e4.mp4" type="video/mp4" />
+                <source src="http://t8pfvpkga.hb-bkt.clouddn.com/202601091949%281%29.mp4" type="video/mp4" />
             </video>
 
             {/* 视频遮罩 */}
