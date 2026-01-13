@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useAssetStore } from '@/stores/assetStore';
 import { EpisodePanel } from './EpisodePanel';
 import { ImageStoryboardGrid } from './ImageStoryboardGrid';
 import { CyberImageViewer } from './CyberImageViewer';
@@ -32,6 +33,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     } = useVideoStore();
 
     const { updateBalance } = useAuthStore();
+    const { assets, loadAssets } = useAssetStore();
     const { showToast, ToastContainer } = useToast();
 
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
@@ -47,6 +49,13 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
     const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('image-9grid');
 
     const script = scripts.find((s) => s.id === scriptId);
+
+    // 加载资产数据
+    useEffect(() => {
+        if (scriptId) {
+            loadAssets(scriptId);
+        }
+    }, [scriptId, loadAssets]);
 
     useEffect(() => {
         if (script && script.episodes.length > 0) {
@@ -283,6 +292,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({ scriptId }) => {
                             hasUnsavedChanges={hasUnsavedChanges}
                             localReferenceImageUrls={localReferenceImageUrls}
                             onReferenceImageUrlsChange={setLocalReferenceImageUrls}
+                            assets={assets}
                         />
                         <div className="flex-1 min-w-0 overflow-hidden">
                             <CyberImageViewer

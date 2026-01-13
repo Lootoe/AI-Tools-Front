@@ -46,6 +46,9 @@
 - **图片查看器**：中央区域预览生成的图片
 - **图片池**：右侧面板管理多个图片版本
 - **图片生成**：支持多种模型和比例
+- **关联资产**：在参考图 Tab 中可关联资产库中的设计稿作为参考图
+
+> 更新于 2026-01-13：新增关联资产功能
 
 #### 1.3.5 资产工作区（AssetWorkspace）
 - **资产池**：左侧网格展示所有资产
@@ -182,7 +185,8 @@ AI-Tools-Front/
 │   │   │   ├── ConfirmDialog.tsx
 │   │   │   ├── ReferenceImageGrid.tsx      # 参考图网格展示（支持放大预览）
 │   │   │   ├── ReferenceImageUploader.tsx  # 参考图上传组件
-│   │   │   └── LinkDesignImageDialog.tsx   # 关联设计稿弹窗
+│   │   │   ├── LinkDesignImageDialog.tsx   # 关联设计稿弹窗（分镜视频用）
+│   │   │   └── LinkAssetImageDialog.tsx    # 关联资产弹窗（分镜图用）
 │   │   ├── video/            # 视频相关组件
 │   │   │   ├── ScriptCard.tsx
 │   │   │   ├── EpisodeWorkspace.tsx
@@ -755,3 +759,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.5 | 2026-01-12 | 新增 Sora2 角色视频生成功能：CharacterWorkspace 组件、characterStore、characterApi、角色 Tab |
 | 1.0.6 | 2026-01-13 | 新增 Sora2 角色注册功能：支持多视频角色一致性，角色身份卡片显示认证状态 |
 | 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
+| 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { FileText, Save, Image } from 'lucide-react';
+import { FileText, Save, Image, Link2 } from 'lucide-react';
 import { StoryboardImage } from '@/types/video';
+import { Asset } from '@/types/asset';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
+import { LinkAssetImageDialog } from '@/components/ui/LinkAssetImageDialog';
 import { useToast } from '@/components/ui/Toast';
 
 // 图片生成模型配置
@@ -25,6 +27,7 @@ interface ImageLeftPanelProps {
     hasUnsavedChanges?: boolean;
     localReferenceImageUrls: string[];
     onReferenceImageUrlsChange: (urls: string[]) => void;
+    assets?: Asset[];
 }
 
 type TabType = 'script' | 'referenceImages';
@@ -38,10 +41,27 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
     hasUnsavedChanges,
     localReferenceImageUrls,
     onReferenceImageUrlsChange,
+    assets = [],
 }) => {
     const [activeTab, setActiveTab] = useState<TabType>('script');
     const [isFocused, setIsFocused] = useState(false);
+    const [showLinkAssetDialog, setShowLinkAssetDialog] = useState(false);
     const { showToast, ToastContainer } = useToast();
+
+    // 处理关联资产选择
+    const handleLinkAssetImage = (imageUrl: string) => {
+        // 添加到参考图列表（如果未超过5张且不重复）
+        if (localReferenceImageUrls.length >= 5) {
+            showToast('参考图最多5张', 'warning');
+            return;
+        }
+        if (localReferenceImageUrls.includes(imageUrl)) {
+            showToast('该图片已在参考图列表中', 'warning');
+            return;
+        }
+        onReferenceImageUrlsChange([...localReferenceImageUrls, imageUrl]);
+        showToast('已关联资产设计稿', 'success');
+    };
 
     if (!storyboardImage) {
         return (
@@ -115,6 +135,19 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
                                 hint="单张不超过2MB"
                                 onError={(msg) => showToast(msg, 'error')}
                             />
+                            {/* 关联资产按钮 */}
+                            <button
+                                onClick={() => setShowLinkAssetDialog(true)}
+                                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all hover:brightness-110"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(0,245,255,0.15))',
+                                    color: '#bf00ff',
+                                    border: '1px solid rgba(191,0,255,0.3)',
+                                }}
+                            >
+                                <Link2 size={14} />
+                                关联资产
+                            </button>
                         </div>
                     )}
                 </div>
@@ -128,6 +161,14 @@ export const ImageLeftPanel: React.FC<ImageLeftPanelProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* 关联资产弹窗 */}
+            <LinkAssetImageDialog
+                isOpen={showLinkAssetDialog}
+                onClose={() => setShowLinkAssetDialog(false)}
+                assets={assets}
+                onSelect={handleLinkAssetImage}
+            />
         </>
     );
 };
