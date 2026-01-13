@@ -77,8 +77,8 @@ const CharacterIDCard: React.FC<{
                     >
                         {isGenerating ? (
                             <InlineLoading size={16} color="#bf00ff" />
-                        ) : isVerified && character.soraProfilePicUrl ? (
-                            <img src={character.soraProfilePicUrl} alt={character.name} className="w-full h-full object-cover" />
+                        ) : isVerified && character.soraProfilePictureUrl ? (
+                            <img src={character.soraProfilePictureUrl} alt={character.name} className="w-full h-full object-cover" />
                         ) : character.thumbnailUrl || character.referenceImageUrl ? (
                             <img
                                 src={character.thumbnailUrl || character.referenceImageUrl}
