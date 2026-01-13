@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Plus, Trash2, Save, ChevronDown, X, Sparkles, Play, Loader2, Link2, CheckCircle2, UserPlus } from 'lucide-react';
+import { User, Plus, Trash2, Save, ChevronDown, X, Sparkles, Play, Loader2, Link2, CheckCircle2, UserPlus, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
@@ -38,6 +38,16 @@ const CharacterIDCard: React.FC<{
 }> = ({ character, isSelected, onSelect, onDelete }) => {
     const isGenerating = character.status === 'generating' || character.status === 'queued';
     const isVerified = !!character.soraCharacterId;
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyUsername = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isVerified && character.soraUsername) {
+            navigator.clipboard.writeText(character.soraUsername);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        }
+    };
 
     return (
         <div
@@ -62,21 +72,21 @@ const CharacterIDCard: React.FC<{
                 className="absolute top-1 right-1 p-0.5 rounded opacity-0 group-hover:opacity-100 z-10 transition-opacity"
                 style={{ backgroundColor: 'rgba(239,68,68,0.9)' }}
             >
-                <Trash2 size={10} className="text-white" />
+                <Trash2 size={12} className="text-white" />
             </button>
 
-            <div className="p-2 flex gap-2 items-center">
+            <div className="p-2.5 flex gap-3 items-center">
                 {/* 头像区域 */}
                 <div className="relative flex-shrink-0">
                     <div
-                        className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center"
+                        className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center"
                         style={{
                             backgroundColor: isVerified ? 'transparent' : 'rgba(75,85,99,0.3)',
                             border: `1.5px solid ${isVerified ? 'rgba(0,245,255,0.4)' : 'rgba(75,85,99,0.4)'}`,
                         }}
                     >
                         {isGenerating ? (
-                            <InlineLoading size={16} color="#bf00ff" />
+                            <InlineLoading size={18} color="#bf00ff" />
                         ) : isVerified && character.soraProfilePictureUrl ? (
                             <img src={character.soraProfilePictureUrl} alt={character.name} className="w-full h-full object-cover" />
                         ) : character.thumbnailUrl || character.referenceImageUrl ? (
@@ -86,7 +96,7 @@ const CharacterIDCard: React.FC<{
                                 className={`w-full h-full object-cover ${!isVerified ? 'opacity-60' : ''}`}
                             />
                         ) : (
-                            <span className="text-lg font-bold" style={{ color: 'rgba(156,163,175,0.5)' }}>
+                            <span className="text-xl font-bold" style={{ color: 'rgba(156,163,175,0.5)' }}>
                                 {character.name?.charAt(0) || '?'}
                             </span>
                         )}
@@ -100,12 +110,25 @@ const CharacterIDCard: React.FC<{
                 </div>
 
                 {/* 信息区域 */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="text-[11px] font-medium text-white truncate">{character.name || '未命名'}</div>
-                    <div className="text-[9px] truncate" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
-                        {isVerified ? character.soraUsername : '—'}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                    <div className="text-xs font-medium text-white truncate">{character.name || '未命名'}</div>
+                    <div
+                        className="flex items-center gap-1 group/copy cursor-pointer"
+                        onClick={handleCopyUsername}
+                        title={isVerified ? '点击复制' : ''}
+                    >
+                        <span className="text-[11px]" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
+                            {isVerified ? character.soraUsername : '—'}
+                        </span>
+                        {isVerified && (
+                            copied ? (
+                                <CheckCircle2 size={10} style={{ color: '#10b981' }} />
+                            ) : (
+                                <Copy size={10} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" style={{ color: '#00f5ff' }} />
+                            )
+                        )}
                     </div>
-                    <div className="text-[8px] font-mono truncate" style={{ color: '#9ca3af' }}>
+                    <div className="text-[9px] font-mono" style={{ color: '#9ca3af' }}>
                         {isVerified ? character.soraCharacterId : character.taskId || '—'}
                     </div>
                 </div>
@@ -113,7 +136,7 @@ const CharacterIDCard: React.FC<{
 
             {/* 底部状态栏 */}
             <div
-                className="px-2 py-1 flex items-center justify-between"
+                className="px-2.5 py-1.5 flex items-center justify-between"
                 style={{
                     backgroundColor: isVerified ? 'rgba(16,185,129,0.1)' : 'rgba(75,85,99,0.1)',
                     borderTop: `1px solid ${isVerified ? 'rgba(16,185,129,0.2)' : 'rgba(75,85,99,0.2)'}`,
@@ -121,11 +144,11 @@ const CharacterIDCard: React.FC<{
             >
                 {isVerified ? (
                     <div className="flex items-center gap-1">
-                        <CheckCircle2 size={10} style={{ color: '#10b981' }} />
-                        <span className="text-[9px] font-medium" style={{ color: '#10b981' }}>Verified</span>
+                        <CheckCircle2 size={11} style={{ color: '#10b981' }} />
+                        <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Verified</span>
                     </div>
                 ) : (
-                    <span className="text-[9px]" style={{ color: '#6b7280' }}>
+                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
                         {isGenerating ? '生成中...' : 'Unregistered'}
                     </span>
                 )}
@@ -494,7 +517,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                         {isLoading ? (
                             <div className="flex items-center justify-center py-8"><InlineLoading size={18} color="#00f5ff" /></div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 gap-2">
                                 {characters.map((c) => (
                                     <CharacterIDCard
                                         key={c.id}

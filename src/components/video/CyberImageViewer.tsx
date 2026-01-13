@@ -59,17 +59,27 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
             .catch(() => { });
     }, []);
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!displayUrl) return;
-        const link = document.createElement('a');
-        link.href = displayUrl;
-        const filename = scriptName && episodeNumber && storyboardNumber
-            ? `${scriptName}_E${episodeNumber}_S${storyboardNumber}.png`
-            : 'storyboard_image.png';
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        try {
+            const response = await fetch(displayUrl);
+            if (!response.ok) throw new Error('下载失败');
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            const filename = scriptName && episodeNumber && storyboardNumber
+                ? `${scriptName}_E${episodeNumber}_S${storyboardNumber}.png`
+                : 'storyboard_image.png';
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('下载图片失败:', error);
+            alert('下载失败，请重试');
+        }
     };
 
     const ratioOptions = [

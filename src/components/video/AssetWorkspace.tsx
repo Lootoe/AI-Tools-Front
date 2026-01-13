@@ -378,9 +378,26 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                             <Upload size={14} />上传
                                         </button>
                                         {hasDesignImage && !isProcessing ? (
-                                            <a href={selectedAsset.designImageUrl} download className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff' }} title="下载图片">
+                                            <button onClick={async () => {
+                                                try {
+                                                    const response = await fetch(selectedAsset.designImageUrl!);
+                                                    if (!response.ok) throw new Error('下载失败');
+                                                    const blob = await response.blob();
+                                                    const blobUrl = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = blobUrl;
+                                                    a.download = `${selectedAsset.name || 'asset'}.png`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                    URL.revokeObjectURL(blobUrl);
+                                                } catch (error) {
+                                                    console.error('下载图片失败:', error);
+                                                    alert('下载失败，请重试');
+                                                }
+                                            }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff' }} title="下载图片">
                                                 <Download size={14} />下载
-                                            </a>
+                                            </button>
                                         ) : (
                                             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)', color: '#6b7280', opacity: 0.5 }} title="下载图片">
                                                 <Download size={14} />下载

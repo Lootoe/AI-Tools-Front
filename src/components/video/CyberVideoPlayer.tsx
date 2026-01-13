@@ -289,13 +289,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
     }
   };
 
-  const downloadVideo = () => {
+  const downloadVideo = async () => {
     if (!videoUrl) return;
-    const fileName = generateFileName('video', 'mp4');
-    const a = document.createElement('a');
-    a.href = videoUrl;
-    a.download = fileName;
-    a.click();
+    try {
+      const response = await fetch(videoUrl);
+      if (!response.ok) throw new Error('下载失败');
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const fileName = generateFileName('video', 'mp4');
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('下载视频失败:', error);
+      alert('下载失败，请重试');
+    }
   };
 
   const generateFileName = (type: 'frame' | 'video', extension: string): string => {
