@@ -145,9 +145,14 @@ const RegisterCharacterDialog: React.FC<{
     isRegistering: boolean;
 }> = ({ isOpen, character, onClose, onConfirm, isRegistering }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [startTime, setStartTime] = useState(1);
-    const [endTime, setEndTime] = useState(2);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const [startTime, setStartTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(10);
+    const [isDragging, setIsDragging] = useState(false);
+    const dragOffsetRef = useRef(0);
+    const FIXED_DURATION = 3;
+
+    const endTime = Math.min(startTime + FIXED_DURATION, videoDuration);
 
     useEffect(() => {
         if (isOpen && videoRef.current) {
@@ -157,32 +162,67 @@ const RegisterCharacterDialog: React.FC<{
 
     const handleVideoLoaded = () => {
         if (videoRef.current) {
-            setVideoDuration(Math.floor(videoRef.current.duration));
+            setVideoDuration(videoRef.current.duration);
+            setStartTime(0);
         }
     };
 
-    const handleStartChange = (value: number) => {
-        setStartTime(value);
-        if (endTime <= value) {
-            setEndTime(Math.min(value + 1, videoDuration));
-        } else if (endTime - value > 3) {
-            setEndTime(value + 3);
-        }
+    const calculateStartTime = (clientX: number, offset = 0) => {
+        if (!trackRef.current) return startTime;
+        const rect = trackRef.current.getBoundingClientRect();
+        const clickX = clientX - rect.left - offset;
+        const percentage = clickX / rect.width;
+        const maxStart = Math.max(0, videoDuration - FIXED_DURATION);
+        return Math.min(Math.max(0, percentage * videoDuration), maxStart);
+    };
+
+    const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (isDragging) return;
+        const sliderWidthPx = (FIXED_DURATION / videoDuration) * trackRef.current!.getBoundingClientRect().width;
+        const newStart = calculateStartTime(e.clientX, sliderWidthPx / 2);
+        setStartTime(newStart);
         if (videoRef.current) {
-            videoRef.current.currentTime = value;
+            videoRef.current.currentTime = newStart;
         }
     };
 
-    const handleEndChange = (value: number) => {
-        setEndTime(value);
-        if (startTime >= value) {
-            setStartTime(Math.max(value - 1, 0));
-        } else if (value - startTime > 3) {
-            setStartTime(value - 3);
-        }
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sliderRect = e.currentTarget.getBoundingClientRect();
+        dragOffsetRef.current = e.clientX - sliderRect.left;
+        setIsDragging(true);
     };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging || !trackRef.current) return;
+            const newStart = calculateStartTime(e.clientX, dragOffsetRef.current);
+            setStartTime(newStart);
+            if (videoRef.current) {
+                videoRef.current.currentTime = newStart;
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, videoDuration]);
 
     if (!isOpen) return null;
+
+    const sliderWidthPercent = (FIXED_DURATION / videoDuration) * 100;
+    const sliderLeftPercent = (startTime / videoDuration) * 100;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }} onClick={onClose}>
@@ -199,29 +239,51 @@ const RegisterCharacterDialog: React.FC<{
                         <video ref={videoRef} src={character.videoUrl} className="w-full max-h-[300px] object-contain" controls onLoadedMetadata={handleVideoLoaded} />
                     </div>
                     <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs" style={{ color: '#9ca3af' }}>选择角色出现的时间范围（1-3秒）</span>
-                            <span className="text-xs font-mono" style={{ color: '#00f5ff' }}>{startTime}s - {endTime}s</span>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs" style={{ color: '#9ca3af' }}>选择角色出现的时间段（固定3秒）</span>
+                            <span className="text-xs font-mono px-2 py-1 rounded" style={{ color: '#00f5ff', backgroundColor: 'rgba(0,245,255,0.1)' }}>
+                                {startTime.toFixed(1)}s - {endTime.toFixed(1)}s
+                            </span>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                                <label className="text-[10px] mb-1 block" style={{ color: '#6b7280' }}>开始时间</label>
-                                <input type="range" min={0} max={Math.max(0, videoDuration - 1)} value={startTime} onChange={(e) => handleStartChange(Number(e.target.value))}
-                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                                    style={{ background: `linear-gradient(to right, #00f5ff ${(startTime / videoDuration) * 100}%, rgba(75,85,99,0.4) ${(startTime / videoDuration) * 100}%)` }} />
-                            </div>
-                            <div className="flex-1">
-                                <label className="text-[10px] mb-1 block" style={{ color: '#6b7280' }}>结束时间</label>
-                                <input type="range" min={1} max={videoDuration} value={endTime} onChange={(e) => handleEndChange(Number(e.target.value))}
-                                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                                    style={{ background: `linear-gradient(to right, #bf00ff ${(endTime / videoDuration) * 100}%, rgba(75,85,99,0.4) ${(endTime / videoDuration) * 100}%)` }} />
+                        <div
+                            ref={trackRef}
+                            className="relative h-8 rounded-full cursor-pointer select-none"
+                            style={{
+                                backgroundColor: 'rgba(30,30,46,0.8)',
+                                border: '1px solid rgba(75,85,99,0.3)',
+                            }}
+                            onClick={handleTrackClick}
+                        >
+                            <div
+                                className="absolute top-1 bottom-1 rounded-full cursor-grab active:cursor-grabbing select-none"
+                                style={{
+                                    left: `${sliderLeftPercent}%`,
+                                    width: `${sliderWidthPercent}%`,
+                                    background: 'linear-gradient(90deg, #00f5ff, #00d4aa)',
+                                    boxShadow: isDragging
+                                        ? '0 0 16px rgba(0,245,255,0.6), inset 0 1px 0 rgba(255,255,255,0.2)'
+                                        : '0 2px 8px rgba(0,245,255,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                }}
+                                onMouseDown={handleMouseDown}
+                            >
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="flex gap-0.5">
+                                        <div className="w-0.5 h-3 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }} />
+                                        <div className="w-0.5 h-3 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }} />
+                                        <div className="w-0.5 h-3 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <p className="text-[10px] mt-2" style={{ color: '#6b7280' }}>提示：选择视频中角色清晰出现的片段，范围差值需在1-3秒之间</p>
+                        <div className="flex justify-between mt-1.5">
+                            <span className="text-[10px]" style={{ color: '#4b5563' }}>0s</span>
+                            <span className="text-[10px]" style={{ color: '#4b5563' }}>{videoDuration.toFixed(1)}s</span>
+                        </div>
+                        <p className="text-[10px] mt-2 text-center" style={{ color: '#6b7280' }}>拖动滑块选择角色清晰出现的片段</p>
                     </div>
-                    <button onClick={() => onConfirm(`${startTime},${endTime}`)} disabled={isRegistering || endTime - startTime < 1 || endTime - startTime > 3}
-                        className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all"
-                        style={{ background: isRegistering ? 'rgba(0,245,255,0.1)' : 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,180,200,0.2))', border: '1px solid rgba(0,245,255,0.4)', color: '#00f5ff', opacity: isRegistering || endTime - startTime < 1 || endTime - startTime > 3 ? 0.6 : 1 }}>
+                    <button onClick={() => onConfirm(`${Math.round(startTime)},${Math.round(endTime)}`)} disabled={isRegistering}
+                        className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all hover:brightness-110"
+                        style={{ background: isRegistering ? 'rgba(0,245,255,0.1)' : 'linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,180,200,0.2))', border: '1px solid rgba(0,245,255,0.4)', color: '#00f5ff', opacity: isRegistering ? 0.6 : 1 }}>
                         {isRegistering ? <><Loader2 size={16} className="animate-spin" />注册中...</> : <><UserPlus size={16} />确认注册</>}
                     </button>
                 </div>
