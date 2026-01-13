@@ -129,7 +129,7 @@ const CharacterIDCard: React.FC<{
                         )}
                     </div>
                     <div className="text-[9px] font-mono" style={{ color: '#9ca3af' }}>
-                        {isVerified ? character.soraCharacterId : character.taskId || '—'}
+                        {character.taskId || '—'}
                     </div>
                 </div>
             </div>
