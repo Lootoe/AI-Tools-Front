@@ -588,10 +588,10 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                                     ) : selectedCharacter.videoUrl ? (
                                         <div className="flex flex-col items-center w-full">
                                             <video src={selectedCharacter.videoUrl} controls className="max-w-full max-h-[400px] object-contain rounded-lg" poster={selectedCharacter.thumbnailUrl} style={{ boxShadow: '0 0 30px rgba(0,245,255,0.15)' }} />
-                                            {!selectedCharacter.soraCharacterId && selectedCharacter.taskId && (
+                                            {selectedCharacter.taskId && (
                                                 <button onClick={() => handleOpenRegisterDialog(selectedCharacter.id)} className="mt-4 px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-all hover:brightness-110"
                                                     style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,180,200,0.1))', border: '1px solid rgba(0,245,255,0.4)', color: '#00f5ff' }}>
-                                                    <UserPlus size={16} />注册角色（保持一致性）
+                                                    <UserPlus size={16} />{selectedCharacter.soraCharacterId ? '重新注册角色' : '注册角色（保持一致性）'}
                                                 </button>
                                             )}
                                         </div>
