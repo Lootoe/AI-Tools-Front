@@ -174,7 +174,13 @@ interface VariantCardProps {
 const formatTime = (dateStr?: string) => {
   if (!dateStr) return null;
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const s = String(date.getSeconds()).padStart(2, '0');
+  return `${y}/${m}/${d} ${h}:${min}:${s}`;
 };
 
 const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onSelect, onDelete, onRemix }) => {
@@ -218,12 +224,12 @@ const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onS
           </div>
           {/* 时间信息 */}
           {variant.startedAt && (
-            <div className="text-[9px] mt-0.5" style={{ color: '#6b7280' }}>
+            <div className="text-[9px] mt-0.5 whitespace-nowrap" style={{ color: '#6b7280' }}>
               开始: {formatTime(variant.startedAt)}
             </div>
           )}
           {variant.finishedAt && (
-            <div className="text-[9px]" style={{ color: '#6b7280' }}>
+            <div className="text-[9px] whitespace-nowrap" style={{ color: '#6b7280' }}>
               {isCompleted ? '完成' : '失败'}: {formatTime(variant.finishedAt)}
             </div>
           )}

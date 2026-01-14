@@ -18,7 +18,7 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
   const [editingTitle, setEditingTitle] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  
+
   const { scripts, addEpisode, deleteEpisode, updateEpisode } = useVideoStore();
   const script = scripts.find(s => s.id === scriptId);
 
@@ -86,9 +86,9 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
 
   if (!script) {
     return (
-      <div 
+      <div
         className="w-56 flex-shrink-0 rounded-xl flex items-center justify-center"
-        style={{ 
+        style={{
           backgroundColor: 'rgba(18,18,26,0.5)',
           backdropFilter: 'blur(8px)',
           border: '1px solid #1e1e2e'
@@ -103,23 +103,23 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
 
   return (
     <>
-      <div 
+      <div
         className="w-56 flex-shrink-0 rounded-xl flex flex-col overflow-hidden"
-        style={{ 
+        style={{
           backgroundColor: 'rgba(18,18,26,0.5)',
           backdropFilter: 'blur(8px)',
           border: '1px solid #1e1e2e'
         }}
       >
         {/* 标题栏 */}
-        <div 
+        <div
           className="flex items-center justify-between px-3 py-2.5"
           style={{ borderBottom: '1px solid #1e1e2e' }}
         >
           <div className="flex items-center gap-2">
-            <div 
+            <div
               className="w-6 h-6 rounded-md flex items-center justify-center"
-              style={{ 
+              style={{
                 background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))',
                 border: '1px solid rgba(0,245,255,0.2)'
               }}
@@ -154,7 +154,7 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
               <button
                 onClick={handleAddEpisode}
                 className="w-full p-3 rounded-lg flex flex-col items-center justify-center gap-1.5 text-xs transition-all"
-                style={{ 
+                style={{
                   border: '1px dashed #1e1e2e',
                   color: '#6b7280'
                 }}
@@ -173,11 +173,11 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                 <span>添加第一个剧集</span>
               </button>
             )}
-            
+
             {script.episodes.map((episode) => {
               const isSelected = selectedEpisodeId === episode.id;
               const isHovered = hoveredId === episode.id;
-              
+
               return (
                 <div
                   key={episode.id}
@@ -186,10 +186,10 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                   onMouseLeave={() => setHoveredId(null)}
                   className="p-2.5 rounded-lg cursor-pointer transition-all group relative"
                   style={{
-                    background: isSelected 
+                    background: isSelected
                       ? 'linear-gradient(90deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))'
                       : isHovered ? 'rgba(26,26,40,0.8)' : 'rgba(26,26,40,0.3)',
-                    border: isSelected 
+                    border: isSelected
                       ? '1px solid rgba(0,245,255,0.3)'
                       : isHovered ? '1px solid #1e1e2e' : '1px solid transparent',
                     boxShadow: isSelected ? '0 0 15px rgba(0,245,255,0.1)' : 'none'
@@ -197,19 +197,19 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                 >
                   {/* 选中指示器 */}
                   {isSelected && (
-                    <div 
+                    <div
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r-full"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(180deg, #00f5ff, #bf00ff)',
                         boxShadow: '0 0 8px rgba(0,245,255,0.8)'
                       }}
                     />
                   )}
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1 min-w-0 pl-1">
-                      <Clapperboard 
-                        size={12} 
+                      <Clapperboard
+                        size={12}
                         className="flex-shrink-0 transition-colors"
                         style={{ color: isSelected ? '#00f5ff' : isHovered ? '#9ca3af' : '#6b7280' }}
                       />
@@ -222,13 +222,13 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
                           className="flex-1 text-xs font-medium rounded px-1.5 py-0.5 text-white focus:outline-none"
-                          style={{ 
+                          style={{
                             backgroundColor: '#0a0a0f',
                             border: '1px solid rgba(0,245,255,0.5)'
                           }}
                         />
                       ) : (
-                        <span 
+                        <span
                           className="text-xs font-medium truncate transition-colors"
                           style={{ color: isSelected ? '#fff' : isHovered ? '#e5e7eb' : '#d1d5db' }}
                         >
@@ -259,7 +259,7 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                           <button
                             onClick={(e) => handleStartRename(e, episode.id, episode.title)}
                             className="p-0.5 rounded transition-all"
-                            style={{ 
+                            style={{
                               color: '#6b7280',
                               opacity: isHovered ? 1 : 0
                             }}
@@ -277,7 +277,7 @@ export const EpisodePanel: React.FC<EpisodePanelProps> = ({
                           <button
                             onClick={(e) => handleDeleteEpisode(e, episode.id)}
                             className="p-0.5 rounded transition-all"
-                            style={{ 
+                            style={{
                               color: '#6b7280',
                               opacity: isHovered ? 1 : 0
                             }}
