@@ -188,7 +188,7 @@ const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onS
       style={{ backgroundColor: isActive ? 'rgba(139,92,246,0.15)' : '#12121a', border: isActive ? '1px solid rgba(139,92,246,0.5)' : '1px solid #1e1e2e' }}
       onClick={onSelect}>
       <div className="flex items-center gap-2 p-2">
-        <div className="w-16 h-10 rounded flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0a0a0f', border: '1px solid #1e1e2e' }}>
+        <div className="w-20 h-14 rounded flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0a0a0f', border: '1px solid #1e1e2e' }}>
           {variant.thumbnailUrl ? (
             <img src={variant.thumbnailUrl} alt={`素材 ${index + 1}`} className="w-full h-full object-cover" />
           ) : variant.videoUrl ? (
@@ -209,15 +209,13 @@ const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onS
           <div className="flex items-center gap-1 mt-0.5">
             {isGenerating && <span className="text-[10px]" style={{ color: '#8b5cf6' }}>{variant.status === 'queued' ? '排队中' : `${variant.progress || 0}%`}</span>}
             {isCompleted && <span className="text-[10px]" style={{ color: '#10b981' }}>已完成</span>}
-            {isFailed && <span className="text-[10px]" style={{ color: '#ef4444' }}>生成失败</span>}
+            {isFailed && (
+              <span className="text-[10px] truncate max-w-[140px]" style={{ color: '#ef4444' }} title={variant.failReason || '生成失败'}>
+                {variant.failReason || '生成失败'}
+              </span>
+            )}
             {variant.status === 'pending' && <span className="text-[10px]" style={{ color: '#6b7280' }}>待生成</span>}
           </div>
-          {/* 失败原因 */}
-          {isFailed && variant.failReason && (
-            <div className="text-[9px] mt-0.5 truncate max-w-[140px]" style={{ color: '#ef4444' }} title={variant.failReason}>
-              原因: {variant.failReason}
-            </div>
-          )}
           {/* 时间信息 */}
           {variant.startedAt && (
             <div className="text-[9px] mt-0.5" style={{ color: '#6b7280' }}>
@@ -225,11 +223,10 @@ const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onS
             </div>
           )}
           {variant.finishedAt && (
-            <div className="text-[9px]" style={{ color: isCompleted ? '#10b981' : '#ef4444' }}>
+            <div className="text-[9px]" style={{ color: '#6b7280' }}>
               {isCompleted ? '完成' : '失败'}: {formatTime(variant.finishedAt)}
             </div>
           )}
-          {variant.taskId && <div className="text-[9px] mt-0.5 truncate max-w-[140px]" style={{ color: '#4b5563' }} title={variant.taskId}>ID: {variant.taskId}</div>}
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {canRemix && (
@@ -242,6 +239,12 @@ const VariantCard: React.FC<VariantCardProps> = ({ variant, index, isActive, onS
           </button>
         </div>
       </div>
+      {/* ID 单独一行 */}
+      {variant.taskId && (
+        <div className="px-2 pb-2 text-[9px] truncate" style={{ color: '#4b5563' }} title={variant.taskId}>
+          ID: {variant.taskId}
+        </div>
+      )}
       {isGenerating && (
         <div className="h-0.5" style={{ backgroundColor: 'rgba(139,92,246,0.2)' }}>
           <div className="h-full transition-all" style={{ width: `${variant.progress || 0}%`, background: 'linear-gradient(90deg, #6366f1, #8b5cf6)' }} />
