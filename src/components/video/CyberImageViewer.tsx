@@ -21,6 +21,9 @@ interface CyberImageViewerProps {
     // 提示词模板
     promptTemplateId?: string;
     onPromptTemplateChange?: (templateId: string) => void;
+    // 图片质量
+    imageSize?: '1K' | '2K';
+    onImageSizeChange?: (size: '1K' | '2K') => void;
     isProcessing?: boolean;
 }
 
@@ -41,6 +44,8 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
     onModelChange,
     promptTemplateId = 'image-9grid',
     onPromptTemplateChange,
+    imageSize = '1K',
+    onImageSizeChange,
     isProcessing = false,
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
@@ -48,6 +53,7 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
     const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+    const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
     const displayUrl = imageUrl || thumbnailUrl;
@@ -86,6 +92,11 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
         { value: '16:9', label: '16:9 横版' },
         { value: '1:1', label: '1:1 方形' },
         { value: '4:3', label: '4:3 标准' },
+    ] as const;
+
+    const sizeOptions = [
+        { value: '1K', label: '1K 标清' },
+        { value: '2K', label: '2K 高清' },
     ] as const;
 
     return (
@@ -210,6 +221,34 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
                                 </>
                             )}
                         </div>
+
+                        {/* 图片质量选择 */}
+                        {onImageSizeChange && (
+                            <div className="relative">
+                                <button onClick={() => !isProcessing && setIsSizeDropdownOpen(!isSizeDropdownOpen)}
+                                    disabled={isProcessing}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                                    style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e', opacity: isProcessing ? 0.5 : 1 }}>
+                                    <span>{imageSize}</span>
+                                    <ChevronDown size={12} />
+                                </button>
+                                {isSizeDropdownOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setIsSizeDropdownOpen(false)} />
+                                        <div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[100px]"
+                                            style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                            {sizeOptions.map((s) => (
+                                                <button key={s.value} onClick={() => { onImageSizeChange(s.value); setIsSizeDropdownOpen(false); }}
+                                                    className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap"
+                                                    style={{ color: imageSize === s.value ? '#22c55e' : '#d1d5db', backgroundColor: imageSize === s.value ? 'rgba(34,197,94,0.1)' : 'transparent' }}>
+                                                    {s.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
 
 
                     </div>

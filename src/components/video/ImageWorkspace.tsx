@@ -61,6 +61,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
     const [selectedModel, setSelectedModel] = useState<ImageModel>(imagePrefs.model as ImageModel);
     const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>(imagePrefs.promptTemplateId);
+    const [localImageSize, setLocalImageSize] = useState<'1K' | '2K'>(imagePrefs.imageSize);
 
     const script = scripts.find((s) => s.id === scriptId);
 
@@ -174,7 +175,8 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
                 localPromptTemplateId,
                 selectedModel,
                 storyboardImage.referenceImageUrls || [],
-                localAspectRatio
+                localAspectRatio,
+                localImageSize
             );
 
             if (response.success && response.images?.[0]?.url) {
@@ -327,6 +329,8 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
                                 onAspectRatioChange={setLocalAspectRatio}
                                 selectedModel={selectedModel}
                                 onModelChange={setSelectedModel}
+                                imageSize={localImageSize}
+                                onImageSizeChange={setLocalImageSize}
                                 isProcessing={selectedStoryboardImage?.imageVariants?.some(v => v.status === 'generating' || v.status === 'queued') ?? false}
                             />
                         </div>

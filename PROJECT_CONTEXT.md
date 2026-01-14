@@ -450,8 +450,8 @@ interface CharacterState {
 ```typescript
 interface PreferencesState {
   video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
-  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; promptTemplateId: string };
-  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; promptTemplateId: string };
+  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; promptTemplateId: string; imageSize: '1K' | '2K' };
+  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; promptTemplateId: string; imageSize: '1K' | '2K' };
   character: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
   setVideoPreferences: (prefs: Partial<VideoPreferences>) => void;
   setStoryboardImagePreferences: (prefs: Partial<StoryboardImagePreferences>) => void;
@@ -461,6 +461,7 @@ interface PreferencesState {
 ```
 
 > 更新于 2026-01-14：新增偏好设置 Store，使用 localStorage 持久化
+> 更新于 2026-01-14：storyboardImage 和 asset 新增 imageSize 字段，支持图片质量设置（1K/2K）
 
 ---
 
@@ -613,9 +614,11 @@ deleteAsset(scriptId: string, assetId: string)
 - 图片查看器
 - 提示词模板选择（从后端 API 获取 storyboardImage 分类模板）
 - 画面比例选择（16:9/1:1/4:3）
+- 图片质量选择（1K/2K）
 - 模型选择
 
 > 更新于 2026-01-12：CyberVideoPlayer 和 CyberImageViewer 新增提示词模板选择功能，放置于顶部工具栏与其他 API 设置一起
+> 更新于 2026-01-14：CyberImageViewer 新增图片质量选择（1K/2K），支持生成不同分辨率的图片
 
 **StoryboardCard**
 - 分镜卡片
@@ -791,3 +794,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
 | 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |
 | 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选，新增全局偏好设置（分镜视频/分镜图/资产/角色的默认生成参数） |
+| 1.1.1 | 2026-01-14 | 分镜图生成、资产生成新增图片质量选择（1K/2K），上传组件默认限制改为 10MB |

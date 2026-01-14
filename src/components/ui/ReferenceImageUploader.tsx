@@ -22,7 +22,7 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({
     images,
     onChange,
     maxCount = 5,
-    maxSizeMB = 2,
+    maxSizeMB = 10,
     multiple = true,
     disabled = false,
     emptyText,

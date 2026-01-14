@@ -71,6 +71,8 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(assetPrefs.aspectRatio as AspectRatio);
     const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
+    const [selectedImageSize, setSelectedImageSize] = useState<'1K' | '2K'>(assetPrefs.imageSize);
+    const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; assetId: string | null; assetName: string }>({ isOpen: false, assetId: null, assetName: '' });
     // 编辑弹框状态
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -101,7 +103,7 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
         updateBalance((prev) => prev - tokenCost);
         await updateAsset(scriptId, selectedAsset.id, { status: 'generating' });
         try {
-            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplateId, selectedModel, selectedAsset.referenceImageUrls || [], selectedAspectRatio);
+            const response = await generateAssetDesign(selectedAsset.id, scriptId, editDescription.trim(), selectedPromptTemplateId, selectedModel, selectedAsset.referenceImageUrls || [], selectedAspectRatio, selectedImageSize);
             await loadAssets(scriptId);
             if (response.balance !== undefined) updateBalance(response.balance);
             showToast(response.success ? '设计稿生成成功' : '生成失败，代币已返还', response.success ? 'success' : 'error');
@@ -360,6 +362,10 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                             <div className="relative">
                                 <button onClick={() => setIsRatioDropdownOpen(!isRatioDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(77,124,255,0.1)', border: '1px solid rgba(77,124,255,0.2)', color: '#4d7cff', opacity: isProcessing ? 0.5 : 1 }}><span>{selectedAspectRatio}</span><ChevronDown size={12} /></button>
                                 {isRatioDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsRatioDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[100px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(77,124,255,0.2)' }}>{ASPECT_RATIOS.map((r) => <button key={r.value} onClick={() => { setSelectedAspectRatio(r.value); setIsRatioDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedAspectRatio === r.value ? '#4d7cff' : '#d1d5db', backgroundColor: selectedAspectRatio === r.value ? 'rgba(77,124,255,0.1)' : 'transparent' }}>{r.label}</button>)}</div></>}
+                            </div>
+                            <div className="relative">
+                                <button onClick={() => setIsSizeDropdownOpen(!isSizeDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e', opacity: isProcessing ? 0.5 : 1 }}><span>{selectedImageSize}</span><ChevronDown size={12} /></button>
+                                {isSizeDropdownOpen && <><div className="fixed inset-0 z-10" onClick={() => setIsSizeDropdownOpen(false)} /><div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden min-w-[100px]" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(34,197,94,0.2)' }}>{[{ value: '1K', label: '1K 标清' }, { value: '2K', label: '2K 高清' }].map((s) => <button key={s.value} onClick={() => { setSelectedImageSize(s.value as '1K' | '2K'); setIsSizeDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: selectedImageSize === s.value ? '#22c55e' : '#d1d5db', backgroundColor: selectedImageSize === s.value ? 'rgba(34,197,94,0.1)' : 'transparent' }}>{s.label}</button>)}</div></>}
                             </div>
                             <button onClick={handleGenerateDesign} disabled={isProcessing || !selectedAsset || !editDescription.trim()} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs" style={{ background: isProcessing || !selectedAsset || !editDescription.trim() ? 'rgba(191,0,255,0.1)' : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))', border: '1px solid rgba(191,0,255,0.3)', color: '#bf00ff', opacity: isProcessing || !selectedAsset || !editDescription.trim() ? 0.5 : 1 }}><Sparkles size={12} />生成（<img src={CoinIcon} alt="" className="w-4 h-4 inline" />{selectedModel === 'nano-banana-2' ? 4 : 2}）</button>
                         </div>

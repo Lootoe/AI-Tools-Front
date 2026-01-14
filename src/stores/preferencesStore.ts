@@ -13,6 +13,7 @@ export interface StoryboardImagePreferences {
   aspectRatio: '16:9' | '1:1' | '4:3';
   model: string;
   promptTemplateId: string;
+  imageSize: '1K' | '2K'; // 图片质量
 }
 
 // 资产偏好
@@ -20,6 +21,7 @@ export interface AssetPreferences {
   aspectRatio: '1:1' | '4:3' | '16:9';
   model: string;
   promptTemplateId: string;
+  imageSize: '1K' | '2K'; // 图片质量
 }
 
 // 角色视频偏好
@@ -50,12 +52,14 @@ const DEFAULT_STORYBOARD_IMAGE: StoryboardImagePreferences = {
   aspectRatio: '16:9',
   model: 'nano-banana-2',
   promptTemplateId: 'storyboardImage-none',
+  imageSize: '1K',
 };
 
 const DEFAULT_ASSET: AssetPreferences = {
   aspectRatio: '16:9',
   model: 'nano-banana-2',
   promptTemplateId: 'asset-none',
+  imageSize: '1K',
 };
 
 const DEFAULT_CHARACTER: CharacterPreferences = {

@@ -104,7 +104,8 @@ export async function generateAssetDesign(
     promptTemplateId: string,
     model?: string,
     referenceImageUrls?: string[],
-    aspectRatio?: '1:1' | '4:3' | '16:9'
+    aspectRatio?: '1:1' | '4:3' | '16:9',
+    imageSize?: '1K' | '2K'
 ): Promise<AssetDesignResponse> {
     const token = getAuthToken();
 
@@ -114,7 +115,7 @@ export async function generateAssetDesign(
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ assetId, scriptId, description, promptTemplateId, model, referenceImageUrls, aspectRatio }),
+        body: JSON.stringify({ assetId, scriptId, description, promptTemplateId, model, referenceImageUrls, aspectRatio, imageSize }),
     });
 
     if (!response.ok) {
@@ -184,7 +185,8 @@ export async function generateStoryboardImage(
     promptTemplateId: string,
     model: string,
     referenceImageUrls?: string[],
-    aspectRatio?: '16:9' | '1:1' | '4:3'
+    aspectRatio?: '16:9' | '1:1' | '4:3',
+    imageSize?: '1K' | '2K'
 ): Promise<StoryboardImageResponse> {
     const token = getAuthToken();
 
@@ -202,6 +204,7 @@ export async function generateStoryboardImage(
             model,
             referenceImageUrls,
             aspectRatio,
+            imageSize,
         }),
     });
 
