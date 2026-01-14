@@ -1,0 +1,87 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+// 分镜视频偏好
+export interface VideoPreferences {
+  aspectRatio: '16:9' | '9:16';
+  duration: '10' | '15';
+  promptTemplateId: string;
+}
+
+// 分镜图偏好
+export interface StoryboardImagePreferences {
+  aspectRatio: '16:9' | '1:1' | '4:3';
+  model: string;
+  promptTemplateId: string;
+}
+
+// 资产偏好
+export interface AssetPreferences {
+  aspectRatio: '1:1' | '4:3' | '16:9';
+  model: string;
+  promptTemplateId: string;
+}
+
+// 角色视频偏好
+export interface CharacterPreferences {
+  aspectRatio: '16:9' | '9:16';
+  duration: '10' | '15';
+  promptTemplateId: string;
+}
+
+export interface PreferencesState {
+  video: VideoPreferences;
+  storyboardImage: StoryboardImagePreferences;
+  asset: AssetPreferences;
+  character: CharacterPreferences;
+  setVideoPreferences: (prefs: Partial<VideoPreferences>) => void;
+  setStoryboardImagePreferences: (prefs: Partial<StoryboardImagePreferences>) => void;
+  setAssetPreferences: (prefs: Partial<AssetPreferences>) => void;
+  setCharacterPreferences: (prefs: Partial<CharacterPreferences>) => void;
+}
+
+const DEFAULT_VIDEO: VideoPreferences = {
+  aspectRatio: '16:9',
+  duration: '10',
+  promptTemplateId: 'video-none',
+};
+
+const DEFAULT_STORYBOARD_IMAGE: StoryboardImagePreferences = {
+  aspectRatio: '16:9',
+  model: 'nano-banana-2',
+  promptTemplateId: 'storyboardImage-none',
+};
+
+const DEFAULT_ASSET: AssetPreferences = {
+  aspectRatio: '16:9',
+  model: 'nano-banana-2',
+  promptTemplateId: 'asset-none',
+};
+
+const DEFAULT_CHARACTER: CharacterPreferences = {
+  aspectRatio: '16:9',
+  duration: '10',
+  promptTemplateId: 'character-none',
+};
+
+export const usePreferencesStore = create<PreferencesState>()(
+  persist(
+    (set) => ({
+      video: DEFAULT_VIDEO,
+      storyboardImage: DEFAULT_STORYBOARD_IMAGE,
+      asset: DEFAULT_ASSET,
+      character: DEFAULT_CHARACTER,
+      setVideoPreferences: (prefs) =>
+        set((state) => ({ video: { ...state.video, ...prefs } })),
+      setStoryboardImagePreferences: (prefs) =>
+        set((state) => ({ storyboardImage: { ...state.storyboardImage, ...prefs } })),
+      setAssetPreferences: (prefs) =>
+        set((state) => ({ asset: { ...state.asset, ...prefs } })),
+      setCharacterPreferences: (prefs) =>
+        set((state) => ({ character: { ...state.character, ...prefs } })),
+    }),
+    {
+      name: 'miaoxiang-preferences',
+    }
+  )
+);

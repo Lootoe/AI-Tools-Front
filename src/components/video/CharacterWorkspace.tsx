@@ -11,6 +11,7 @@ import { CyberVideoPlayer } from './CyberVideoPlayer';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useAssetStore } from '@/stores/assetStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { generateCharacterVideo, registerSoraCharacter } from '@/services/characterApi';
 import { Character } from '@/types/video';
 
@@ -338,15 +339,16 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     const { assets, loadAssets } = useAssetStore();
     const { updateBalance } = useAuthStore();
     const { showToast, ToastContainer } = useToast();
+    const characterPrefs = usePreferencesStore((s) => s.character);
 
     const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16');
-    const [duration, setDuration] = useState<'10' | '15'>('15');
-    const [promptTemplateId, setPromptTemplateId] = useState('character-default');
+    const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>(characterPrefs.aspectRatio);
+    const [duration, setDuration] = useState<'10' | '15'>(characterPrefs.duration);
+    const [promptTemplateId, setPromptTemplateId] = useState(characterPrefs.promptTemplateId);
 
     const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);

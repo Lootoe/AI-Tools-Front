@@ -9,6 +9,7 @@ import { Loading, InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAssetStore } from '@/stores/assetStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { generateAssetDesign, editImage } from '@/services/assetApi';
 import { uploadImage, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
 import { Asset } from '@/types/asset';
@@ -56,24 +57,25 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
     const { assets, isLoading, loadAssets, addAsset, updateAsset, deleteAsset } = useAssetStore();
     const { updateBalance } = useAuthStore();
     const { showToast, ToastContainer } = useToast();
+    const assetPrefs = usePreferencesStore((s) => s.asset);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [editDescription, setEditDescription] = useState('');
     const [editName, setEditName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<string>('asset-none');
+    const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<string>(assetPrefs.promptTemplateId);
     const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
     const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
+    const [selectedModel, setSelectedModel] = useState<ImageModel>(assetPrefs.model as ImageModel);
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-    const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>('16:9');
+    const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(assetPrefs.aspectRatio as AspectRatio);
     const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; assetId: string | null; assetName: string }>({ isOpen: false, assetId: null, assetName: '' });
     // 编辑弹框状态
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editPrompt, setEditPrompt] = useState('');
-    const [editModel, setEditModel] = useState<ImageModel>('nano-banana-2');
+    const [editModel, setEditModel] = useState<ImageModel>(assetPrefs.model as ImageModel);
     const [isEditModelDropdownOpen, setIsEditModelDropdownOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 

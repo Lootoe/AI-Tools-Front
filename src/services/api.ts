@@ -217,17 +217,30 @@ export interface BalanceRecordsResponse {
   data: {
     records: BalanceRecord[];
     total: number;
+    totalConsume: number;
     page: number;
     pageSize: number;
     totalPages: number;
   };
 }
 
-// 获取余额记录
-export async function getBalanceRecords(page: number = 1, pageSize: number = 20): Promise<BalanceRecordsResponse> {
+// 获取余额记录（支持日期筛选）
+export async function getBalanceRecords(
+  page: number = 1,
+  pageSize: number = 20,
+  startDate?: string,
+  endDate?: string
+): Promise<BalanceRecordsResponse> {
   const token = getAuthToken();
 
-  const response = await fetch(`${BACKEND_URL}/api/auth/balance-records?page=${page}&pageSize=${pageSize}`, {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  const response = await fetch(`${BACKEND_URL}/api/auth/balance-records?${params}`, {
     method: 'GET',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

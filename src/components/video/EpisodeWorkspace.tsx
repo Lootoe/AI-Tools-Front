@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
 import { CyberVideoPlayer } from './CyberVideoPlayer';
@@ -44,6 +45,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
 
   const { updateBalance } = useAuthStore();
   const { showToast, ToastContainer } = useToast();
+  const videoPrefs = usePreferencesStore((s) => s.video);
 
   // 使用 URL 参数作为选中状态
   const selectedEpisodeId = urlEpisodeId || null;
@@ -54,10 +56,10 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
   const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [localDescription, setLocalDescription] = useState('');
-  // API设置（不保存到分镜配置，仅作为生成时的临时参数）
-  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('16:9');
-  const [localDuration, setLocalDuration] = useState<'10' | '15'>('15');
-  const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('video-default');
+  // API设置（使用偏好设置作为默认值）
+  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>(videoPrefs.aspectRatio);
+  const [localDuration, setLocalDuration] = useState<'10' | '15'>(videoPrefs.duration);
+  const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>(videoPrefs.promptTemplateId);
   // 参考图状态
   const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
 

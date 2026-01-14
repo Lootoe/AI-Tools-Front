@@ -3,6 +3,7 @@ import { Image, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAssetStore } from '@/stores/assetStore';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 import { EpisodePanel } from './EpisodePanel';
 import { ImageStoryboardGrid } from './ImageStoryboardGrid';
 import { CyberImageViewer } from './CyberImageViewer';
@@ -45,6 +46,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
     const { updateBalance } = useAuthStore();
     const { assets, loadAssets } = useAssetStore();
     const { showToast, ToastContainer } = useToast();
+    const imagePrefs = usePreferencesStore((s) => s.storyboardImage);
 
     // 使用 URL 参数作为选中状态
     const selectedEpisodeId = urlEpisodeId || null;
@@ -55,10 +57,10 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
     const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
     const [isDownloading, _setIsDownloading] = useState(false);
     const [localDescription, setLocalDescription] = useState('');
-    const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>('16:9');
+    const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>(imagePrefs.aspectRatio);
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
-    const [selectedModel, setSelectedModel] = useState<ImageModel>('nano-banana-2');
-    const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>('image-9grid');
+    const [selectedModel, setSelectedModel] = useState<ImageModel>(imagePrefs.model as ImageModel);
+    const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>(imagePrefs.promptTemplateId);
 
     const script = scripts.find((s) => s.id === scriptId);
 

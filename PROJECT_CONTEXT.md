@@ -21,9 +21,9 @@
 ### 1.3 核心功能模块
 
 #### 1.3.1 用户系统
-- **注册/登录**：邮箱验证码注册，支持邀请码
-- **用户中心**：个人信息管理、余额查看、交易记录
-- **邀请系统**：邀请码机制，邀请好友获得奖励（+¥20/人）
+- **注册/登录**：邮箱验证码注册
+- **用户中心**：个人信息管理、余额查看、交易记录（支持分页和日期筛选）
+- **套餐购买**：支持三档套餐（10元/100代币、29元/300代币、68元/700代币）
 - **兑换码**：支持兑换码充值代币
 
 #### 1.3.2 剧本管理
@@ -446,6 +446,22 @@ interface CharacterState {
 
 > 更新于 2026-01-12：新增 characterStore
 
+### 5.5 preferencesStore（偏好设置）
+```typescript
+interface PreferencesState {
+  video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
+  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; promptTemplateId: string };
+  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; promptTemplateId: string };
+  character: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
+  setVideoPreferences: (prefs: Partial<VideoPreferences>) => void;
+  setStoryboardImagePreferences: (prefs: Partial<StoryboardImagePreferences>) => void;
+  setAssetPreferences: (prefs: Partial<AssetPreferences>) => void;
+  setCharacterPreferences: (prefs: Partial<CharacterPreferences>) => void;
+}
+```
+
+> 更新于 2026-01-14：新增偏好设置 Store，使用 localStorage 持久化
+
 ---
 
 ## 六、页面路由
@@ -550,9 +566,12 @@ deleteAsset(scriptId: string, assetId: string)
 - 顶部导航栏
 
 **ProfilePage**
-- 用户信息展示
-- 余额与交易记录
-- 邀请码功能
+- 用户信息展示与编辑
+- 余额显示
+- 套餐购买（10元/100代币、29元/300代币、68元/700代币）
+- 兑换码功能
+- 交易记录（支持分页和日期范围筛选、总消耗统计）
+- 偏好设置（分镜视频/分镜图/资产/角色的默认生成参数）
 
 ### 8.2 工作区组件
 
@@ -771,4 +790,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.6 | 2026-01-13 | 新增 Sora2 角色注册功能：支持多视频角色一致性，角色身份卡片显示认证状态 |
 | 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
 | 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |
-| 1.0.9 | 2026-01-14 | CharacterWorkspace 视频预览区改用 CyberVideoPlayer 组件，CyberVideoPlayer 新增生成按钮、处理中状态、提示词模板分类等功能 |
+| 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选，新增全局偏好设置（分镜视频/分镜图/资产/角色的默认生成参数） |
