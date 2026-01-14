@@ -275,6 +275,8 @@ interface StoryboardVariant {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  startedAt?: string;   // 生成开始时间
+  finishedAt?: string;  // 生成结束时间（完成或失败）
   createdAt: string;
 }
 
@@ -297,8 +299,12 @@ interface ImageVariant {
   storyboardImageId: string;
   imageUrl?: string;
   status: 'pending' | 'generating' | 'completed' | 'failed';
+  startedAt?: string;   // 生成开始时间
+  finishedAt?: string;  // 生成结束时间（完成或失败）
   createdAt: string;
 }
+
+> 更新于 2026-01-14：StoryboardVariant 和 ImageVariant 新增 startedAt、finishedAt 字段
 
 // 资产
 interface Asset {

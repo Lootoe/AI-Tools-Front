@@ -9,6 +9,8 @@ export interface StoryboardVariant {
   taskId?: string;         // sora2 任务ID，用于恢复轮询
   progress?: string;       // 生成进度百分比
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  startedAt?: string;      // 生成开始时间
+  finishedAt?: string;     // 生成结束时间（完成或失败）
   createdAt: string;
 }
 
@@ -93,6 +95,8 @@ export interface ImageVariant {
   taskId?: string;         // 任务ID
   progress?: string;       // 生成进度百分比
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  startedAt?: string;      // 生成开始时间
+  finishedAt?: string;     // 生成结束时间（完成或失败）
   createdAt: string;
 }
 

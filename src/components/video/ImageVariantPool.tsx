@@ -107,6 +107,13 @@ interface ImageVariantCardProps {
     onDelete: () => void;
 }
 
+// 格式化时间显示
+const formatTime = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
 const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isActive, onSelect, onDelete }) => {
     const isGenerating = variant.status === 'generating' || variant.status === 'queued';
     const isCompleted = variant.status === 'completed';
@@ -140,6 +147,17 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                         {isFailed && <span className="text-[10px]" style={{ color: '#ef4444' }}>生成失败</span>}
                         {variant.status === 'pending' && <span className="text-[10px]" style={{ color: '#6b7280' }}>待生成</span>}
                     </div>
+                    {/* 时间信息 */}
+                    {variant.startedAt && (
+                        <div className="text-[9px] mt-0.5" style={{ color: '#6b7280' }}>
+                            开始: {formatTime(variant.startedAt)}
+                        </div>
+                    )}
+                    {variant.finishedAt && (
+                        <div className="text-[9px]" style={{ color: isCompleted ? '#10b981' : '#ef4444' }}>
+                            {isCompleted ? '完成' : '失败'}: {formatTime(variant.finishedAt)}
+                        </div>
+                    )}
                     {variant.taskId && <div className="text-[9px] mt-0.5 truncate max-w-[140px]" style={{ color: '#4b5563' }} title={variant.taskId}>ID: {variant.taskId}</div>}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
