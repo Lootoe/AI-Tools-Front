@@ -60,7 +60,6 @@ export async function deleteCharacter(scriptId: string, characterId: string): Pr
 // 角色视频生成请求
 export interface CharacterToVideoRequest {
     prompt: string;
-    promptTemplateId?: string;
     aspect_ratio?: '16:9' | '9:16';
     duration?: '10' | '15';
     referenceImageUrl?: string;
@@ -78,7 +77,6 @@ export async function generateCharacterVideo(request: CharacterToVideoRequest): 
         },
         body: JSON.stringify({
             prompt: request.prompt,
-            promptTemplateId: request.promptTemplateId || 'character-default',
             model: 'sora-2',
             aspect_ratio: request.aspect_ratio || '9:16',
             duration: request.duration || '15',

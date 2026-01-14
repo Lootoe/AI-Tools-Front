@@ -13,10 +13,3 @@ export interface Asset {
     createdAt: string;
     updatedAt: string;
 }
-
-// 提示词模板配置（从后端 API 获取）
-export interface PromptTemplateConfig {
-    id: string;
-    label: string;
-    description: string;
-}

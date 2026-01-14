@@ -348,7 +348,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
     const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>(characterPrefs.aspectRatio);
     const [duration, setDuration] = useState<'10' | '15'>(characterPrefs.duration);
-    const [promptTemplateId, setPromptTemplateId] = useState(characterPrefs.promptTemplateId);
 
     const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
@@ -407,7 +406,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
         await updateCharacter(scriptId, selectedCharacter.id, { status: 'generating', progress: '0' });
         try {
             const response = await generateCharacterVideo({
-                prompt: editDescription.trim(), promptTemplateId, aspect_ratio: aspectRatio, duration,
+                prompt: editDescription.trim(), aspect_ratio: aspectRatio, duration,
                 referenceImageUrl: selectedCharacter.referenceImageUrl, characterId: selectedCharacter.id,
             });
             if (response.balance !== undefined) updateBalance(response.balance);
@@ -539,9 +538,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                                         onAspectRatioChange={setAspectRatio}
                                         duration={duration}
                                         onDurationChange={setDuration}
-                                        promptTemplateId={promptTemplateId}
-                                        onPromptTemplateChange={setPromptTemplateId}
-                                        promptTemplateCategory="character"
                                         isProcessing={isProcessing}
                                         processingProgress={selectedCharacter.progress}
                                         onGenerate={handleGenerateVideo}

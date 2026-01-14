@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, ZoomIn, Image, X, ChevronDown, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Download, ZoomIn, Image, X, ChevronDown } from 'lucide-react';
 import { ImageModel, IMAGE_MODELS } from './ImageLeftPanel';
-import { getPromptTemplates, PromptTemplateConfig } from '@/services/api';
 
 interface CyberImageViewerProps {
     imageUrl?: string;
@@ -18,9 +17,6 @@ interface CyberImageViewerProps {
     onAspectRatioChange: (ratio: '16:9' | '1:1' | '4:3') => void;
     selectedModel: ImageModel;
     onModelChange: (model: ImageModel) => void;
-    // 提示词模板
-    promptTemplateId?: string;
-    onPromptTemplateChange?: (templateId: string) => void;
     // 图片质量
     imageSize?: '1K' | '2K';
     onImageSizeChange?: (size: '1K' | '2K') => void;
@@ -42,8 +38,6 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
     onAspectRatioChange,
     selectedModel,
     onModelChange,
-    promptTemplateId = 'image-9grid',
-    onPromptTemplateChange,
     imageSize = '1K',
     onImageSizeChange,
     isProcessing = false,
@@ -52,18 +46,9 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
     const [showFullscreen, setShowFullscreen] = useState(false);
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
-    const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
     const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
-    const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
     const displayUrl = imageUrl || thumbnailUrl;
-
-    // 加载提示词模板列表
-    useEffect(() => {
-        getPromptTemplates('storyboardImage')
-            .then((res) => { if (res.success) setPromptTemplates(res.data); })
-            .catch(() => { });
-    }, []);
 
     const handleDownload = async () => {
         if (!displayUrl) return;
@@ -101,53 +86,6 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
 
     return (
         <>
-            {/* 提示词模板选择弹框 */}
-            {isTemplateDropdownOpen && onPromptTemplateChange && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} onClick={() => setIsTemplateDropdownOpen(false)}>
-                    <div className="w-[600px] rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(139,92,246,0.3)', boxShadow: '0 0 40px rgba(139,92,246,0.2)' }} onClick={(e) => e.stopPropagation()}>
-                        {/* 弹框头部 */}
-                        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15))', border: '1px solid rgba(139,92,246,0.3)' }}>
-                                    <Sparkles size={14} style={{ color: '#8b5cf6' }} />
-                                </div>
-                                <span className="text-sm font-medium text-white">选择提示词模板</span>
-                            </div>
-                            <button onClick={() => setIsTemplateDropdownOpen(false)} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
-                                <X size={16} style={{ color: '#6b7280' }} />
-                            </button>
-                        </div>
-                        {/* 模板列表 */}
-                        <div className="p-3 max-h-[500px] overflow-y-auto">
-                            <div className="grid gap-2">
-                                {promptTemplates.map((t) => (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => { onPromptTemplateChange(t.id); setIsTemplateDropdownOpen(false); }}
-                                        className="w-full px-3 py-2.5 rounded-lg text-left transition-all hover:brightness-110"
-                                        style={{
-                                            backgroundColor: promptTemplateId === t.id ? 'rgba(139,92,246,0.1)' : 'rgba(0,0,0,0.2)',
-                                            border: promptTemplateId === t.id ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(30,30,46,0.6)',
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: promptTemplateId === t.id ? '#8b5cf6' : '#4b5563' }} />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-medium" style={{ color: promptTemplateId === t.id ? '#8b5cf6' : '#e5e7eb' }}>{t.label}</div>
-                                                {t.description && <div className="text-[10px] mt-0.5 truncate" style={{ color: '#6b7280' }}>{t.description}</div>}
-                                            </div>
-                                            {promptTemplateId === t.id && (
-                                                <div className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(139,92,246,0.2)', color: '#8b5cf6' }}>当前</div>
-                                            )}
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="relative flex flex-col h-full rounded-xl overflow-hidden"
                 style={{ backgroundColor: '#0a0a0f', border: '1px solid #1e1e2e', boxShadow: '0 0 30px rgba(0,245,255,0.1), inset 0 0 60px rgba(0,0,0,0.5)' }}
                 onMouseEnter={() => setIsHovering(true)}
@@ -159,17 +97,6 @@ export const CyberImageViewer: React.FC<CyberImageViewerProps> = ({
                     <span className="text-xs font-medium" style={{ color: '#00f5ff' }}>{title || '分镜图预览'}</span>
 
                     <div className="flex items-center gap-2">
-                        {/* 提示词模板选择按钮 */}
-                        {onPromptTemplateChange && (
-                            <button onClick={() => !isProcessing && setIsTemplateDropdownOpen(true)}
-                                disabled={isProcessing}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                                style={{ backgroundColor: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#8b5cf6', opacity: isProcessing ? 0.5 : 1 }}>
-                                <span className="max-w-[80px] truncate">{promptTemplates.find(t => t.id === promptTemplateId)?.label || '选择模板'}</span>
-                                <ChevronDown size={12} />
-                            </button>
-                        )}
-
                         {/* 比例选择 */}
                         <div className="relative">
                             <button onClick={() => !isProcessing && setIsRatioDropdownOpen(!isRatioDropdownOpen)}

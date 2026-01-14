@@ -101,7 +101,6 @@ export async function generateAssetDesign(
     assetId: string,
     scriptId: string,
     description: string,
-    promptTemplateId: string,
     model?: string,
     referenceImageUrls?: string[],
     aspectRatio?: '1:1' | '4:3' | '16:9',
@@ -115,7 +114,7 @@ export async function generateAssetDesign(
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ assetId, scriptId, description, promptTemplateId, model, referenceImageUrls, aspectRatio, imageSize }),
+        body: JSON.stringify({ assetId, scriptId, description, model, referenceImageUrls, aspectRatio, imageSize }),
     });
 
     if (!response.ok) {
@@ -182,7 +181,6 @@ export async function generateStoryboardImage(
     variantId: string,
     scriptId: string,
     description: string,
-    promptTemplateId: string,
     model: string,
     referenceImageUrls?: string[],
     aspectRatio?: '16:9' | '1:1' | '4:3',
@@ -200,7 +198,6 @@ export async function generateStoryboardImage(
             variantId,
             scriptId,
             description,
-            promptTemplateId,
             model,
             referenceImageUrls,
             aspectRatio,

@@ -79,7 +79,6 @@ export async function getVideoStatus(taskId: string): Promise<Sora2VideoResponse
 // 分镜生成视频请求
 export interface StoryboardToVideoRequest {
   prompt: string;
-  promptTemplateId?: string;
   model?: 'sora-2';
   aspect_ratio?: '16:9' | '9:16';
   duration?: '10' | '15';
@@ -101,7 +100,6 @@ export async function generateStoryboardVideo(request: StoryboardToVideoRequest)
     },
     body: JSON.stringify({
       prompt: request.prompt,
-      promptTemplateId: request.promptTemplateId || 'video-none',
       model: request.model || 'sora-2',
       aspect_ratio: request.aspect_ratio || '9:16',
       duration: request.duration || '15',
@@ -363,27 +361,3 @@ export async function captureVideoFrame(videoUrl: string, timestamp: number, fil
 
 
 // ============ 配置相关 ============
-
-// 提示词模板配置
-export interface PromptTemplateConfig {
-  id: string;
-  label: string;
-  description: string;
-}
-
-// 提示词分类
-export type PromptCategory = 'video' | 'storyboardImage' | 'asset' | 'character';
-
-// 获取提示词模板列表
-export async function getPromptTemplates(category: PromptCategory): Promise<{ success: boolean; data: PromptTemplateConfig[] }> {
-  const response = await fetch(`${BACKEND_URL}/api/config/prompt-templates?category=${category}`, {
-    method: 'GET',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(`获取提示词模板失败: ${error.error || error.message || response.statusText}`);
-  }
-
-  return response.json();
-}

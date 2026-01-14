@@ -60,7 +60,6 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
     const [localAspectRatio, setLocalAspectRatio] = useState<'16:9' | '1:1' | '4:3'>(imagePrefs.aspectRatio);
     const [localReferenceImageUrls, setLocalReferenceImageUrls] = useState<string[]>([]);
     const [selectedModel, setSelectedModel] = useState<ImageModel>(imagePrefs.model as ImageModel);
-    const [localPromptTemplateId, setLocalPromptTemplateId] = useState<string>(imagePrefs.promptTemplateId);
     const [localImageSize, setLocalImageSize] = useState<'1K' | '2K'>(imagePrefs.imageSize);
 
     const script = scripts.find((s) => s.id === scriptId);
@@ -172,7 +171,6 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
                 variantId,
                 scriptId,
                 storyboardImage.description,
-                localPromptTemplateId,
                 selectedModel,
                 storyboardImage.referenceImageUrls || [],
                 localAspectRatio,
@@ -323,8 +321,6 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
                                 scriptName={script?.title}
                                 episodeNumber={selectedEpisode?.episodeNumber}
                                 storyboardNumber={currentStoryboardImageIndex + 1}
-                                promptTemplateId={localPromptTemplateId}
-                                onPromptTemplateChange={setLocalPromptTemplateId}
                                 aspectRatio={localAspectRatio}
                                 onAspectRatioChange={setLocalAspectRatio}
                                 selectedModel={selectedModel}

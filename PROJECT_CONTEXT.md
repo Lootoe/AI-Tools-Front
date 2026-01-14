@@ -53,7 +53,7 @@
 #### 1.3.5 资产工作区（AssetWorkspace）
 - **资产池**：左侧网格展示所有资产
 - **资产编辑器**：右侧编辑资产名称、描述、参考图
-- **设计稿生成**：支持提示词模板（角色/场景/物品）
+- **设计稿生成**：AI 生成设计稿
 - **设计稿编辑**：基于已生成图片进行 AI 编辑
 
 #### 1.3.6 角色工作区（CharacterWorkspace）
@@ -63,7 +63,7 @@
 - **角色池**：左下角网格展示所有角色
 - **视频预览区**：右侧预览生成的角色视频
 - **角色编辑器**：右侧编辑角色姓名、设定、参考图
-- **视频生成**：支持比例、时长、提示词模板选择
+- **视频生成**：支持比例、时长选择
 - **角色注册**：视频生成完成后可注册 Sora2 角色，用于多视频角色一致性
   - 点击注册按钮弹出视频预览弹窗
   - 选择角色出现的时间范围（1-3秒）
@@ -344,13 +344,6 @@ interface Character {
 type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
 
 > 更新于 2026-01-13：Character 类型新增 Sora2 角色注册字段
-
-// 提示词模板配置（从后端 API 获取）
-interface PromptTemplateConfig {
-  id: string;
-  label: string;
-  description: string;
-}
 ```
 
 ---
@@ -449,10 +442,10 @@ interface CharacterState {
 ### 5.5 preferencesStore（偏好设置）
 ```typescript
 interface PreferencesState {
-  video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
-  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; promptTemplateId: string; imageSize: '1K' | '2K' };
-  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; promptTemplateId: string; imageSize: '1K' | '2K' };
-  character: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15'; promptTemplateId: string };
+  video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15' };
+  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; imageSize: '1K' | '2K' };
+  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; imageSize: '1K' | '2K' };
+  character: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15' };
   setVideoPreferences: (prefs: Partial<VideoPreferences>) => void;
   setStoryboardImagePreferences: (prefs: Partial<StoryboardImagePreferences>) => void;
   setAssetPreferences: (prefs: Partial<AssetPreferences>) => void;
@@ -462,6 +455,7 @@ interface PreferencesState {
 
 > 更新于 2026-01-14：新增偏好设置 Store，使用 localStorage 持久化
 > 更新于 2026-01-14：storyboardImage 和 asset 新增 imageSize 字段，支持图片质量设置（1K/2K）
+> 更新于 2026-01-15：移除所有 promptTemplateId 字段，删除提示词模板功能
 
 ---
 
@@ -532,9 +526,6 @@ uploadImage(file: File)
 
 // 余额记录
 getBalanceRecords(page: number, pageSize: number)
-
-// 配置
-getPromptTemplates(category: 'video' | 'storyboardImage' | 'asset'): Promise<{ success: boolean; data: PromptTemplateConfig[] }>
 ```
 
 ### 7.4 assetApi.ts
@@ -602,23 +593,21 @@ deleteAsset(scriptId: string, assetId: string)
 
 **CyberVideoPlayer**
 - 视频播放器
-- 提示词模板选择（从后端 API 获取，支持 video/character 分类）
 - 画面比例选择（9:16/16:9）
 - 视频时长选择（10s/15s）
 - 可选生成按钮（支持显示代币消耗）
 - 处理中状态显示（进度百分比）
 
-> 更新于 2026-01-14：CyberVideoPlayer 新增 promptTemplateCategory、onGenerate、generateCost、processingProgress 等 props，支持角色模块复用
+> 更新于 2026-01-14：CyberVideoPlayer 新增 onGenerate、generateCost、processingProgress 等 props，支持角色模块复用
 
 **CyberImageViewer**
 - 图片查看器
-- 提示词模板选择（从后端 API 获取 storyboardImage 分类模板）
 - 画面比例选择（16:9/1:1/4:3）
 - 图片质量选择（1K/2K）
 - 模型选择
 
-> 更新于 2026-01-12：CyberVideoPlayer 和 CyberImageViewer 新增提示词模板选择功能，放置于顶部工具栏与其他 API 设置一起
 > 更新于 2026-01-14：CyberImageViewer 新增图片质量选择（1K/2K），支持生成不同分辨率的图片
+> 更新于 2026-01-15：CyberVideoPlayer 和 CyberImageViewer 移除提示词模板选择功能
 
 **StoryboardCard**
 - 分镜卡片
@@ -637,7 +626,7 @@ deleteAsset(scriptId: string, assetId: string)
 - 角色编辑器：右侧编辑角色姓名、设定、参考图
 - 视频预览区：使用 CyberVideoPlayer 组件预览生成的角色视频
 - 支持上传参考图或关联资产图片（使用公用 ReferenceImageUploader 组件）
-- 视频生成设置：比例、时长、提示词模板（集成在 CyberVideoPlayer 中）
+- 视频生成设置：比例、时长（集成在 CyberVideoPlayer 中）
 
 > 更新于 2026-01-12：新增角色工作区组件
 > 更新于 2026-01-13：参考图上传改用公用 ReferenceImageUploader 组件
@@ -649,32 +638,28 @@ deleteAsset(scriptId: string, assetId: string)
 
 ### 9.1 视频生成流程
 ```
-1. 用户在 EpisodeWorkspace 选择提示词模板，点击"生成视频"
+1. 用户在 EpisodeWorkspace 点击"生成视频"
 2. 调用 videoStore.addVariant() 创建新副本
-3. 调用 api.generateStoryboardVideo() 发起生成请求（携带 promptTemplateId）
+3. 调用 api.generateStoryboardVideo() 发起生成请求
 4. 后端返回 taskId，更新副本状态为 'queued'
 5. 前端轮询 api.getVideoStatus(taskId) 查询状态
 6. 状态更新时调用 videoStore.updateVariant() 更新本地状态
 7. 完成后显示视频预览
 ```
 
-> 更新于 2026-01-12：视频生成流程新增提示词模板选择步骤
-
 ### 9.2 图片生成流程
 ```
-1. 用户在 ImageWorkspace 选择提示词模板，或在 AssetWorkspace 点击"生成"
+1. 用户在 ImageWorkspace 或 AssetWorkspace 点击"生成"
 2. 调用相应的 addImageVariant() 或 updateAsset()
-3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()（携带 promptTemplateId）
+3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()
 4. 后端同步返回生成结果（图片生成较快）
 5. 更新本地状态，显示图片
 ```
 
-> 更新于 2026-01-12：分镜图生成流程新增提示词模板选择步骤
-
 ### 9.3 角色视频生成流程
 ```
 1. 用户在 CharacterWorkspace 选择角色，填写角色设定
-2. 选择提示词模板、比例、时长
+2. 选择比例、时长
 3. 点击"生成视频"，前端乐观扣除代币
 4. 调用 characterApi.generateCharacterVideo() 发起生成请求
 5. 后端返回 taskId，更新角色状态为 'generating'
@@ -795,3 +780,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |
 | 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选，新增全局偏好设置（分镜视频/分镜图/资产/角色的默认生成参数） |
 | 1.1.1 | 2026-01-14 | 分镜图生成、资产生成新增图片质量选择（1K/2K），上传组件默认限制改为 10MB |
+| 1.2.0 | 2026-01-15 | 删除提示词模板功能：移除 getPromptTemplates API、PromptTemplateConfig 类型、偏好设置中的 promptTemplateId、CyberVideoPlayer/CyberImageViewer 的模板选择器 |

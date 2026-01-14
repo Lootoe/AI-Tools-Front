@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
-import { getBalanceRecords, BalanceRecord, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
+import { getBalanceRecords, BalanceRecord } from '@/services/api';
 import CoinIcon from '@/img/coin.webp';
 
 const PACKAGES = [
@@ -93,11 +93,6 @@ export const ProfilePage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const [videoTemplates, setVideoTemplates] = useState<PromptTemplateConfig[]>([]);
-  const [imageTemplates, setImageTemplates] = useState<PromptTemplateConfig[]>([]);
-  const [assetTemplates, setAssetTemplates] = useState<PromptTemplateConfig[]>([]);
-  const [characterTemplates, setCharacterTemplates] = useState<PromptTemplateConfig[]>([]);
-
   const loadBalanceRecords = useCallback(async (page: number, start?: string, end?: string) => {
     setBalanceLoading(true);
     try {
@@ -117,22 +112,6 @@ export const ProfilePage: React.FC = () => {
   }, []);
 
   useEffect(() => { if (activeTab === 'history') loadBalanceRecords(1); }, [activeTab, loadBalanceRecords]);
-
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const [video, image, asset, character] = await Promise.all([
-          getPromptTemplates('video'), getPromptTemplates('storyboardImage'),
-          getPromptTemplates('asset'), getPromptTemplates('character'),
-        ]);
-        if (video.success) setVideoTemplates(video.data);
-        if (image.success) setImageTemplates(image.data);
-        if (asset.success) setAssetTemplates(asset.data);
-        if (character.success) setCharacterTemplates(character.data);
-      } catch (e) { console.error('加载模板失败:', e); }
-    };
-    loadTemplates();
-  }, []);
 
   const handleDateFilter = () => loadBalanceRecords(1, startDate, endDate);
   const clearDateFilter = () => { setStartDate(''); setEndDate(''); loadBalanceRecords(1); };
@@ -174,16 +153,6 @@ export const ProfilePage: React.FC = () => {
       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="px-2 py-1 rounded text-xs outline-none cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}>
         {options.map((opt) => <option key={opt.value} value={opt.value} style={{ background: '#1a1a24' }}>{opt.label}</option>)}
-      </select>
-    </div>
-  );
-
-  const TemplateSelect: React.FC<{ value: string; templates: PromptTemplateConfig[]; noneValue: string; onChange: (v: string) => void }> = ({ value, templates, noneValue, onChange }) => (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>提示词模板</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="px-2 py-1 rounded text-xs outline-none cursor-pointer max-w-[140px]" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}>
-        <option value={noneValue} style={{ background: '#1a1a24' }}>无</option>
-        {templates.map((t) => <option key={t.id} value={t.id} style={{ background: '#1a1a24' }}>{t.label}</option>)}
       </select>
     </div>
   );
@@ -433,25 +402,21 @@ export const ProfilePage: React.FC = () => {
               <PreferenceCard icon={<Video size={14} style={{ color: '#00f5ff' }} />} title="分镜视频">
                 <SelectGroup label="画面比例" value={preferences.video.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(v) => preferences.setVideoPreferences({ aspectRatio: v as '16:9' | '9:16' })} />
                 <SelectGroup label="视频时长" value={preferences.video.duration} options={VIDEO_DURATIONS} onChange={(v) => preferences.setVideoPreferences({ duration: v as '10' | '15' })} />
-                <TemplateSelect value={preferences.video.promptTemplateId} templates={videoTemplates} noneValue="video-none" onChange={(v) => preferences.setVideoPreferences({ promptTemplateId: v })} />
               </PreferenceCard>
 
               <PreferenceCard icon={<Image size={14} style={{ color: '#bf00ff' }} />} title="分镜图">
                 <SelectGroup label="画面比例" value={preferences.storyboardImage.aspectRatio} options={IMAGE_ASPECT_RATIOS} onChange={(v) => preferences.setStoryboardImagePreferences({ aspectRatio: v as '16:9' | '1:1' | '4:3' })} />
                 <SelectGroup label="模型" value={preferences.storyboardImage.model} options={IMAGE_MODELS} onChange={(v) => preferences.setStoryboardImagePreferences({ model: v })} />
-                <TemplateSelect value={preferences.storyboardImage.promptTemplateId} templates={imageTemplates} noneValue="storyboardImage-none" onChange={(v) => preferences.setStoryboardImagePreferences({ promptTemplateId: v })} />
               </PreferenceCard>
 
               <PreferenceCard icon={<Package size={14} style={{ color: '#fbbf24' }} />} title="资产">
                 <SelectGroup label="画面比例" value={preferences.asset.aspectRatio} options={IMAGE_ASPECT_RATIOS} onChange={(v) => preferences.setAssetPreferences({ aspectRatio: v as '1:1' | '4:3' | '16:9' })} />
                 <SelectGroup label="模型" value={preferences.asset.model} options={IMAGE_MODELS} onChange={(v) => preferences.setAssetPreferences({ model: v })} />
-                <TemplateSelect value={preferences.asset.promptTemplateId} templates={assetTemplates} noneValue="asset-none" onChange={(v) => preferences.setAssetPreferences({ promptTemplateId: v })} />
               </PreferenceCard>
 
               <PreferenceCard icon={<User size={14} style={{ color: '#4ade80' }} />} title="角色视频">
                 <SelectGroup label="画面比例" value={preferences.character.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(v) => preferences.setCharacterPreferences({ aspectRatio: v as '16:9' | '9:16' })} />
                 <SelectGroup label="视频时长" value={preferences.character.duration} options={VIDEO_DURATIONS} onChange={(v) => preferences.setCharacterPreferences({ duration: v as '10' | '15' })} />
-                <TemplateSelect value={preferences.character.promptTemplateId} templates={characterTemplates} noneValue="character-none" onChange={(v) => preferences.setCharacterPreferences({ promptTemplateId: v })} />
               </PreferenceCard>
             </div>
           )}

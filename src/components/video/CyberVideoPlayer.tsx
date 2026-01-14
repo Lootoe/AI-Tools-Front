@@ -16,10 +16,9 @@ import {
   Repeat,
   Loader2,
   ChevronDown,
-  X,
   Sparkles,
 } from 'lucide-react';
-import { captureVideoFrame, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
+import { captureVideoFrame } from '@/services/api';
 import CoinIcon from '@/img/coin.webp';
 
 interface CyberVideoPlayerProps {
@@ -42,10 +41,6 @@ interface CyberVideoPlayerProps {
   onAspectRatioChange?: (ratio: '9:16' | '16:9') => void;
   duration?: '10' | '15';
   onDurationChange?: (duration: '10' | '15') => void;
-  // 提示词模板
-  promptTemplateId?: string;
-  onPromptTemplateChange?: (templateId: string) => void;
-  promptTemplateCategory?: 'video' | 'character';
   isProcessing?: boolean;
   processingProgress?: string;
   // 生成按钮
@@ -71,9 +66,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   onAspectRatioChange,
   duration = '15',
   onDurationChange,
-  promptTemplateId = 'video-default',
-  onPromptTemplateChange,
-  promptTemplateCategory = 'video',
   isProcessing = false,
   processingProgress,
   onGenerate,
@@ -96,15 +88,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
   const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false);
-  const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
-  const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
-
-  // 加载提示词模板列表
-  useEffect(() => {
-    getPromptTemplates(promptTemplateCategory)
-      .then((res) => { if (res.success) setPromptTemplates(res.data); })
-      .catch(() => { });
-  }, [promptTemplateCategory]);
 
   // 当 videoUrl 变化时，重置播放状态
   useEffect(() => {
@@ -356,53 +339,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      {/* 提示词模板选择弹框 */}
-      {isTemplateDropdownOpen && onPromptTemplateChange && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} onClick={() => setIsTemplateDropdownOpen(false)}>
-          <div className="w-[600px] rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.3)', boxShadow: '0 0 40px rgba(191,0,255,0.2)' }} onClick={(e) => e.stopPropagation()}>
-            {/* 弹框头部 */}
-            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(191,0,255,0.15), rgba(255,0,255,0.15))', border: '1px solid rgba(191,0,255,0.3)' }}>
-                  <Sparkles size={14} style={{ color: '#bf00ff' }} />
-                </div>
-                <span className="text-sm font-medium text-white">选择提示词模板</span>
-              </div>
-              <button onClick={() => setIsTemplateDropdownOpen(false)} className="p-1 rounded-lg hover:bg-white/5 transition-colors">
-                <X size={16} style={{ color: '#6b7280' }} />
-              </button>
-            </div>
-            {/* 模板列表 */}
-            <div className="p-3 max-h-[500px] overflow-y-auto">
-              <div className="grid gap-2">
-                {promptTemplates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => { onPromptTemplateChange(t.id); setIsTemplateDropdownOpen(false); }}
-                    className="w-full px-3 py-2.5 rounded-lg text-left transition-all hover:brightness-110"
-                    style={{
-                      backgroundColor: promptTemplateId === t.id ? 'rgba(191,0,255,0.1)' : 'rgba(0,0,0,0.2)',
-                      border: promptTemplateId === t.id ? '1px solid rgba(191,0,255,0.4)' : '1px solid rgba(30,30,46,0.6)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: promptTemplateId === t.id ? '#bf00ff' : '#4b5563' }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium" style={{ color: promptTemplateId === t.id ? '#bf00ff' : '#e5e7eb' }}>{t.label}</div>
-                        {t.description && <div className="text-[10px] mt-0.5 truncate" style={{ color: '#6b7280' }}>{t.description}</div>}
-                      </div>
-                      {promptTemplateId === t.id && (
-                        <div className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(191,0,255,0.2)', color: '#bf00ff' }}>当前</div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 顶部标题栏 */}
       {title && (
         <div
@@ -417,24 +353,6 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             {title}
           </span>
           <div className="flex items-center gap-2">
-            {/* 提示词模板选择按钮 */}
-            {onPromptTemplateChange && (
-              <button
-                onClick={() => !isProcessing && setIsTemplateDropdownOpen(true)}
-                disabled={isProcessing}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                style={{
-                  backgroundColor: 'rgba(191,0,255,0.1)',
-                  border: '1px solid rgba(191,0,255,0.2)',
-                  color: '#bf00ff',
-                  opacity: isProcessing ? 0.5 : 1,
-                }}
-              >
-                <span className="max-w-[80px] truncate">{promptTemplates.find(t => t.id === promptTemplateId)?.label || '选择模板'}</span>
-                <ChevronDown size={12} />
-              </button>
-            )}
-
             {/* 画面比例选择 */}
             {onAspectRatioChange && (
               <div className="relative">

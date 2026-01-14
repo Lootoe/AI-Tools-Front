@@ -5,14 +5,12 @@ import { persist } from 'zustand/middleware';
 export interface VideoPreferences {
   aspectRatio: '16:9' | '9:16';
   duration: '10' | '15';
-  promptTemplateId: string;
 }
 
 // 分镜图偏好
 export interface StoryboardImagePreferences {
   aspectRatio: '16:9' | '1:1' | '4:3';
   model: string;
-  promptTemplateId: string;
   imageSize: '1K' | '2K'; // 图片质量
 }
 
@@ -20,7 +18,6 @@ export interface StoryboardImagePreferences {
 export interface AssetPreferences {
   aspectRatio: '1:1' | '4:3' | '16:9';
   model: string;
-  promptTemplateId: string;
   imageSize: '1K' | '2K'; // 图片质量
 }
 
@@ -28,7 +25,6 @@ export interface AssetPreferences {
 export interface CharacterPreferences {
   aspectRatio: '16:9' | '9:16';
   duration: '10' | '15';
-  promptTemplateId: string;
 }
 
 export interface PreferencesState {
@@ -45,27 +41,23 @@ export interface PreferencesState {
 const DEFAULT_VIDEO: VideoPreferences = {
   aspectRatio: '16:9',
   duration: '10',
-  promptTemplateId: 'video-none',
 };
 
 const DEFAULT_STORYBOARD_IMAGE: StoryboardImagePreferences = {
   aspectRatio: '16:9',
   model: 'nano-banana-2',
-  promptTemplateId: 'storyboardImage-none',
   imageSize: '1K',
 };
 
 const DEFAULT_ASSET: AssetPreferences = {
   aspectRatio: '16:9',
   model: 'nano-banana-2',
-  promptTemplateId: 'asset-none',
   imageSize: '1K',
 };
 
 const DEFAULT_CHARACTER: CharacterPreferences = {
   aspectRatio: '16:9',
   duration: '10',
-  promptTemplateId: 'character-none',
 };
 
 export const usePreferencesStore = create<PreferencesState>()(
