@@ -582,9 +582,13 @@ deleteAsset(scriptId: string, assetId: string)
 
 **CyberVideoPlayer**
 - 视频播放器
-- 提示词模板选择（从后端 API 获取 video 分类模板）
+- 提示词模板选择（从后端 API 获取，支持 video/character 分类）
 - 画面比例选择（9:16/16:9）
 - 视频时长选择（10s/15s）
+- 可选生成按钮（支持显示代币消耗）
+- 处理中状态显示（进度百分比）
+
+> 更新于 2026-01-14：CyberVideoPlayer 新增 promptTemplateCategory、onGenerate、generateCost、processingProgress 等 props，支持角色模块复用
 
 **CyberImageViewer**
 - 图片查看器
@@ -608,13 +612,14 @@ deleteAsset(scriptId: string, assetId: string)
 
 **CharacterWorkspace**
 - 角色池：左侧网格展示所有角色
-- 角色编辑器：中间编辑角色姓名、设定、参考图
-- 视频预览区：右侧预览生成的角色视频
+- 角色编辑器：右侧编辑角色姓名、设定、参考图
+- 视频预览区：使用 CyberVideoPlayer 组件预览生成的角色视频
 - 支持上传参考图或关联资产图片（使用公用 ReferenceImageUploader 组件）
-- 视频生成设置：比例、时长、提示词模板
+- 视频生成设置：比例、时长、提示词模板（集成在 CyberVideoPlayer 中）
 
 > 更新于 2026-01-12：新增角色工作区组件
 > 更新于 2026-01-13：参考图上传改用公用 ReferenceImageUploader 组件
+> 更新于 2026-01-14：视频预览区改用 CyberVideoPlayer 组件，统一播放器体验
 
 ---
 
@@ -766,3 +771,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.6 | 2026-01-13 | 新增 Sora2 角色注册功能：支持多视频角色一致性，角色身份卡片显示认证状态 |
 | 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
 | 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |
+| 1.0.9 | 2026-01-14 | CharacterWorkspace 视频预览区改用 CyberVideoPlayer 组件，CyberVideoPlayer 新增生成按钮、处理中状态、提示词模板分类等功能 |

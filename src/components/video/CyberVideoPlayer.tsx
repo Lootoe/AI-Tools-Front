@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { captureVideoFrame, getPromptTemplates, PromptTemplateConfig } from '@/services/api';
+import CoinIcon from '@/img/coin.webp';
 
 interface CyberVideoPlayerProps {
   videoUrl?: string;
@@ -44,7 +45,13 @@ interface CyberVideoPlayerProps {
   // 提示词模板
   promptTemplateId?: string;
   onPromptTemplateChange?: (templateId: string) => void;
+  promptTemplateCategory?: 'video' | 'character';
   isProcessing?: boolean;
+  processingProgress?: string;
+  // 生成按钮
+  onGenerate?: () => void;
+  generateDisabled?: boolean;
+  generateCost?: number;
 }
 
 export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
@@ -66,7 +73,12 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
   onDurationChange,
   promptTemplateId = 'video-default',
   onPromptTemplateChange,
+  promptTemplateCategory = 'video',
   isProcessing = false,
+  processingProgress,
+  onGenerate,
+  generateDisabled = false,
+  generateCost,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -89,10 +101,10 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
 
   // 加载提示词模板列表
   useEffect(() => {
-    getPromptTemplates('video')
+    getPromptTemplates(promptTemplateCategory)
       .then((res) => { if (res.success) setPromptTemplates(res.data); })
       .catch(() => { });
-  }, []);
+  }, [promptTemplateCategory]);
 
   // 当 videoUrl 变化时，重置播放状态
   useEffect(() => {
@@ -548,6 +560,38 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
                 </button>
               </>
             )}
+
+            {/* 生成按钮 */}
+            {onGenerate && (
+              <button
+                onClick={onGenerate}
+                disabled={isProcessing || generateDisabled}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: isProcessing || generateDisabled
+                    ? 'rgba(191,0,255,0.1)'
+                    : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))',
+                  border: '1px solid rgba(191,0,255,0.3)',
+                  color: '#bf00ff',
+                  opacity: isProcessing || generateDisabled ? 0.5 : 1,
+                }}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={12} />
+                    生成
+                    {generateCost !== undefined && (
+                      <>（<img src={CoinIcon} alt="" className="w-3 h-3 inline" />{generateCost}）</>
+                    )}
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -561,7 +605,25 @@ export const CyberVideoPlayer: React.FC<CyberVideoPlayerProps> = ({
             style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
           />
         )}
-        {videoUrl ? (
+        {/* 处理中状态 */}
+        {isProcessing && !videoUrl ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center">
+              <div
+                className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(191,0,255,0.1), rgba(255,0,255,0.1))',
+                  border: '1px solid rgba(191,0,255,0.3)',
+                  boxShadow: '0 0 30px rgba(191,0,255,0.2)'
+                }}
+              >
+                <Loader2 size={40} className="animate-spin" style={{ color: '#bf00ff' }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: '#bf00ff' }}>视频生成中...</p>
+              <p className="text-xs mt-1" style={{ color: '#6b7280' }}>进度: {processingProgress || '0'}%</p>
+            </div>
+          </div>
+        ) : videoUrl ? (
           <video
             ref={videoRef}
             src={videoUrl}

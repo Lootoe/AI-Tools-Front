@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Plus, Trash2, Save, ChevronDown, X, Sparkles, Play, Loader2, Link2, CheckCircle2, UserPlus, Copy } from 'lucide-react';
+import { User, Plus, Trash2, Save, X, Sparkles, Loader2, Link2, CheckCircle2, UserPlus, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Input } from '@/components/ui/Input';
@@ -7,27 +7,16 @@ import { useToast } from '@/components/ui/Toast';
 import { InlineLoading } from '@/components/ui/Loading';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
+import { CyberVideoPlayer } from './CyberVideoPlayer';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useAssetStore } from '@/stores/assetStore';
 import { useAuthStore } from '@/stores/authStore';
 import { generateCharacterVideo, registerSoraCharacter } from '@/services/characterApi';
-import { getPromptTemplates, PromptTemplateConfig } from '@/services/api';
 import { Character } from '@/types/video';
-import CoinIcon from '@/img/coin.webp';
 
 interface CharacterWorkspaceProps {
     scriptId: string;
 }
-
-const ASPECT_RATIOS = [
-    { value: '9:16', label: '9:16' },
-    { value: '16:9', label: '16:9' },
-] as const;
-
-const DURATIONS = [
-    { value: '10', label: '10秒' },
-    { value: '15', label: '15秒' },
-] as const;
 
 // 角色 ID 卡片组件（用于角色池展示）
 const CharacterIDCard: React.FC<{
@@ -35,9 +24,11 @@ const CharacterIDCard: React.FC<{
     isSelected: boolean;
     onSelect: () => void;
     onDelete: () => void;
-}> = ({ character, isSelected, onSelect, onDelete }) => {
+    onRegister?: () => void;
+}> = ({ character, isSelected, onSelect, onDelete, onRegister }) => {
     const isGenerating = character.status === 'generating' || character.status === 'queued';
     const isVerified = !!character.soraCharacterId;
+    const canRegister = character.videoUrl && character.taskId && !isGenerating;
     const [copied, setCopied] = useState(false);
 
     const handleCopyUsername = (e: React.MouseEvent) => {
@@ -117,7 +108,7 @@ const CharacterIDCard: React.FC<{
                         onClick={handleCopyUsername}
                         title={isVerified ? '点击复制' : ''}
                     >
-                        <span className="text-[11px]" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
+                        <span className="text-xs" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
                             {isVerified ? character.soraUsername : '—'}
                         </span>
                         {isVerified && (
@@ -128,7 +119,7 @@ const CharacterIDCard: React.FC<{
                             )
                         )}
                     </div>
-                    <div className="text-[9px] font-mono" style={{ color: '#9ca3af' }}>
+                    <div className="text-[10px] font-mono" style={{ color: '#9ca3af' }}>
                         {character.taskId || '—'}
                     </div>
                 </div>
@@ -136,7 +127,7 @@ const CharacterIDCard: React.FC<{
 
             {/* 底部状态栏 */}
             <div
-                className="px-2.5 py-1.5 flex flex-col gap-0.5"
+                className="px-2.5 py-1.5 flex flex-col gap-1"
                 style={{
                     backgroundColor: isVerified ? 'rgba(16,185,129,0.1)' : 'rgba(75,85,99,0.1)',
                     borderTop: `1px solid ${isVerified ? 'rgba(16,185,129,0.2)' : 'rgba(75,85,99,0.2)'}`,
@@ -149,11 +140,29 @@ const CharacterIDCard: React.FC<{
                             <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Verified</span>
                         </div>
                     ) : (
-                        <span className="text-[10px]" style={{ color: character.status === 'failed' ? '#ef4444' : '#6b7280' }}>
+                        <span className="text-[11px]" style={{ color: character.status === 'failed' ? '#ef4444' : '#9ca3af' }}>
                             {isGenerating ? '生成中...' : character.status === 'failed' ? '生成失败' : 'Unregistered'}
                         </span>
                     )}
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00f5ff' }} />}
+                    {/* 注册按钮 */}
+                    {canRegister && onRegister ? (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onRegister(); }}
+                            className="px-2 py-1 rounded flex items-center gap-1 text-[10px] font-medium transition-all hover:brightness-110"
+                            style={{
+                                background: isVerified
+                                    ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(0,180,200,0.15))'
+                                    : 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(0,180,200,0.15))',
+                                border: `1px solid ${isVerified ? 'rgba(16,185,129,0.4)' : 'rgba(0,245,255,0.4)'}`,
+                                color: isVerified ? '#10b981' : '#00f5ff',
+                            }}
+                        >
+                            <UserPlus size={10} />
+                            {isVerified ? '重新固定' : '固定角色'}
+                        </button>
+                    ) : (
+                        isSelected && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00f5ff' }} />
+                    )}
                 </div>
                 {/* 失败原因 */}
                 {character.status === 'failed' && character.failReason && (
@@ -338,10 +347,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16');
     const [duration, setDuration] = useState<'10' | '15'>('15');
     const [promptTemplateId, setPromptTemplateId] = useState('character-default');
-    const [promptTemplates, setPromptTemplates] = useState<PromptTemplateConfig[]>([]);
-    const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
-    const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false);
-    const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
 
     const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
@@ -351,7 +356,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => { if (scriptId) { loadCharacters(scriptId); loadAssets(scriptId); } }, [scriptId, loadCharacters, loadAssets]);
-    useEffect(() => { getPromptTemplates('character').then((res) => { if (res.success) setPromptTemplates(res.data); }).catch(() => { }); }, []);
 
     useEffect(() => {
         const c = characters.find((c) => c.id === selectedCharacterId);
@@ -481,29 +485,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                 </div>
             )}
 
-            {isTemplateDropdownOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }} onClick={() => setIsTemplateDropdownOpen(false)}>
-                    <div className="w-[500px] rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(191,0,255,0.3)' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
-                            <span className="text-sm font-medium text-white">选择提示词模板</span>
-                            <button onClick={() => setIsTemplateDropdownOpen(false)} className="p-1 rounded-lg hover:bg-white/5"><X size={16} style={{ color: '#6b7280' }} /></button>
-                        </div>
-                        <div className="p-3 max-h-[400px] overflow-y-auto">
-                            <div className="grid gap-2">
-                                {promptTemplates.map((t) => (
-                                    <button key={t.id} onClick={() => { setPromptTemplateId(t.id); setIsTemplateDropdownOpen(false); }}
-                                        className="w-full px-3 py-2.5 rounded-lg text-left transition-all hover:brightness-110"
-                                        style={{ backgroundColor: promptTemplateId === t.id ? 'rgba(191,0,255,0.1)' : 'rgba(0,0,0,0.2)', border: promptTemplateId === t.id ? '1px solid rgba(191,0,255,0.4)' : '1px solid rgba(30,30,46,0.6)' }}>
-                                        <div className="text-xs font-medium" style={{ color: promptTemplateId === t.id ? '#bf00ff' : '#e5e7eb' }}>{t.label}</div>
-                                        {t.description && <div className="text-[10px] mt-0.5" style={{ color: '#6b7280' }}>{t.description}</div>}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="flex-1 flex gap-3 overflow-hidden">
                 {/* 左侧：角色池（ID卡形式） */}
                 <div className="w-[320px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
@@ -533,6 +514,7 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                                         isSelected={selectedCharacterId === c.id}
                                         onSelect={() => setSelectedCharacterId(c.id)}
                                         onDelete={() => handleDeleteClick(c)}
+                                        onRegister={() => handleOpenRegisterDialog(c.id)}
                                     />
                                 ))}
                             </div>
@@ -543,77 +525,27 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
                 {/* 右侧：视频预览区 */}
                 <div className="flex-1 flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
-                    <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
-                        <div className="flex items-center gap-2">
-                            <Play size={14} style={{ color: '#00f5ff' }} />
-                            <span className="text-sm font-medium text-white">角色视频</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => !isProcessing && setIsTemplateDropdownOpen(true)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(191,0,255,0.1)', border: '1px solid rgba(191,0,255,0.2)', color: '#bf00ff', opacity: isProcessing ? 0.5 : 1 }}>
-                                <span className="max-w-[80px] truncate">{promptTemplates.find(t => t.id === promptTemplateId)?.label || '角色视频模板'}</span><ChevronDown size={12} />
-                            </button>
-                            <div className="relative">
-                                <button onClick={() => !isProcessing && setIsRatioDropdownOpen(!isRatioDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(77,124,255,0.1)', border: '1px solid rgba(77,124,255,0.2)', color: '#4d7cff', opacity: isProcessing ? 0.5 : 1 }}>
-                                    <span>{aspectRatio}</span><ChevronDown size={12} />
-                                </button>
-                                {isRatioDropdownOpen && (
-                                    <><div className="fixed inset-0 z-10" onClick={() => setIsRatioDropdownOpen(false)} />
-                                        <div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(77,124,255,0.2)' }}>
-                                            {ASPECT_RATIOS.map((r) => <button key={r.value} onClick={() => { setAspectRatio(r.value); setIsRatioDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: aspectRatio === r.value ? '#4d7cff' : '#d1d5db', backgroundColor: aspectRatio === r.value ? 'rgba(77,124,255,0.1)' : 'transparent' }}>{r.label}</button>)}
-                                        </div></>
-                                )}
-                            </div>
-                            <div className="relative">
-                                <button onClick={() => !isProcessing && setIsDurationDropdownOpen(!isDurationDropdownOpen)} disabled={isProcessing} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: 'rgba(255,0,255,0.1)', border: '1px solid rgba(255,0,255,0.2)', color: '#ff00ff', opacity: isProcessing ? 0.5 : 1 }}>
-                                    <span>{duration}秒</span><ChevronDown size={12} />
-                                </button>
-                                {isDurationDropdownOpen && (
-                                    <><div className="fixed inset-0 z-10" onClick={() => setIsDurationDropdownOpen(false)} />
-                                        <div className="absolute right-0 top-full mt-1 z-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(18,18,26,0.98)', border: '1px solid rgba(255,0,255,0.2)' }}>
-                                            {DURATIONS.map((d) => <button key={d.value} onClick={() => { setDuration(d.value); setIsDurationDropdownOpen(false); }} className="w-full px-3 py-1.5 text-xs text-left whitespace-nowrap" style={{ color: duration === d.value ? '#ff00ff' : '#d1d5db', backgroundColor: duration === d.value ? 'rgba(255,0,255,0.1)' : 'transparent' }}>{d.label}</button>)}
-                                        </div></>
-                                )}
-                            </div>
-                            <button onClick={handleGenerateVideo} disabled={isProcessing || !selectedCharacter || !editDescription.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs"
-                                style={{ background: isProcessing || !selectedCharacter || !editDescription.trim() ? 'rgba(191,0,255,0.1)' : 'linear-gradient(135deg, rgba(191,0,255,0.2), rgba(255,0,255,0.2))', border: '1px solid rgba(191,0,255,0.3)', color: '#bf00ff', opacity: isProcessing || !selectedCharacter || !editDescription.trim() ? 0.5 : 1 }}>
-                                {isProcessing ? <><Loader2 size={12} className="animate-spin" />生成中...</> : <><Sparkles size={12} />生成（<img src={CoinIcon} alt="" className="w-3 h-3 inline" />3）</>}
-                            </button>
-                        </div>
-                    </div>
-
                     <div className="flex-1 flex overflow-hidden">
                         {selectedCharacter ? (
                             <>
-                                <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto relative">
-                                    {isProcessing ? (
-                                        <div className="text-center">
-                                            <div className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, rgba(191,0,255,0.1), rgba(255,0,255,0.1))', border: '1px solid rgba(191,0,255,0.3)', boxShadow: '0 0 30px rgba(191,0,255,0.2)' }}>
-                                                <Loader2 size={40} className="animate-spin" style={{ color: '#bf00ff' }} />
-                                            </div>
-                                            <p className="text-sm font-medium" style={{ color: '#bf00ff' }}>视频生成中...</p>
-                                            <p className="text-xs mt-1" style={{ color: '#6b7280' }}>进度: {selectedCharacter.progress || '0'}%</p>
-                                        </div>
-                                    ) : selectedCharacter.videoUrl ? (
-                                        <div className="flex flex-col items-center w-full">
-                                            <video src={selectedCharacter.videoUrl} controls className="max-w-full max-h-[400px] object-contain rounded-lg" poster={selectedCharacter.thumbnailUrl} style={{ boxShadow: '0 0 30px rgba(0,245,255,0.15)' }} />
-                                            {selectedCharacter.taskId && (
-                                                <button onClick={() => handleOpenRegisterDialog(selectedCharacter.id)} className="mt-4 px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-all hover:brightness-110"
-                                                    style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(0,180,200,0.1))', border: '1px solid rgba(0,245,255,0.4)', color: '#00f5ff' }}>
-                                                    <UserPlus size={16} />{selectedCharacter.soraCharacterId ? '重新注册角色' : '注册角色（保持一致性）'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-3 text-center">
-                                            <div className="w-24 h-24 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.05), rgba(191,0,255,0.05))', border: '1px solid rgba(0,245,255,0.1)' }}>
-                                                <Play size={40} style={{ color: 'rgba(0,245,255,0.3)' }} />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm" style={{ color: '#6b7280' }}>填写角色设定后点击"生成"</p>
-                                                <p className="text-xs mt-1" style={{ color: '#4b5563' }}>建议上传参考图以获得更好效果</p>
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                                    <CyberVideoPlayer
+                                        title="角色视频"
+                                        videoUrl={isProcessing ? undefined : selectedCharacter.videoUrl}
+                                        thumbnailUrl={selectedCharacter.thumbnailUrl}
+                                        aspectRatio={aspectRatio}
+                                        onAspectRatioChange={setAspectRatio}
+                                        duration={duration}
+                                        onDurationChange={setDuration}
+                                        promptTemplateId={promptTemplateId}
+                                        onPromptTemplateChange={setPromptTemplateId}
+                                        promptTemplateCategory="character"
+                                        isProcessing={isProcessing}
+                                        processingProgress={selectedCharacter.progress}
+                                        onGenerate={handleGenerateVideo}
+                                        generateDisabled={!selectedCharacter || !editDescription.trim()}
+                                        generateCost={3}
+                                    />
                                 </div>
 
                                 <div className="w-[280px] flex-shrink-0 flex flex-col gap-3 p-3 overflow-y-auto" style={{ borderLeft: '1px solid #1e1e2e' }}>
