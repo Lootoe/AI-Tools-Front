@@ -169,7 +169,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                 images={localReferenceImageUrl ? [localReferenceImageUrl] : []}
                 onChange={(urls) => onReferenceImageUrlChange(urls[0] || '')}
                 maxCount={1}
-                maxSizeMB={2}
+                maxSizeMB={10}
                 multiple={false}
                 imageSize="lg"
                 hint="单张不超过2MB"

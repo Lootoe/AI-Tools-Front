@@ -430,9 +430,9 @@ export const AssetWorkspace: React.FC<AssetWorkspaceProps> = ({ scriptId }) => {
                                             images={selectedAsset.referenceImageUrls || []}
                                             onChange={handleRefImagesChange}
                                             maxCount={5}
-                                            maxSizeMB={2}
+                                            maxSizeMB={10}
                                             imageSize="md"
-                                            hint="单张不超过2MB"
+                                            hint="单张不超过10MB"
                                             onError={(msg) => showToast(msg, 'error')}
                                         />
                                     </div>
