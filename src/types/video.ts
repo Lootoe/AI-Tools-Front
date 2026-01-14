@@ -9,6 +9,7 @@ export interface StoryboardVariant {
   taskId?: string;         // sora2 任务ID，用于恢复轮询
   progress?: string;       // 生成进度百分比
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  failReason?: string;     // 生成失败原因
   startedAt?: string;      // 生成开始时间
   finishedAt?: string;     // 生成结束时间（完成或失败）
   createdAt: string;
@@ -77,6 +78,7 @@ export interface Character {
   taskId?: string;
   progress?: string;
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  failReason?: string;            // 生成失败原因
   // Sora2 角色注册信息（用于多视频角色一致性）
   soraCharacterId?: string;       // Sora2 角色ID (ch_xxx)
   soraUsername?: string;          // Sora2 用户名
@@ -95,6 +97,7 @@ export interface ImageVariant {
   taskId?: string;         // 任务ID
   progress?: string;       // 生成进度百分比
   status: 'pending' | 'queued' | 'generating' | 'completed' | 'failed';
+  failReason?: string;     // 生成失败原因
   startedAt?: string;      // 生成开始时间
   finishedAt?: string;     // 生成结束时间（完成或失败）
   createdAt: string;

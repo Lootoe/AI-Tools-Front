@@ -136,23 +136,31 @@ const CharacterIDCard: React.FC<{
 
             {/* 底部状态栏 */}
             <div
-                className="px-2.5 py-1.5 flex items-center justify-between"
+                className="px-2.5 py-1.5 flex flex-col gap-0.5"
                 style={{
                     backgroundColor: isVerified ? 'rgba(16,185,129,0.1)' : 'rgba(75,85,99,0.1)',
                     borderTop: `1px solid ${isVerified ? 'rgba(16,185,129,0.2)' : 'rgba(75,85,99,0.2)'}`,
                 }}
             >
-                {isVerified ? (
-                    <div className="flex items-center gap-1">
-                        <CheckCircle2 size={11} style={{ color: '#10b981' }} />
-                        <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Verified</span>
+                <div className="flex items-center justify-between">
+                    {isVerified ? (
+                        <div className="flex items-center gap-1">
+                            <CheckCircle2 size={11} style={{ color: '#10b981' }} />
+                            <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Verified</span>
+                        </div>
+                    ) : (
+                        <span className="text-[10px]" style={{ color: character.status === 'failed' ? '#ef4444' : '#6b7280' }}>
+                            {isGenerating ? '生成中...' : character.status === 'failed' ? '生成失败' : 'Unregistered'}
+                        </span>
+                    )}
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00f5ff' }} />}
+                </div>
+                {/* 失败原因 */}
+                {character.status === 'failed' && character.failReason && (
+                    <div className="text-[9px] truncate" style={{ color: '#ef4444' }} title={character.failReason}>
+                        原因: {character.failReason}
                     </div>
-                ) : (
-                    <span className="text-[10px]" style={{ color: '#6b7280' }}>
-                        {isGenerating ? '生成中...' : 'Unregistered'}
-                    </span>
                 )}
-                {isSelected && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00f5ff' }} />}
             </div>
         </div>
     );

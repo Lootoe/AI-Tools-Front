@@ -147,6 +147,12 @@ const ImageVariantCard: React.FC<ImageVariantCardProps> = ({ variant, index, isA
                         {isFailed && <span className="text-[10px]" style={{ color: '#ef4444' }}>生成失败</span>}
                         {variant.status === 'pending' && <span className="text-[10px]" style={{ color: '#6b7280' }}>待生成</span>}
                     </div>
+                    {/* 失败原因 */}
+                    {isFailed && variant.failReason && (
+                        <div className="text-[9px] mt-0.5 truncate max-w-[140px]" style={{ color: '#ef4444' }} title={variant.failReason}>
+                            原因: {variant.failReason}
+                        </div>
+                    )}
                     {/* 时间信息 */}
                     {variant.startedAt && (
                         <div className="text-[9px] mt-0.5" style={{ color: '#6b7280' }}>
