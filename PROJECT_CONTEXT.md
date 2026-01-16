@@ -38,19 +38,11 @@
 - **分镜池**：右侧面板管理多个视频版本
 - **视频生成**：支持 16:9/9:16 比例，10s/15s 时长
 - **视频编辑（Remix）**：基于已生成视频进行二次编辑
-- **关联设计稿**：在参考图 Tab 中可关联同剧集、同分镜序号的分镜图版本作为视频生成参考图
+- **关联资产**：在参考图 Tab 中可关联资产库中的设计稿作为视频生成参考图
 
-#### 1.3.4 分镜图工作区（ImageWorkspace）
-- **分镜图列表**：底部横向滚动列表
-- **分镜图编辑**：左侧面板编写描述、上传参考图
-- **图片查看器**：中央区域预览生成的图片
-- **图片池**：右侧面板管理多个图片版本
-- **图片生成**：支持多种模型和比例
-- **关联资产**：在参考图 Tab 中可关联资产库中的设计稿作为参考图
+> 更新于 2026-01-16：关联设计稿功能改为关联资产仓库，统一参考图来源
 
-> 更新于 2026-01-13：新增关联资产功能
-
-#### 1.3.5 资产画布工作区（AssetCanvasWorkspace）
+#### 1.3.4 资产画布工作区（AssetCanvasWorkspace）
 - **画布**：无限画布，支持缩放、平移
 - **节点系统**：生成节点（AI 生成）、输入节点（上传图片）
 - **连线系统**：节点间连接，传递参考图
@@ -59,15 +51,30 @@
 
 > 更新于 2026-01-16：替代旧的 AssetWorkspace，使用画布节点系统
 
-#### 1.3.6 资产仓库工作区（AssetRepositoryWorkspace）
+#### 1.3.5 资产仓库工作区（AssetRepositoryWorkspace）
 - **分类管理**：创建、编辑、删除分类
 - **资产网格**：展示所有已保存的资产
 - **资产预览**：查看资产详情
-- **关联使用**：分镜图和角色可关联仓库中的资产作为参考图
+- **关联使用**：分镜视频和角色可关联仓库中的资产作为参考图
 
 > 更新于 2026-01-16：统一的资产存储和管理系统
 
-#### 1.3.7 角色工作区（CharacterWorkspace）
+#### 1.3.6 角色工作区（CharacterWorkspace）
+- **角色身份卡片**：左上角展示角色认证状态
+  - 已认证：显示 Sora2 头像、Username、Task ID、绿色对勾
+  - 未认证：显示 UNREGISTERED 水印、注册按钮
+- **角色池**：左下角网格展示所有角色
+- **视频预览区**：右侧预览生成的角色视频
+- **角色编辑器**：右侧编辑角色姓名、设定、参考图
+- **视频生成**：支持比例、时长选择
+- **角色注册**：视频生成完成后可注册 Sora2 角色，用于多视频角色一致性
+  - 点击注册按钮弹出视频预览弹窗
+  - 选择角色出现的时间范围（1-3秒）
+  - 注册成功后显示已认证状态
+
+> 更新于 2026-01-13：新增 Sora2 角色注册功能，支持多视频角色一致性
+
+#### 1.3.6 角色工作区（CharacterWorkspace）
 - **角色身份卡片**：左上角展示角色认证状态
   - 已认证：显示 Sora2 头像、Username、Task ID、绿色对勾
   - 未认证：显示 UNREGISTERED 水印、注册按钮
@@ -104,8 +111,6 @@
     │   ├── 视频播放器（中）
     │   ├── 分镜池（右）
     │   └── 分镜列表（底）
-    ├── 分镜图工作区（Tab: storyboardImage）
-    │   └── 结构同上，图片替代视频
     ├── 资产画布工作区（Tab: assetCanvas）
     │   ├── 画布工具栏（顶）
     │   ├── 无限画布（中）
@@ -119,7 +124,7 @@
         └── 视频预览区（右）
 ```
 
-> 更新于 2026-01-16：资产系统重构，分离画布和仓库
+> 更新于 2026-01-16：移除分镜图工作区，简化工作流程
 
 ### 1.5 交互规范
 
@@ -579,7 +584,9 @@ deleteAsset(scriptId: string, assetId: string)
 - 套餐购买（10元/100代币、29元/300代币、68元/700代币）
 - 兑换码功能
 - 交易记录（支持分页和日期范围筛选、总消耗统计）
-- 偏好设置（分镜视频/分镜图/资产/角色的默认生成参数）
+- 偏好设置（分镜视频/资产/角色的默认生成参数）
+
+> 更新于 2026-01-16：移除分镜图偏好设置
 
 ### 8.2 工作区组件
 
@@ -588,11 +595,6 @@ deleteAsset(scriptId: string, assetId: string)
 - 分镜卡片展示
 - 分镜拖拽排序
 - 视频生成触发
-
-**ImageWorkspace**
-- 分镜图列表与编辑
-- 图片生成触发
-- 图片副本管理
 
 **AssetCanvasWorkspace**
 - 无限画布：缩放、平移、网格背景
@@ -640,10 +642,10 @@ deleteAsset(scriptId: string, assetId: string)
 - 视频/图片预览
 
 **CyberAssetSidebar**
-- 资产 Tab 切换（分镜视频/分镜图/资产/角色）
+- 资产 Tab 切换（分镜视频/资产画布/资产仓库/角色）
 - 赛博朋克风格设计
 
-> 更新于 2026-01-12：新增角色 Tab
+> 更新于 2026-01-16：移除分镜图 Tab
 
 **CharacterWorkspace**
 - 角色池：左侧网格展示所有角色
@@ -809,3 +811,8 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.2.0 | 2026-01-15 | 删除提示词模板功能：移除 getPromptTemplates API、PromptTemplateConfig 类型、偏好设置中的 promptTemplateId、CyberVideoPlayer/CyberImageViewer 的模板选择器 |
 | 1.2.1 | 2026-01-16 | 资产画布节点新增右键菜单：支持保存图像（有图片时）和删除节点，适用于生成节点和输入节点 |
 | 1.3.0 | 2026-01-16 | 删除旧资产系统：移除 AssetWorkspace、assetStore、assetApi，统一使用资产仓库（AssetRepositoryWorkspace）和资产画布（AssetCanvasWorkspace） |
+| 1.3.1 | 2026-01-16 | 分镜视频工作区关联设计稿改为关联资产仓库，统一分镜视频和分镜图的参考图来源 |
+| 1.4.0 | 2026-01-16 | 完全移除分镜图功能：删除 ImageWorkspace、ImageStoryboardGrid、ImageLeftPanel、ImageVariantPool 组件，移除分镜图 Tab，移除分镜图偏好设置，移除 types/stores/services 中的分镜图相关代码，简化工作流程 |
+| 1.4.1 | 2026-01-16 | 修复资产关联弹窗：支持显示所有分类的资产，新增分类 Tab 切换，弹窗尺寸从 3 列调整为 4 列 |
+| 1.4.2 | 2026-01-16 | 完成分镜图功能清理：删除 videoStore 中所有分镜图实现函数（addStoryboardImage、updateStoryboardImage、deleteStoryboardImage、clearStoryboardImages、reorderStoryboardImages、addImageVariant、updateImageVariant、deleteImageVariant、setActiveImageVariant、refreshImageVariant），删除 api.ts 中的 generateStoryboardImage 函数和 StoryboardImageResponse 接口，修复 videoStore 中重复的 getCurrentScript 方法定义 |
+| 1.5.0 | 2026-01-16 | 前后端分镜图功能完全清理完成：前端已删除所有 UI 组件、类型定义、Store 方法、API 方法；后端已删除 StoryboardImage 和 ImageVariant 数据模型、所有分镜图 CRUD API 路由（约 470 行代码）、分镜图生成 API，数据库 schema 已更新，工作流程简化为分镜视频 + 资产画布 + 资产仓库 + 角色 |

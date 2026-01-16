@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Save, Image, Link2 } from 'lucide-react';
-import { Storyboard, StoryboardImage } from '@/types/video';
+import { Storyboard } from '@/types/video';
+import { AssetCategory } from '@/types/canvas';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
-import { LinkDesignImageDialog } from '@/components/ui/LinkDesignImageDialog';
+import { LinkAssetImageDialog } from '@/components/ui/LinkAssetImageDialog';
 import { useToast } from '@/components/ui/Toast';
 
 interface StoryboardLeftPanelProps {
@@ -15,8 +16,9 @@ interface StoryboardLeftPanelProps {
   // 参考图相关
   localReferenceImageUrl: string;
   onReferenceImageUrlChange: (url: string) => void;
-  // 关联设计稿相关
-  storyboardImages?: StoryboardImage[];
+  // 关联资产相关
+  categories?: AssetCategory[];
+  scriptId: string;
 }
 
 type TabType = 'script' | 'referenceImage';
@@ -30,17 +32,18 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
   hasUnsavedChanges,
   localReferenceImageUrl,
   onReferenceImageUrlChange,
-  storyboardImages = [],
+  categories = [],
+  scriptId,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('script');
   const [isFocused, setIsFocused] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const { showToast, ToastContainer } = useToast();
 
-  // 处理关联设计稿选择
-  const handleLinkDesignImage = (imageUrl: string) => {
+  // 处理关联资产选择
+  const handleLinkAssetImage = (imageUrl: string) => {
     onReferenceImageUrlChange(imageUrl);
-    showToast('已关联设计稿', 'success');
+    showToast('已关联资产', 'success');
   };
 
   if (!storyboard) {
@@ -175,7 +178,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                 hint="单张不超过2MB"
                 onError={(msg) => showToast(msg, 'error')}
               />
-              {/* 关联设计稿按钮 */}
+              {/* 关联资产按钮 */}
               <button
                 onClick={() => setShowLinkDialog(true)}
                 className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all hover:brightness-110"
@@ -186,7 +189,7 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
                 }}
               >
                 <Link2 size={14} />
-                关联设计稿
+                关联资产
               </button>
             </div>
           )}
@@ -215,13 +218,13 @@ export const StoryboardLeftPanel: React.FC<StoryboardLeftPanelProps> = ({
         )}
       </div>
 
-      {/* 关联设计稿弹窗 */}
-      <LinkDesignImageDialog
+      {/* 关联资产弹窗 */}
+      <LinkAssetImageDialog
         isOpen={showLinkDialog}
         onClose={() => setShowLinkDialog(false)}
-        storyboardImages={storyboardImages}
-        sceneNumber={storyboard?.sceneNumber || 0}
-        onSelect={handleLinkDesignImage}
+        categories={categories}
+        scriptId={scriptId}
+        onSelect={handleLinkAssetImage}
       />
     </>
   );

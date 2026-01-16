@@ -9,7 +9,6 @@ interface CyberAssetSidebarProps {
 
 const TAB_CONFIG: { type: AssetTabType; icon: React.ElementType; label: string }[] = [
   { type: 'storyboard', icon: LayoutGrid, label: '分镜视频' },
-  { type: 'storyboardImage', icon: Image, label: '分镜参考图' },
   { type: 'assetCanvas', icon: Package, label: '资产画布' },
   { type: 'assetRepository', icon: FolderOpen, label: '资产仓库' },
   { type: 'character', icon: User, label: '角色' },

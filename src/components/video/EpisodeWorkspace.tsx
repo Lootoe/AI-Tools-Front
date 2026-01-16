@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useRepositoryStore } from '@/stores/repositoryStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
@@ -44,6 +45,7 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
   } = useVideoStore();
 
   const { updateBalance } = useAuthStore();
+  const { categories, loadCategories } = useRepositoryStore();
   const { showToast, ToastContainer } = useToast();
   const videoPrefs = usePreferencesStore((s) => s.video);
 
@@ -63,6 +65,13 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
   const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
 
   const script = scripts.find((s) => s.id === scriptId);
+
+  // 加载资产仓库分类
+  useEffect(() => {
+    if (scriptId) {
+      loadCategories(scriptId);
+    }
+  }, [scriptId, loadCategories]);
 
   // 初始化：如果 URL 没有 episodeId，自动导航到第一个剧集
   useEffect(() => {
@@ -453,7 +462,8 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
               hasUnsavedChanges={hasUnsavedChanges}
               localReferenceImageUrl={localReferenceImageUrl}
               onReferenceImageUrlChange={setLocalReferenceImageUrl}
-              storyboardImages={selectedEpisode?.storyboardImages || []}
+              categories={categories}
+              scriptId={scriptId}
             />
 
             {/* 中间视频播放器 */}

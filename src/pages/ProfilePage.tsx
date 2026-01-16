@@ -404,11 +404,6 @@ export const ProfilePage: React.FC = () => {
                 <SelectGroup label="视频时长" value={preferences.video.duration} options={VIDEO_DURATIONS} onChange={(v) => preferences.setVideoPreferences({ duration: v as '10' | '15' })} />
               </PreferenceCard>
 
-              <PreferenceCard icon={<Image size={14} style={{ color: '#bf00ff' }} />} title="分镜图">
-                <SelectGroup label="画面比例" value={preferences.storyboardImage.aspectRatio} options={IMAGE_ASPECT_RATIOS} onChange={(v) => preferences.setStoryboardImagePreferences({ aspectRatio: v as '16:9' | '1:1' | '4:3' })} />
-                <SelectGroup label="模型" value={preferences.storyboardImage.model} options={IMAGE_MODELS} onChange={(v) => preferences.setStoryboardImagePreferences({ model: v })} />
-              </PreferenceCard>
-
               <PreferenceCard icon={<Package size={14} style={{ color: '#fbbf24' }} />} title="资产">
                 <SelectGroup label="画面比例" value={preferences.asset.aspectRatio} options={IMAGE_ASPECT_RATIOS} onChange={(v) => preferences.setAssetPreferences({ aspectRatio: v as '1:1' | '4:3' | '16:9' })} />
                 <SelectGroup label="模型" value={preferences.asset.model} options={IMAGE_MODELS} onChange={(v) => preferences.setAssetPreferences({ model: v })} />

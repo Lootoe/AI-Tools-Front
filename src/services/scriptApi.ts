@@ -1,5 +1,5 @@
 // 剧本相关 API 服务
-import { Script, Episode, Storyboard, StoryboardVariant, StoryboardImage, ImageVariant, VideoPhase } from '@/types/video';
+import { Script, Episode, Storyboard, StoryboardVariant, VideoPhase } from '@/types/video';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -72,7 +72,7 @@ export async function deleteScripts(ids: string[]): Promise<void> {
 
 export async function createEpisode(
   scriptId: string,
-  data: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'storyboardImages' | 'createdAt' | 'updatedAt'>
+  data: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'createdAt' | 'updatedAt'>
 ): Promise<Episode> {
   return request<Episode>(`/api/scripts/${scriptId}/episodes`, {
     method: 'POST',
@@ -217,136 +217,6 @@ export async function setActiveVariant(
 ): Promise<void> {
   await request<void>(
     `/api/scripts/${scriptId}/episodes/${episodeId}/storyboards/${storyboardId}/active-variant`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ variantId }),
-    }
-  );
-}
-
-
-// ============ 分镜图 API ============
-
-export async function createStoryboardImage(
-  scriptId: string,
-  episodeId: string,
-  data: Omit<StoryboardImage, 'id' | 'episodeId' | 'status' | 'createdAt' | 'imageVariants'>
-): Promise<StoryboardImage> {
-  return request<StoryboardImage>(`/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateStoryboardImage(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  data: Partial<StoryboardImage>
-): Promise<StoryboardImage> {
-  return request<StoryboardImage>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-export async function deleteStoryboardImage(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string
-): Promise<void> {
-  await request<void>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}`,
-    { method: 'DELETE' }
-  );
-}
-
-export async function clearStoryboardImages(scriptId: string, episodeId: string): Promise<void> {
-  await request<void>(`/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images`, {
-    method: 'DELETE',
-  });
-}
-
-export async function reorderStoryboardImages(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageIds: string[]
-): Promise<void> {
-  await request<void>(`/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images-reorder`, {
-    method: 'PUT',
-    body: JSON.stringify({ storyboardImageIds }),
-  });
-}
-
-
-// ============ 分镜图副本 API ============
-
-export async function fetchImageVariant(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  variantId: string
-): Promise<ImageVariant> {
-  return request<ImageVariant>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}/variants/${variantId}`,
-    { method: 'GET' }
-  );
-}
-
-export async function createImageVariant(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  data?: Partial<ImageVariant>
-): Promise<ImageVariant> {
-  return request<ImageVariant>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}/variants`,
-    {
-      method: 'POST',
-      body: JSON.stringify(data || {}),
-    }
-  );
-}
-
-export async function updateImageVariant(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  variantId: string,
-  data: Partial<ImageVariant>
-): Promise<ImageVariant> {
-  return request<ImageVariant>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}/variants/${variantId}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-export async function deleteImageVariant(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  variantId: string
-): Promise<void> {
-  await request<void>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}/variants/${variantId}`,
-    { method: 'DELETE' }
-  );
-}
-
-export async function setActiveImageVariant(
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  variantId: string
-): Promise<void> {
-  await request<void>(
-    `/api/scripts/${scriptId}/episodes/${episodeId}/storyboard-images/${storyboardImageId}/active-variant`,
     {
       method: 'PUT',
       body: JSON.stringify({ variantId }),

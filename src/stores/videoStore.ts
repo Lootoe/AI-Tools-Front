@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Script, Episode, Storyboard, StoryboardVariant, StoryboardImage, ImageVariant, VideoPhase, AssetTabType } from '@/types/video';
+import { Script, Episode, Storyboard, StoryboardVariant, VideoPhase, AssetTabType } from '@/types/video';
 import * as api from '@/services/scriptApi';
 
 interface VideoState {
@@ -18,7 +18,7 @@ interface VideoState {
   renameScript: (id: string, title: string) => Promise<void>;
   updateScriptPhase: (id: string, phase: VideoPhase) => Promise<void>;
 
-  addEpisode: (scriptId: string, episode: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'storyboardImages' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  addEpisode: (scriptId: string, episode: Omit<Episode, 'id' | 'scriptId' | 'storyboards' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateEpisode: (scriptId: string, episodeId: string, updates: Partial<Episode>) => Promise<void>;
   deleteEpisode: (scriptId: string, episodeId: string) => Promise<void>;
 
@@ -34,20 +34,6 @@ interface VideoState {
   setActiveVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
   refreshVariant: (scriptId: string, episodeId: string, storyboardId: string, variantId: string) => Promise<void>;
 
-  // ============ 分镜图操作 ============
-  addStoryboardImage: (scriptId: string, episodeId: string, storyboardImage: Omit<StoryboardImage, 'id' | 'episodeId' | 'status' | 'createdAt' | 'imageVariants'>) => Promise<string>;
-  updateStoryboardImage: (scriptId: string, episodeId: string, storyboardImageId: string, updates: Partial<StoryboardImage>) => Promise<void>;
-  deleteStoryboardImage: (scriptId: string, episodeId: string, storyboardImageId: string) => Promise<void>;
-  clearStoryboardImages: (scriptId: string, episodeId: string) => Promise<void>;
-  reorderStoryboardImages: (scriptId: string, episodeId: string, fromIndex: number, toIndex: number) => Promise<void>;
-
-  // ============ 分镜图副本操作 ============
-  addImageVariant: (scriptId: string, episodeId: string, storyboardImageId: string) => Promise<string>;
-  updateImageVariant: (scriptId: string, episodeId: string, storyboardImageId: string, variantId: string, updates: Partial<ImageVariant>) => Promise<void>;
-  deleteImageVariant: (scriptId: string, episodeId: string, storyboardImageId: string, variantId: string) => Promise<void>;
-  setActiveImageVariant: (scriptId: string, episodeId: string, storyboardImageId: string, variantId: string) => Promise<void>;
-  refreshImageVariant: (scriptId: string, episodeId: string, storyboardImageId: string, variantId: string) => Promise<void>;
-
   getCurrentScript: () => Script | null;
   refreshScript: (scriptId: string) => Promise<void>;
 }
@@ -57,7 +43,6 @@ interface VideoState {
 type ScriptUpdater = (script: Script) => Script;
 type EpisodeUpdater = (episode: Episode) => Episode;
 type StoryboardUpdater = (storyboard: Storyboard) => Storyboard;
-type StoryboardImageUpdater = (storyboardImage: StoryboardImage) => StoryboardImage;
 
 function updateScriptInList(scripts: Script[], scriptId: string, updater: ScriptUpdater): Script[] {
   return scripts.map((s) => (s.id === scriptId ? updater(s) : s));
@@ -74,13 +59,6 @@ function updateStoryboardInEpisode(episode: Episode, storyboardId: string, updat
   return {
     ...episode,
     storyboards: episode.storyboards.map((sb) => (sb.id === storyboardId ? updater(sb) : sb)),
-  };
-}
-
-function updateStoryboardImageInEpisode(episode: Episode, storyboardImageId: string, updater: StoryboardImageUpdater): Episode {
-  return {
-    ...episode,
-    storyboardImages: (episode.storyboardImages || []).map((sb) => (sb.id === storyboardImageId ? updater(sb) : sb)),
   };
 }
 
@@ -111,33 +89,12 @@ function deepUpdateEpisode(
   );
 }
 
-/** 深层更新：Script -> Episode -> StoryboardImage */
-function deepUpdateStoryboardImage(
-  scripts: Script[],
-  scriptId: string,
-  episodeId: string,
-  storyboardImageId: string,
-  updater: StoryboardImageUpdater
-): Script[] {
-  return updateScriptInList(scripts, scriptId, (script) =>
-    updateEpisodeInScript(script, episodeId, (episode) =>
-      updateStoryboardImageInEpisode(episode, storyboardImageId, updater)
-    )
-  );
-}
-
 /** 初始化脚本数据：排序分镜、初始化 variants */
 function normalizeScript(script: Script): Script {
   script.episodes.forEach((episode) => {
     episode.storyboards.sort((a, b) => a.sceneNumber - b.sceneNumber);
     episode.storyboards.forEach((sb) => {
       if (!sb.variants) sb.variants = [];
-    });
-    // 初始化分镜图
-    if (!episode.storyboardImages) episode.storyboardImages = [];
-    episode.storyboardImages.sort((a, b) => a.sceneNumber - b.sceneNumber);
-    episode.storyboardImages.forEach((sb) => {
-      if (!sb.imageVariants) sb.imageVariants = [];
     });
   });
   return script;
@@ -473,180 +430,18 @@ export const useVideoStore = create<VideoState>((set, get) => ({
   },
 
   getCurrentScript: () => {
-    const { scripts, currentScriptId } = get();
-    return scripts.find((s) => s.id === currentScriptId) || null;
-  },
-
-  // ============ 分镜图操作 ============
-
-  addStoryboardImage: async (scriptId, episodeId, storyboardImage) => {
-    try {
-      const newStoryboardImage = await api.createStoryboardImage(scriptId, episodeId, storyboardImage);
-      set((state) => ({
-        scripts: deepUpdateEpisode(state.scripts, scriptId, episodeId, (e) => ({
-          ...e,
-          storyboardImages: [...(e.storyboardImages || []), newStoryboardImage],
-        })),
-      }));
-      return newStoryboardImage.id;
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  updateStoryboardImage: async (scriptId, episodeId, storyboardImageId, updates) => {
-    try {
-      await api.updateStoryboardImage(scriptId, episodeId, storyboardImageId, updates);
-      set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => ({
-          ...sb,
-          ...updates,
-        })),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  deleteStoryboardImage: async (scriptId, episodeId, storyboardImageId) => {
-    try {
-      await api.deleteStoryboardImage(scriptId, episodeId, storyboardImageId);
-      set((state) => ({
-        scripts: deepUpdateEpisode(state.scripts, scriptId, episodeId, (e) => ({
-          ...e,
-          storyboardImages: (e.storyboardImages || []).filter((sb) => sb.id !== storyboardImageId),
-        })),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  clearStoryboardImages: async (scriptId, episodeId) => {
-    try {
-      await api.clearStoryboardImages(scriptId, episodeId);
-      set((state) => ({
-        scripts: deepUpdateEpisode(state.scripts, scriptId, episodeId, (e) => ({
-          ...e,
-          storyboardImages: [],
-        })),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  reorderStoryboardImages: async (scriptId, episodeId, fromIndex, toIndex) => {
     const state = get();
-    const script = state.scripts.find((s) => s.id === scriptId);
-    const episode = script?.episodes.find((e) => e.id === episodeId);
-    if (!episode) return;
-
-    const storyboardImages = [...(episode.storyboardImages || [])];
-    const [movedItem] = storyboardImages.splice(fromIndex, 1);
-    storyboardImages.splice(toIndex, 0, movedItem);
-    storyboardImages.forEach((sb, idx) => (sb.sceneNumber = idx + 1));
-
-    // 乐观更新
-    set((state) => ({
-      scripts: deepUpdateEpisode(state.scripts, scriptId, episodeId, (e) => ({
-        ...e,
-        storyboardImages,
-      })),
-    }));
-
-    try {
-      await api.reorderStoryboardImages(scriptId, episodeId, storyboardImages.map((sb) => sb.id));
-    } catch (error) {
-      await get().refreshScript(scriptId);
-      set({ error: (error as Error).message });
-      throw error;
-    }
+    return state.scripts.find((s) => s.id === state.currentScriptId) || null;
   },
 
-  // ============ 分镜图副本操作 ============
-
-  addImageVariant: async (scriptId, episodeId, storyboardImageId) => {
+  refreshScript: async (scriptId) => {
     try {
-      const newVariant = await api.createImageVariant(scriptId, episodeId, storyboardImageId);
+      const script = await api.fetchScript(scriptId);
       set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => ({
-          ...sb,
-          imageVariants: [...(sb.imageVariants || []), newVariant],
-          activeImageVariantId: sb.activeImageVariantId || newVariant.id,
-        })),
-      }));
-      return newVariant.id;
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  updateImageVariant: async (scriptId, episodeId, storyboardImageId, variantId, updates) => {
-    try {
-      await api.updateImageVariant(scriptId, episodeId, storyboardImageId, variantId, updates);
-      set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => ({
-          ...sb,
-          imageVariants: (sb.imageVariants || []).map((v) => (v.id === variantId ? { ...v, ...updates } : v)),
-        })),
+        scripts: state.scripts.map((s) => (s.id === scriptId ? script : s)),
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  deleteImageVariant: async (scriptId, episodeId, storyboardImageId, variantId) => {
-    try {
-      await api.deleteImageVariant(scriptId, episodeId, storyboardImageId, variantId);
-      set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => {
-          const newVariants = (sb.imageVariants || []).filter((v) => v.id !== variantId);
-          return {
-            ...sb,
-            imageVariants: newVariants,
-            activeImageVariantId: sb.activeImageVariantId === variantId ? newVariants[0]?.id : sb.activeImageVariantId,
-          };
-        }),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  setActiveImageVariant: async (scriptId, episodeId, storyboardImageId, variantId) => {
-    try {
-      await api.setActiveImageVariant(scriptId, episodeId, storyboardImageId, variantId);
-      set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => ({
-          ...sb,
-          activeImageVariantId: variantId,
-        })),
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
-
-  refreshImageVariant: async (scriptId, episodeId, storyboardImageId, variantId) => {
-    try {
-      const variant = await api.fetchImageVariant(scriptId, episodeId, storyboardImageId, variantId);
-      set((state) => ({
-        scripts: deepUpdateStoryboardImage(state.scripts, scriptId, episodeId, storyboardImageId, (sb) => ({
-          ...sb,
-          imageVariants: (sb.imageVariants || []).map((v) => (v.id === variantId ? { ...v, ...variant } : v)),
-        })),
-      }));
-    } catch (error) {
-      console.error('refreshImageVariant error:', error);
+      console.error('刷新剧本失败:', error);
     }
   },
 }));

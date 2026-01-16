@@ -4,7 +4,6 @@ import { Film } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { CyberAssetSidebar } from '@/components/video/CyberAssetSidebar';
 import { EpisodeWorkspace } from '@/components/video/EpisodeWorkspace';
-import { ImageWorkspace } from '@/components/video/ImageWorkspace';
 import { AssetCanvasWorkspace } from '@/components/video/AssetCanvasWorkspace';
 import { AssetRepositoryWorkspace } from '@/components/video/AssetRepositoryWorkspace';
 import { CharacterWorkspace } from '@/components/video/CharacterWorkspace';
@@ -66,30 +65,21 @@ export const ScriptEditorPage: React.FC = () => {
     if (!scriptId) return;
 
     // 对于需要 episodeId 的 tab，尝试保留当前 episodeId
-    if (newTab === 'storyboard' || newTab === 'storyboardImage') {
+    if (newTab === 'storyboard') {
       const currentEpisodeId = episodeId || script?.episodes[0]?.id;
       if (currentEpisodeId) {
         const episode = script?.episodes.find(e => e.id === currentEpisodeId);
-        if (newTab === 'storyboard') {
-          const firstStoryboard = episode?.storyboards[0];
-          if (firstStoryboard) {
-            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}/${firstStoryboard.id}`);
-          } else {
-            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}`);
-          }
+        const firstStoryboard = episode?.storyboards[0];
+        if (firstStoryboard) {
+          navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}/${firstStoryboard.id}`);
         } else {
-          const firstStoryboardImage = episode?.storyboardImages[0];
-          if (firstStoryboardImage) {
-            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}/${firstStoryboardImage.id}`);
-          } else {
-            navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}`);
-          }
+          navigate(`/video/script/${scriptId}/${newTab}/${currentEpisodeId}`);
         }
       } else {
         navigate(`/video/script/${scriptId}/${newTab}`);
       }
     } else {
-      // asset 和 character 不需要 episodeId
+      // assetCanvas, assetRepository 和 character 不需要 episodeId
       navigate(`/video/script/${scriptId}/${newTab}`);
     }
   }, [scriptId, episodeId, script, navigate]);
@@ -99,20 +89,11 @@ export const ScriptEditorPage: React.FC = () => {
     if (!scriptId || !newEpisodeId) return;
 
     const episode = script?.episodes.find(e => e.id === newEpisodeId);
-    if (currentAssetTab === 'storyboard') {
-      const firstStoryboard = episode?.storyboards[0];
-      if (firstStoryboard) {
-        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}/${firstStoryboard.id}`);
-      } else {
-        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}`);
-      }
-    } else if (currentAssetTab === 'storyboardImage') {
-      const firstStoryboardImage = episode?.storyboardImages[0];
-      if (firstStoryboardImage) {
-        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}/${firstStoryboardImage.id}`);
-      } else {
-        navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}`);
-      }
+    const firstStoryboard = episode?.storyboards[0];
+    if (firstStoryboard) {
+      navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}/${firstStoryboard.id}`);
+    } else {
+      navigate(`/video/script/${scriptId}/${currentAssetTab}/${newEpisodeId}`);
     }
   }, [scriptId, script, currentAssetTab, navigate]);
 
@@ -134,16 +115,6 @@ export const ScriptEditorPage: React.FC = () => {
             storyboardId={storyboardId}
             onEpisodeChange={handleEpisodeChange}
             onStoryboardChange={handleStoryboardChange}
-          />
-        );
-      case 'storyboardImage':
-        return (
-          <ImageWorkspace
-            scriptId={script.id}
-            episodeId={episodeId}
-            storyboardImageId={storyboardId}
-            onEpisodeChange={handleEpisodeChange}
-            onStoryboardImageChange={handleStoryboardChange}
           />
         );
       case 'assetCanvas':
