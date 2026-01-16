@@ -72,31 +72,43 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
   // 处理滚轮缩放
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    // 检查事件目标是否是可滚动的交互元素
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = target.tagName === 'TEXTAREA' ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable;
+
+    // 如果是交互元素，不阻止默认行为，让元素自己处理滚动
+    if (isInteractiveElement) {
+      return;
+    }
+
     e.preventDefault();
-    
+
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    
+
     // 鼠标相对于容器的位置
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    
+
     // 计算缩放因子
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = clampZoom(viewport.zoom * zoomFactor);
-    
+
     // 如果缩放没有变化，直接返回
     if (newZoom === viewport.zoom) return;
-    
+
     // 以鼠标位置为中心进行缩放
     // 缩放前鼠标指向的画布坐标
     const canvasX = (mouseX - viewport.x) / viewport.zoom;
     const canvasY = (mouseY - viewport.y) / viewport.zoom;
-    
+
     // 缩放后保持鼠标指向同一画布坐标
     const newX = mouseX - canvasX * newZoom;
     const newY = mouseY - canvasY * newZoom;
-    
+
     onViewportChange({
       x: newX,
       y: newY,
@@ -106,6 +118,18 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
 
   // 处理鼠标按下
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 检查是否点击在交互元素上
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = target.tagName === 'TEXTAREA' ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable;
+
+    // 如果点击在交互元素上，不处理画布平移
+    if (isInteractiveElement) {
+      return;
+    }
+
     // 中键拖拽或 Space + 左键拖拽
     if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
       e.preventDefault();
@@ -125,7 +149,7 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     if (isPanning && panStart && viewportStart) {
       const dx = e.clientX - panStart.x;
       const dy = e.clientY - panStart.y;
-      
+
       onViewportChange({
         x: viewportStart.x + dx,
         y: viewportStart.y + dy,

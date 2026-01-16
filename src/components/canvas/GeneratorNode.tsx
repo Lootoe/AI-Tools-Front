@@ -10,9 +10,9 @@
  * 
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Sparkles, ChevronDown, AlertCircle, RefreshCw, Save, X } from 'lucide-react';
+import { Sparkles, ChevronDown, AlertCircle, RefreshCw, Save, X, Copy } from 'lucide-react';
 import { BaseNode, NODE_WIDTH } from './BaseNode';
 import { InlineLoading } from '@/components/ui/Loading';
 import { CanvasNode, Position, NodeStatus } from '@/types/canvas';
@@ -47,6 +47,7 @@ export interface GeneratorNodeProps {
   node: CanvasNode;
   isSelected: boolean;
   connectedInputUrls: string[];
+  zoom?: number; // 画布缩放比例
   onSelect: () => void;
   onDelete: () => void;
   onMove: (position: Position) => void;
@@ -54,6 +55,7 @@ export interface GeneratorNodeProps {
   onUpdate: (updates: Partial<CanvasNode>) => void;
   onGenerate: () => void;
   onSave?: () => void;
+  onDuplicate?: () => void; // 复制节点
   onStartConnect?: (nodeId: string, portType: 'output') => void;
   onEndConnect?: (nodeId: string, portType: 'input') => void;
 }
@@ -62,6 +64,7 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
   node,
   isSelected,
   connectedInputUrls,
+  zoom,
   onSelect,
   onDelete,
   onMove,
@@ -69,6 +72,7 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
   onUpdate,
   onGenerate,
   onSave,
+  onDuplicate,
   onStartConnect,
   onEndConnect,
 }) => {
@@ -76,6 +80,9 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
   const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
   const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [localPrompt, setLocalPrompt] = useState(node.prompt || '');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 当前选中的模型
   const currentModel = (node.model as ImageModel) || 'nano-banana-2';
@@ -93,7 +100,21 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
   const hasImage = !!node.imageUrl;
 
   // 是否可以生成
-  const canGenerate = !isGenerating && node.prompt?.trim();
+  const canGenerate = !isGenerating && localPrompt?.trim();
+
+  // 同步外部 prompt 变化到本地状态
+  React.useEffect(() => {
+    setLocalPrompt(node.prompt || '');
+  }, [node.prompt]);
+
+  // 清理防抖定时器
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // 处理模型选择
   const handleModelSelect = useCallback((model: ImageModel) => {
@@ -113,9 +134,22 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
     setIsSizeDropdownOpen(false);
   }, [onUpdate]);
 
-  // 处理提示词变化
+  // 处理提示词变化（带防抖）
   const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onUpdate({ prompt: e.target.value });
+    const newValue = e.target.value;
+
+    // 立即更新本地状态，保证输入流畅
+    setLocalPrompt(newValue);
+
+    // 清除之前的定时器
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // 设置新的防抖定时器，800ms 后调用 API
+    debounceTimerRef.current = setTimeout(() => {
+      onUpdate({ prompt: newValue });
+    }, 800);
   }, [onUpdate]);
 
   // 处理生成按钮点击
@@ -156,6 +190,28 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
     closeContextMenu();
   }, [onDelete, closeContextMenu]);
 
+  // 处理复制（从右键菜单）
+  const handleDuplicateFromMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDuplicate) {
+      onDuplicate();
+    }
+    closeContextMenu();
+  }, [onDuplicate, closeContextMenu]);
+
+  // 处理图片点击 - 打开预览
+  const handleImageClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (node.imageUrl) {
+      setPreviewImageUrl(node.imageUrl);
+    }
+  }, [node.imageUrl]);
+
+  // 关闭图片预览
+  const closePreview = useCallback(() => {
+    setPreviewImageUrl(null);
+  }, []);
+
   // 点击外部关闭菜单
   React.useEffect(() => {
     if (!contextMenuPosition) return;
@@ -183,6 +239,7 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
         type="generator"
         position={{ x: node.positionX, y: node.positionY }}
         isSelected={isSelected}
+        zoom={zoom}
         hasInputPort={true}
         hasOutputPort={true}
         outputPortEnabled={true} // 始终允许连线，即使没有生成结果
@@ -262,7 +319,8 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
             <img
               src={node.imageUrl}
               alt="生成结果"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer"
+              onClick={handleImageClick}
             />
           )}
 
@@ -447,16 +505,18 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
 
           {/* 提示词输入 */}
           <textarea
-            value={node.prompt || ''}
+            value={localPrompt}
             onChange={handlePromptChange}
             placeholder="输入提示词描述..."
             disabled={isGenerating}
-            className="w-full h-16 px-2 py-1.5 rounded text-xs resize-none"
+            className="w-full h-48 px-2 py-1.5 rounded text-xs resize-none [&::-webkit-scrollbar]:hidden"
             style={{
               backgroundColor: 'rgba(20, 20, 35, 0.8)',
               border: '1px solid rgba(60, 60, 80, 0.5)',
               color: '#e5e7eb',
               opacity: isGenerating ? 0.5 : 1,
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
             }}
           />
 
@@ -524,6 +584,18 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
                   </span>
                 </button>
               )}
+              {/* 复制节点 */}
+              {onDuplicate && (
+                <button
+                  onClick={handleDuplicateFromMenu}
+                  className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+                >
+                  <Copy size={14} style={{ color: '#22c55e' }} />
+                  <span className="text-sm" style={{ color: '#e5e7eb' }}>
+                    复制节点
+                  </span>
+                </button>
+              )}
               {/* 删除节点 */}
               <button
                 onClick={handleDeleteFromMenu}
@@ -535,6 +607,38 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
                 </span>
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 图片预览模态框 */}
+      {previewImageUrl && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)',
+          }}
+          onClick={closePreview}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <img
+            src={previewImageUrl}
+            alt="预览"
+            className="max-w-[90vw] max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {/* 关闭提示 */}
+          <div
+            className="absolute top-4 right-4 px-3 py-2 rounded-lg text-sm"
+            style={{
+              backgroundColor: 'rgba(18, 18, 26, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#e5e7eb',
+            }}
+          >
+            点击任意处关闭
           </div>
         </div>,
         document.body

@@ -12,6 +12,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useRepositoryStore } from '@/stores/repositoryStore';
 import { useToast } from '@/components/ui/Toast';
 import { InlineLoading } from '@/components/ui/Loading';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   InfiniteCanvas,
   CanvasToolbar,
@@ -40,16 +41,17 @@ interface AssetCanvasWorkspaceProps {
 const DEBOUNCE_DELAY = 500;
 
 // 静态计算端口位置（用于临时连线）
-function getOutputPortPositionStatic(nodeX: number, nodeY: number, nodeHeight: number): Position {
+// 端口固定在节点头部位置（距离顶部22px）
+function getOutputPortPositionStatic(nodeX: number, nodeY: number, _nodeHeight: number): Position {
   return {
     x: nodeX + NODE_WIDTH + PORT_OFFSET,
-    y: nodeY + nodeHeight / 2,
+    y: nodeY + 22, // 微调位置
   };
 }
 
 // 节点高度常量（备用）
 const NODE_HEIGHT_INPUT = 292;
-const NODE_HEIGHT_GENERATOR = 486;
+const NODE_HEIGHT_GENERATOR = 620; // 头部40 + 图片278 + 配置面板302
 
 function getNodeHeight(nodeType?: string): number {
   return nodeType === 'input' ? NODE_HEIGHT_INPUT : NODE_HEIGHT_GENERATOR;
@@ -127,6 +129,15 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
 
   // Selected edge for deletion
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    nodeId: string | null;
+  }>({
+    isOpen: false,
+    nodeId: null,
+  });
 
   // Debounce timer ref for viewport changes
   const viewportDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -251,15 +262,62 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
     await updateNode(nodeId, { positionX: position.x, positionY: position.y });
   }, [updateNode]);
 
-  // Handle node delete
-  const handleNodeDelete = useCallback(async (nodeId: string) => {
+  // Handle node delete - show confirmation dialog
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      nodeId,
+    });
+  }, []);
+
+  // Confirm node deletion
+  const confirmNodeDelete = useCallback(async () => {
+    if (!deleteConfirm.nodeId) return;
+
     try {
-      await deleteNode(nodeId);
+      await deleteNode(deleteConfirm.nodeId);
       showToast('节点已删除', 'success');
     } catch {
       showToast('删除节点失败', 'error');
+    } finally {
+      setDeleteConfirm({ isOpen: false, nodeId: null });
     }
-  }, [deleteNode, showToast]);
+  }, [deleteConfirm.nodeId, deleteNode, showToast]);
+
+  // Handle node duplicate
+  const handleNodeDuplicate = useCallback(async (nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    try {
+      // 在原节点旁边创建新节点（位置偏移 50px）
+      const newNodeId = await addNode(
+        node.type,
+        node.positionX + 50,
+        node.positionY + 50,
+        node.label ? `${node.label} (副本)` : undefined
+      );
+
+      // 复制节点的其他属性
+      const updates: any = {};
+      if (node.prompt) updates.prompt = node.prompt;
+      if (node.model) updates.model = node.model;
+      if (node.aspectRatio) updates.aspectRatio = node.aspectRatio;
+      if (node.imageSize) updates.imageSize = node.imageSize;
+      if (node.imageUrl) updates.imageUrl = node.imageUrl;
+
+      if (Object.keys(updates).length > 0) {
+        await updateNode(newNodeId, updates);
+      }
+
+      // 选中新创建的节点，使其显示在最上层
+      selectNode(newNodeId);
+
+      showToast('节点已复制', 'success');
+    } catch {
+      showToast('复制节点失败', 'error');
+    }
+  }, [nodes, addNode, updateNode, selectNode, showToast]);
 
   // Handle start connection drag
   const handleStartConnect = useCallback((nodeId: string, _portType: 'output') => {
@@ -538,6 +596,17 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
         onClose={() => setSaveDialog({ isOpen: false, imageUrl: '', nodeId: null })}
       />
 
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="删除节点"
+        message="确定要删除这个节点吗？此操作无法撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        onConfirm={confirmNodeDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, nodeId: null })}
+      />
+
       {/* Context Menu */}
       {contextMenu.state.isOpen && contextMenu.state.canvasPosition && contextMenu.state.screenPosition && (
         <ContextMenu
@@ -659,6 +728,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
                     node={node}
                     isSelected={selectedNodeId === node.id}
                     connectedInputUrls={getConnectedInputUrls(node.id)}
+                    zoom={viewport.zoom}
                     onSelect={() => {
                       selectNode(node.id);
                       setSelectedEdgeId(null);
@@ -669,6 +739,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
                     onUpdate={(updates) => updateNode(node.id, updates)}
                     onGenerate={() => handleGenerate(node.id)}
                     onSave={node.imageUrl ? () => handleOpenSaveDialog(node.id, node.imageUrl!) : undefined}
+                    onDuplicate={() => handleNodeDuplicate(node.id)}
                     onStartConnect={(nodeId, portType) => handleStartConnect(nodeId, portType)}
                     onEndConnect={(nodeId, portType) => handleEndConnect(nodeId, portType)}
                   />
@@ -681,6 +752,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
                     key={node.id}
                     node={node}
                     isSelected={selectedNodeId === node.id}
+                    zoom={viewport.zoom}
                     onSelect={() => {
                       selectNode(node.id);
                       setSelectedEdgeId(null);
@@ -691,6 +763,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
                     onUpdate={(updates) => updateNode(node.id, updates)}
                     onUpload={handleUploadImage}
                     onSave={node.imageUrl ? () => handleOpenSaveDialog(node.id, node.imageUrl!) : undefined}
+                    onDuplicate={() => handleNodeDuplicate(node.id)}
                     onStartConnect={(nodeId, portType) => handleStartConnect(nodeId, portType)}
                     onEndConnect={(nodeId, portType) => handleEndConnect(nodeId, portType)}
                   />

@@ -5,10 +5,11 @@
  * - 贝塞尔曲线连接线
  * - 流动动画效果
  * - 选中高亮和删除
+ * - 动态获取端口实际位置
  * 
  * Requirements: 4.1, 4.3
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import { Position } from '@/types/canvas';
 import { NODE_WIDTH, PORT_OFFSET } from './BaseNode';
 
@@ -37,25 +38,21 @@ function getNodeHeight(nodeType: string): number {
   return NODE_HEIGHT_MAP[nodeType] || 300;
 }
 
-// 计算输出端口位置（节点右边缘中心）
-// 端口 CSS: right: -PORT_SIZE/2 - PORT_OFFSET = -12px
-// 端口中心 = 节点右边缘 + 12 - PORT_SIZE/2 = 节点右边缘 + 6
-function getOutputPortPosition(nodeX: number, nodeY: number, nodeType: string): Position {
-  const height = getNodeHeight(nodeType);
+// 计算输出端口位置（节点右边缘，固定在头部）
+// 端口固定在距离节点顶部22px的位置
+function getOutputPortPosition(nodeX: number, nodeY: number, _nodeType: string): Position {
   return {
     x: nodeX + NODE_WIDTH + PORT_OFFSET,  // 280 + 6 = 286
-    y: nodeY + height / 2,
+    y: nodeY + 22, // 微调位置
   };
 }
 
-// 计算输入端口位置（节点左边缘中心）
-// 端口 CSS: left: -PORT_SIZE/2 - PORT_OFFSET = -12px
-// 端口中心 = 节点左边缘 - 12 + PORT_SIZE/2 = 节点左边缘 - 6
-function getInputPortPosition(nodeX: number, nodeY: number, nodeType: string): Position {
-  const height = getNodeHeight(nodeType);
+// 计算输入端口位置（节点左边缘，固定在头部）
+// 端口固定在距离节点顶部22px的位置
+function getInputPortPosition(nodeX: number, nodeY: number, _nodeType: string): Position {
   return {
     x: nodeX - PORT_OFFSET,  // -6
-    y: nodeY + height / 2,
+    y: nodeY + 22, // 微调位置
   };
 }
 
@@ -66,35 +63,98 @@ export function calculateBezierPath(
 ): string {
   const dx = Math.abs(targetPort.x - sourcePort.x);
   const controlOffset = Math.max(50, dx * 0.4);
-  
+
   const cp1x = sourcePort.x + controlOffset;
   const cp1y = sourcePort.y;
   const cp2x = targetPort.x - controlOffset;
   const cp2y = targetPort.y;
-  
+
   return `M ${sourcePort.x} ${sourcePort.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetPort.x} ${targetPort.y}`;
 }
 
 export const CanvasEdge: React.FC<CanvasEdgeProps> = ({
   id,
+  sourceNodeId,
   sourcePosition,
   sourceType,
+  targetNodeId,
   targetPosition,
   targetType,
   isSelected,
   onSelect,
   onDelete,
 }) => {
+  // 使用 DOM API 动态获取端口的实际位置
+  const getPortPosition = useCallback((nodeId: string, portType: 'input' | 'output'): Position | null => {
+    const portElement = document.querySelector(
+      `.node-port[data-node-id="${nodeId}"][data-port-type="${portType}"]`
+    ) as HTMLElement;
+
+    if (!portElement) return null;
+
+    const rect = portElement.getBoundingClientRect();
+    // 返回端口中心点的屏幕坐标
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  }, []);
+
+  // 将屏幕坐标转换为画布坐标
+  const screenToCanvas = useCallback((screenPos: Position): Position => {
+    // 获取画布容器
+    const canvasContainer = document.querySelector('.canvas-background')?.parentElement;
+    if (!canvasContainer) return screenPos;
+
+    const containerRect = canvasContainer.getBoundingClientRect();
+
+    // 获取当前的 transform
+    const transformedDiv = canvasContainer.querySelector('[style*="transform"]') as HTMLElement;
+    if (!transformedDiv) return screenPos;
+
+    const transform = transformedDiv.style.transform;
+    const translateMatch = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+    const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+
+    const translateX = translateMatch ? parseFloat(translateMatch[1]) : 0;
+    const translateY = translateMatch ? parseFloat(translateMatch[2]) : 0;
+    const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+    // 转换为画布坐标
+    return {
+      x: (screenPos.x - containerRect.left - translateX) / scale,
+      y: (screenPos.y - containerRect.top - translateY) / scale,
+    };
+  }, []);
+
   // 计算端口位置
-  const sourcePort = useMemo(
-    () => getOutputPortPosition(sourcePosition.x, sourcePosition.y, sourceType),
-    [sourcePosition.x, sourcePosition.y, sourceType]
-  );
-  
-  const targetPort = useMemo(
-    () => getInputPortPosition(targetPosition.x, targetPosition.y, targetType),
-    [targetPosition.x, targetPosition.y, targetType]
-  );
+  const sourcePort = useMemo(() => {
+    const screenPos = getPortPosition(sourceNodeId, 'output');
+    if (!screenPos) {
+      // 降级：使用旧的计算方法
+      return getOutputPortPosition(sourcePosition.x, sourcePosition.y, sourceType);
+    }
+    return screenToCanvas(screenPos);
+  }, [sourceNodeId, sourcePosition, sourceType, getPortPosition, screenToCanvas]);
+
+  const targetPort = useMemo(() => {
+    const screenPos = getPortPosition(targetNodeId, 'input');
+    if (!screenPos) {
+      // 降级：使用旧的计算方法
+      return getInputPortPosition(targetPosition.x, targetPosition.y, targetType);
+    }
+    return screenToCanvas(screenPos);
+  }, [targetNodeId, targetPosition, targetType, getPortPosition, screenToCanvas]);
+
+  // 强制更新：在组件挂载后重新计算一次，确保 DOM 已渲染
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    // 延迟一帧后强制更新，确保端口元素已渲染
+    const timer = requestAnimationFrame(() => {
+      forceUpdate(prev => prev + 1);
+    });
+    return () => cancelAnimationFrame(timer);
+  }, [sourceNodeId, targetNodeId]);
 
   // 计算路径
   const path = useMemo(
@@ -135,7 +195,7 @@ export const CanvasEdge: React.FC<CanvasEdgeProps> = ({
         strokeLinecap="round"
         style={{ filter: 'blur(4px)' }}
       />
-      
+
       {/* 主连接线 */}
       <path
         d={path}
@@ -146,7 +206,7 @@ export const CanvasEdge: React.FC<CanvasEdgeProps> = ({
         className="cursor-pointer"
         onClick={handleClick}
       />
-      
+
       {/* 点击区域 */}
       <path
         d={path}
@@ -157,7 +217,7 @@ export const CanvasEdge: React.FC<CanvasEdgeProps> = ({
         className="cursor-pointer"
         onClick={handleClick}
       />
-      
+
       {/* 流动动画效果 */}
       <path
         d={path}
@@ -168,7 +228,7 @@ export const CanvasEdge: React.FC<CanvasEdgeProps> = ({
         strokeDasharray="8 12"
         className="animate-flow"
       />
-      
+
       {/* 选中时显示删除按钮 */}
       {isSelected && (
         <g

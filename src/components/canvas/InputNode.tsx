@@ -10,7 +10,7 @@
  */
 import React, { useRef, useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Upload, Image as ImageIcon, X, Save } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, Save, Copy } from 'lucide-react';
 import { BaseNode, NODE_WIDTH } from './BaseNode';
 import { InlineLoading } from '@/components/ui/Loading';
 import { CanvasNode, Position } from '@/types/canvas';
@@ -18,6 +18,7 @@ import { CanvasNode, Position } from '@/types/canvas';
 export interface InputNodeProps {
   node: CanvasNode;
   isSelected: boolean;
+  zoom?: number; // 画布缩放比例
   onSelect: () => void;
   onDelete: () => void;
   onMove: (position: Position) => void;
@@ -25,6 +26,7 @@ export interface InputNodeProps {
   onUpdate: (updates: Partial<CanvasNode>) => void;
   onUpload: (file: File) => Promise<string | null>; // 返回上传后的 URL
   onSave?: () => void; // 保存到资产仓库
+  onDuplicate?: () => void; // 复制节点
   onStartConnect?: (nodeId: string, portType: 'output') => void;
   onEndConnect?: (nodeId: string, portType: 'input') => void;
 }
@@ -32,6 +34,7 @@ export interface InputNodeProps {
 export const InputNode: React.FC<InputNodeProps> = ({
   node,
   isSelected,
+  zoom,
   onSelect,
   onDelete,
   onMove,
@@ -39,6 +42,7 @@ export const InputNode: React.FC<InputNodeProps> = ({
   onUpdate,
   onUpload,
   onSave,
+  onDuplicate,
   onStartConnect,
   onEndConnect,
 }) => {
@@ -46,6 +50,7 @@ export const InputNode: React.FC<InputNodeProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // 是否有图片
   const hasImage = !!node.imageUrl;
@@ -151,6 +156,28 @@ export const InputNode: React.FC<InputNodeProps> = ({
     closeContextMenu();
   }, [onDelete, closeContextMenu]);
 
+  // 处理复制（从右键菜单）
+  const handleDuplicateFromMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDuplicate) {
+      onDuplicate();
+    }
+    closeContextMenu();
+  }, [onDuplicate, closeContextMenu]);
+
+  // 处理图片点击 - 打开预览
+  const handleImageClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (node.imageUrl) {
+      setPreviewImageUrl(node.imageUrl);
+    }
+  }, [node.imageUrl]);
+
+  // 关闭图片预览
+  const closePreview = useCallback(() => {
+    setPreviewImageUrl(null);
+  }, []);
+
   // 点击外部关闭菜单
   React.useEffect(() => {
     if (!contextMenuPosition) return;
@@ -178,6 +205,7 @@ export const InputNode: React.FC<InputNodeProps> = ({
         type="input"
         position={{ x: node.positionX, y: node.positionY }}
         isSelected={isSelected}
+        zoom={zoom}
         hasInputPort={false} // 输入节点没有输入端口
         hasOutputPort={true}
         outputPortEnabled={true} // 始终允许连线，即使没有图片
@@ -243,7 +271,8 @@ export const InputNode: React.FC<InputNodeProps> = ({
               <img
                 src={node.imageUrl}
                 alt="输入图片"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={handleImageClick}
               />
               {/* 清除按钮 */}
               <button
@@ -358,6 +387,18 @@ export const InputNode: React.FC<InputNodeProps> = ({
                   </span>
                 </button>
               )}
+              {/* 复制节点 */}
+              {onDuplicate && (
+                <button
+                  onClick={handleDuplicateFromMenu}
+                  className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+                >
+                  <Copy size={14} style={{ color: '#22c55e' }} />
+                  <span className="text-sm" style={{ color: '#e5e7eb' }}>
+                    复制节点
+                  </span>
+                </button>
+              )}
               {/* 删除节点 */}
               <button
                 onClick={handleDeleteFromMenu}
@@ -369,6 +410,38 @@ export const InputNode: React.FC<InputNodeProps> = ({
                 </span>
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 图片预览模态框 */}
+      {previewImageUrl && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)',
+          }}
+          onClick={closePreview}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <img
+            src={previewImageUrl}
+            alt="预览"
+            className="max-w-[90vw] max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {/* 关闭提示 */}
+          <div
+            className="absolute top-4 right-4 px-3 py-2 rounded-lg text-sm"
+            style={{
+              backgroundColor: 'rgba(18, 18, 26, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#e5e7eb',
+            }}
+          >
+            点击任意处关闭
           </div>
         </div>,
         document.body

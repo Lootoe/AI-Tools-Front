@@ -25,6 +25,7 @@ export interface BaseNodeProps {
   type: NodeType;
   position: Position;
   isSelected: boolean;
+  zoom?: number; // 画布缩放比例，用于正确计算拖拽距离
   hasInputPort?: boolean;
   hasOutputPort?: boolean;
   outputPortEnabled?: boolean; // 输出端口是否可用（如 InputNode 需要有图片才可用）
@@ -43,6 +44,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   type,
   position,
   isSelected,
+  zoom = 1, // 默认缩放比例为 1
   hasInputPort = true,
   hasOutputPort = true,
   outputPortEnabled = true,
@@ -71,6 +73,16 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
       return;
     }
 
+    // 如果点击的是交互元素（输入框、下拉框等），不触发拖拽
+    const isInteractiveElement = target.tagName === 'TEXTAREA' ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'BUTTON' ||
+      target.isContentEditable;
+    if (isInteractiveElement) {
+      return;
+    }
+
     e.stopPropagation();
     onSelect();
 
@@ -83,14 +95,19 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging || !dragStart || !positionStart) return;
 
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
+    // 计算鼠标移动的屏幕像素距离
+    const screenDx = e.clientX - dragStart.x;
+    const screenDy = e.clientY - dragStart.y;
+
+    // 转换为画布坐标距离（除以缩放比例）
+    const canvasDx = screenDx / zoom;
+    const canvasDy = screenDy / zoom;
 
     onMove({
-      x: positionStart.x + dx,
-      y: positionStart.y + dy,
+      x: positionStart.x + canvasDx,
+      y: positionStart.y + canvasDy,
     });
-  }, [isDragging, dragStart, positionStart, onMove]);
+  }, [isDragging, dragStart, positionStart, zoom, onMove]);
 
   // 处理节点拖拽结束
   const handleMouseUp = useCallback(() => {
@@ -225,7 +242,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         {children}
       </div>
 
-      {/* 输入端口（左侧） */}
+      {/* 输入端口（左侧，垂直居中） */}
       {hasInputPort && (
         <div
           className="node-port node-port-input absolute flex items-center justify-center cursor-crosshair"
@@ -256,7 +273,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         </div>
       )}
 
-      {/* 输出端口（右侧） */}
+      {/* 输出端口（右侧，垂直居中） */}
       {hasOutputPort && (
         <div
           className="node-port node-port-output absolute flex items-center justify-center"
