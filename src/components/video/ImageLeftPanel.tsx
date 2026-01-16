@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Save, Image, Link2 } from 'lucide-react';
 import { StoryboardImage } from '@/types/video';
 import { Asset } from '@/types/asset';
+import { SavedAsset } from '@/types/canvas';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 import { LinkAssetImageDialog } from '@/components/ui/LinkAssetImageDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -27,7 +28,7 @@ interface ImageLeftPanelProps {
     hasUnsavedChanges?: boolean;
     localReferenceImageUrls: string[];
     onReferenceImageUrlsChange: (urls: string[]) => void;
-    assets?: Asset[];
+    assets?: Asset[] | SavedAsset[];
 }
 
 type TabType = 'script' | 'referenceImages';

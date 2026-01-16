@@ -1,26 +1,41 @@
 import React from 'react';
 import { X, Check, Palette } from 'lucide-react';
 import { Asset } from '@/types/asset';
+import { SavedAsset } from '@/types/canvas';
 
 interface LinkAssetImageDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    assets: Asset[];
+    assets?: Asset[] | SavedAsset[];
     onSelect: (imageUrl: string) => void;
 }
 
 export const LinkAssetImageDialog: React.FC<LinkAssetImageDialogProps> = ({
     isOpen,
     onClose,
-    assets,
+    assets = [],
     onSelect,
 }) => {
     if (!isOpen) return null;
 
-    // 筛选已完成且有设计稿图片的资产
-    const availableAssets = assets.filter(
-        (asset) => asset.status === 'completed' && asset.designImageUrl
-    );
+    // 判断是 Asset 还是 SavedAsset
+    const isAssetArray = assets.length > 0 && 'designImageUrl' in assets[0];
+
+    // 筛选已完成且有图片的资产
+    const availableAssets = isAssetArray
+        ? (assets as Asset[]).filter((asset) => asset.status === 'completed' && asset.designImageUrl)
+        : (assets as SavedAsset[]).filter((asset) => asset.imageUrl);
+
+    const getImageUrl = (asset: Asset | SavedAsset): string | undefined => {
+        if ('designImageUrl' in asset) {
+            return asset.designImageUrl;
+        }
+        return (asset as SavedAsset).imageUrl;
+    };
+
+    const getName = (asset: Asset | SavedAsset) => {
+        return asset.name || '未命名';
+    };
 
     const handleSelect = (imageUrl: string) => {
         onSelect(imageUrl);
@@ -83,55 +98,59 @@ export const LinkAssetImageDialog: React.FC<LinkAssetImageDialogProps> = ({
                         </div>
                     ) : (
                         <div className="grid grid-cols-3 gap-3">
-                            {availableAssets.map((asset) => (
-                                <button
-                                    key={asset.id}
-                                    onClick={() => handleSelect(asset.designImageUrl!)}
-                                    className="group relative aspect-square rounded-lg overflow-hidden transition-all hover:scale-105"
-                                    style={{
-                                        border: '2px solid transparent',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.border = '2px solid rgba(191,0,255,0.6)';
-                                        e.currentTarget.style.boxShadow = '0 0 15px rgba(191,0,255,0.3)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.border = '2px solid transparent';
-                                        e.currentTarget.style.boxShadow = 'none';
-                                    }}
-                                >
-                                    <img
-                                        src={asset.designImageUrl}
-                                        alt={asset.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                    {/* 资产名称标签 */}
-                                    <div
-                                        className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[10px] truncate"
+                            {availableAssets.map((asset) => {
+                                const imageUrl = getImageUrl(asset);
+                                const name = getName(asset);
+                                return (
+                                    <button
+                                        key={asset.id}
+                                        onClick={() => handleSelect(imageUrl!)}
+                                        className="group relative aspect-square rounded-lg overflow-hidden transition-all hover:scale-105"
                                         style={{
-                                            backgroundColor: 'rgba(0,0,0,0.7)',
-                                            color: '#d1d5db',
+                                            border: '2px solid transparent',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.border = '2px solid rgba(191,0,255,0.6)';
+                                            e.currentTarget.style.boxShadow = '0 0 15px rgba(191,0,255,0.3)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.border = '2px solid transparent';
+                                            e.currentTarget.style.boxShadow = 'none';
                                         }}
                                     >
-                                        {asset.name}
-                                    </div>
-                                    {/* 悬浮遮罩 */}
-                                    <div
-                                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                                    >
+                                        <img
+                                            src={imageUrl}
+                                            alt={name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {/* 资产名称标签 */}
                                         <div
-                                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                                            className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[10px] truncate"
                                             style={{
-                                                background: 'linear-gradient(135deg, #bf00ff, #9900cc)',
-                                                boxShadow: '0 0 15px rgba(191,0,255,0.5)',
+                                                backgroundColor: 'rgba(0,0,0,0.7)',
+                                                color: '#d1d5db',
                                             }}
                                         >
-                                            <Check size={20} className="text-white" />
+                                            {name}
                                         </div>
-                                    </div>
-                                </button>
-                            ))}
+                                        {/* 悬浮遮罩 */}
+                                        <div
+                                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                                        >
+                                            <div
+                                                className="w-10 h-10 rounded-full flex items-center justify-center"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #bf00ff, #9900cc)',
+                                                    boxShadow: '0 0 15px rgba(191,0,255,0.5)',
+                                                }}
+                                            >
+                                                <Check size={20} className="text-white" />
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

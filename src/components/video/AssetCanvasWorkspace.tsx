@@ -27,7 +27,7 @@ import {
 } from '@/components/canvas';
 import { Position, Viewport } from '@/types/canvas';
 import { uploadImage } from '@/services/api';
-import { generateAssetDesign } from '@/services/assetApi';
+import { generateAssetDesign } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import { IMAGE_MODELS } from '@/components/canvas/GeneratorNode';
 
@@ -231,7 +231,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
     // 计算输出端口的实际位置作为连线起点
     const nodeHeight = getNodeHeight(node.type);
     const outputPortPos = getOutputPortPositionStatic(node.positionX, node.positionY, nodeHeight);
-    
+
     setConnectionDrag({
       isActive: true,
       sourceNodeId: nodeId,
@@ -268,9 +268,9 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
       const nodeRight = node.positionX + NODE_WIDTH;
       const nodeTop = node.positionY;
       const nodeBottom = node.positionY + nodeHeight;
-      
+
       if (canvasPos.x >= nodeLeft && canvasPos.x <= nodeRight &&
-          canvasPos.y >= nodeTop && canvasPos.y <= nodeBottom) {
+        canvasPos.y >= nodeTop && canvasPos.y <= nodeBottom) {
         return node.id;
       }
     }
@@ -297,14 +297,14 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
         setConnectionDrag({ isActive: false, sourceNodeId: null, sourceNodeType: null, sourcePosition: null, currentPosition: null });
         return;
       }
-      
+
       // 计算鼠标释放位置对应的画布坐标
       const rect = containerRef.current.getBoundingClientRect();
       const canvasPos: Position = {
         x: (e.clientX - rect.left - viewport.x) / viewport.zoom,
         y: (e.clientY - rect.top - viewport.y) / viewport.zoom,
       };
-      
+
       // 检查是否在某个节点上释放
       const targetNodeId = findNodeAtPosition(canvasPos);
       if (targetNodeId && targetNodeId !== connectionDrag.sourceNodeId) {
@@ -461,7 +461,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
       }
-      
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault(); // 防止浏览器后退
         if (selectedNodeId) {
@@ -489,7 +489,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
   return (
     <>
       <ToastContainer />
-      
+
       {/* Save Asset Dialog */}
       <SaveAssetDialog
         isOpen={saveDialog.isOpen}
@@ -541,7 +541,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
               style={{ overflow: 'visible', pointerEvents: 'none' }}
             >
               <CanvasEdgeDefs />
-              
+
               {/* Render edges */}
               {edges.map((edge) => {
                 const sourceNode = nodes.find((n) => n.id === edge.sourceNodeId);
@@ -642,6 +642,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
                     onMoveEnd={(pos) => handleNodeMoveEnd(node.id, pos)}
                     onUpdate={(updates) => updateNode(node.id, updates)}
                     onUpload={handleUploadImage}
+                    onSave={node.imageUrl ? () => handleOpenSaveDialog(node.id, node.imageUrl!) : undefined}
                     onStartConnect={(nodeId, portType) => handleStartConnect(nodeId, portType)}
                     onEndConnect={(nodeId, portType) => handleEndConnect(nodeId, portType)}
                   />

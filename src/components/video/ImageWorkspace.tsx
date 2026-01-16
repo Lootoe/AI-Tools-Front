@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useAssetStore } from '@/stores/assetStore';
+import { useRepositoryStore } from '@/stores/repositoryStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { EpisodePanel } from './EpisodePanel';
 import { ImageStoryboardGrid } from './ImageStoryboardGrid';
@@ -11,7 +11,7 @@ import { ImageLeftPanel, ImageModel, getModelCost } from './ImageLeftPanel';
 import { ImageVariantPool } from './ImageVariantPool';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { generateStoryboardImage } from '@/services/assetApi';
+import { generateStoryboardImage } from '@/services/api';
 import { StoryboardImage } from '@/types/video';
 
 interface ImageWorkspaceProps {
@@ -44,7 +44,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
     } = useVideoStore();
 
     const { updateBalance } = useAuthStore();
-    const { assets, loadAssets } = useAssetStore();
+    const { assets: repositoryAssets, loadAssets: loadRepositoryAssets } = useRepositoryStore();
     const { showToast, ToastContainer } = useToast();
     const imagePrefs = usePreferencesStore((s) => s.storyboardImage);
 
@@ -64,12 +64,12 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
 
     const script = scripts.find((s) => s.id === scriptId);
 
-    // 加载资产数据
+    // 加载资产仓库数据
     useEffect(() => {
         if (scriptId) {
-            loadAssets(scriptId);
+            loadRepositoryAssets(scriptId);
         }
-    }, [scriptId, loadAssets]);
+    }, [scriptId, loadRepositoryAssets]);
 
     // 初始化：如果 URL 没有 episodeId，自动导航到第一个剧集
     useEffect(() => {
@@ -307,7 +307,7 @@ export const ImageWorkspace: React.FC<ImageWorkspaceProps> = ({
                             hasUnsavedChanges={hasUnsavedChanges}
                             localReferenceImageUrls={localReferenceImageUrls}
                             onReferenceImageUrlsChange={setLocalReferenceImageUrls}
-                            assets={assets}
+                            assets={repositoryAssets}
                         />
                         <div className="flex-1 min-w-0 overflow-hidden">
                             <CyberImageViewer

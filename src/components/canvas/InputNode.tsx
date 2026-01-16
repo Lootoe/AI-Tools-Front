@@ -9,7 +9,8 @@
  * Requirements: 3.1, 3.2, 3.3
  */
 import React, { useRef, useCallback, useState } from 'react';
-import { Upload, Image as ImageIcon, X } from 'lucide-react';
+import ReactDOM from 'react-dom';
+import { Upload, Image as ImageIcon, X, Save } from 'lucide-react';
 import { BaseNode, NODE_WIDTH } from './BaseNode';
 import { InlineLoading } from '@/components/ui/Loading';
 import { CanvasNode, Position } from '@/types/canvas';
@@ -23,6 +24,7 @@ export interface InputNodeProps {
   onMoveEnd?: (position: Position) => void; // 拖拽结束时触发 API 保存
   onUpdate: (updates: Partial<CanvasNode>) => void;
   onUpload: (file: File) => Promise<string | null>; // 返回上传后的 URL
+  onSave?: () => void; // 保存到资产仓库
   onStartConnect?: (nodeId: string, portType: 'output') => void;
   onEndConnect?: (nodeId: string, portType: 'input') => void;
 }
@@ -36,12 +38,14 @@ export const InputNode: React.FC<InputNodeProps> = ({
   onMoveEnd,
   onUpdate,
   onUpload,
+  onSave,
   onStartConnect,
   onEndConnect,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
   // 是否有图片
   const hasImage = !!node.imageUrl;
@@ -121,158 +125,255 @@ export const InputNode: React.FC<InputNodeProps> = ({
     onUpdate({ imageUrl: undefined, status: 'idle' });
   }, [onUpdate]);
 
+  // 处理右键菜单
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  // 关闭右键菜单
+  const closeContextMenu = useCallback(() => {
+    setContextMenuPosition(null);
+  }, []);
+
+  // 处理保存（从右键菜单）
+  const handleSaveFromMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSave) {
+      onSave();
+    }
+    closeContextMenu();
+  }, [onSave, closeContextMenu]);
+
+  // 处理删除（从右键菜单）
+  const handleDeleteFromMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete();
+    closeContextMenu();
+  }, [onDelete, closeContextMenu]);
+
+  // 点击外部关闭菜单
+  React.useEffect(() => {
+    if (!contextMenuPosition) return;
+
+    const handleClickOutside = () => closeContextMenu();
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeContextMenu();
+    };
+
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }, 0);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [contextMenuPosition, closeContextMenu]);
+
   return (
-    <BaseNode
-      id={node.id}
-      type="input"
-      position={{ x: node.positionX, y: node.positionY }}
-      isSelected={isSelected}
-      hasInputPort={false} // 输入节点没有输入端口
-      hasOutputPort={true}
-      outputPortEnabled={true} // 始终允许连线，即使没有图片
-      onSelect={onSelect}
-      onDelete={onDelete}
-      onMove={(pos) => onMove(pos)}
-      onMoveEnd={onMoveEnd}
-      onStartConnect={onStartConnect}
-      onEndConnect={onEndConnect}
-    >
-      {/* 节点头部 */}
-      <div
-        className="px-3 py-2 flex items-center gap-2"
-        style={{
-          background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(0, 212, 170, 0.1))',
-          borderBottom: '1px solid rgba(0, 245, 255, 0.2)',
-        }}
+    <>
+      <BaseNode
+        id={node.id}
+        type="input"
+        position={{ x: node.positionX, y: node.positionY }}
+        isSelected={isSelected}
+        hasInputPort={false} // 输入节点没有输入端口
+        hasOutputPort={true}
+        outputPortEnabled={true} // 始终允许连线，即使没有图片
+        onSelect={onSelect}
+        onDelete={onDelete}
+        onMove={(pos) => onMove(pos)}
+        onMoveEnd={onMoveEnd}
+        onStartConnect={onStartConnect}
+        onEndConnect={onEndConnect}
+        onContextMenu={handleContextMenu}
       >
+        {/* 节点头部 */}
         <div
-          className="w-6 h-6 rounded-md flex items-center justify-center"
+          className="px-3 py-2 flex items-center gap-2"
           style={{
-            background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.3), rgba(0, 212, 170, 0.2))',
-            border: '1px solid rgba(0, 245, 255, 0.4)',
+            background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(0, 212, 170, 0.1))',
+            borderBottom: '1px solid rgba(0, 245, 255, 0.2)',
           }}
         >
-          <ImageIcon size={12} style={{ color: '#00f5ff' }} />
-        </div>
-        <span className="text-xs font-medium text-white flex-1 truncate">
-          {node.label || '输入节点'}
-        </span>
-      </div>
-
-      {/* 图片展示/上传区域 */}
-      <div
-        className="relative cursor-pointer"
-        style={{
-          width: NODE_WIDTH - 2,
-          height: NODE_WIDTH - 60, // 减去头部高度
-          backgroundColor: isDragOver ? 'rgba(0, 245, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)',
-          border: isDragOver ? '2px dashed rgba(0, 245, 255, 0.5)' : '2px dashed transparent',
-          transition: 'all 0.2s ease',
-        }}
-        onClick={handleUploadClick}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
-        {/* 上传中状态 */}
-        {isUploading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
-            <InlineLoading size={24} color="#00f5ff" />
-            <span className="text-xs" style={{ color: '#00f5ff' }}>
-              上传中...
-            </span>
-          </div>
-        )}
-
-        {/* 已有图片 */}
-        {hasImage && !isUploading && (
-          <>
-            <img
-              src={node.imageUrl}
-              alt="输入图片"
-              className="w-full h-full object-cover"
-            />
-            {/* 清除按钮 */}
-            <button
-              onClick={handleClearImage}
-              className="absolute top-2 right-2 p-1 rounded-md opacity-0 hover:opacity-100 transition-opacity"
-              style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.9)',
-              }}
-              title="清除图片"
-            >
-              <X size={12} className="text-white" />
-            </button>
-            {/* 重新上传提示 */}
-            <div
-              className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-            >
-              <div className="flex flex-col items-center gap-1">
-                <Upload size={20} style={{ color: '#00f5ff' }} />
-                <span className="text-xs" style={{ color: '#00f5ff' }}>
-                  点击更换图片
-                </span>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* 空状态 - 上传提示 */}
-        {!hasImage && !isUploading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(0, 212, 170, 0.1))',
-                border: '1px solid rgba(0, 245, 255, 0.2)',
-              }}
-            >
-              <Upload size={20} style={{ color: 'rgba(0, 245, 255, 0.5)' }} />
-            </div>
-            <div className="text-center">
-              <p className="text-xs" style={{ color: '#9ca3af' }}>
-                点击或拖拽上传图片
-              </p>
-              <p className="text-[10px] mt-1" style={{ color: '#6b7280' }}>
-                支持 JPG、PNG、WebP
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* 隐藏的文件输入 */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleInputChange}
-          className="hidden"
-        />
-      </div>
-
-      {/* 底部状态栏 */}
-      <div
-        className="px-3 py-2 flex items-center justify-between"
-        style={{ borderTop: '1px solid rgba(30, 30, 46, 0.8)' }}
-      >
-        <span className="text-[10px]" style={{ color: '#6b7280' }}>
-          {hasImage ? '已上传图片' : '未上传图片'}
-        </span>
-        {hasImage && (
-          <span
-            className="text-[10px] px-1.5 py-0.5 rounded"
+          <div
+            className="w-6 h-6 rounded-md flex items-center justify-center"
             style={{
-              backgroundColor: 'rgba(0, 245, 255, 0.1)',
-              color: '#00f5ff',
+              background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.3), rgba(0, 212, 170, 0.2))',
+              border: '1px solid rgba(0, 245, 255, 0.4)',
             }}
           >
-            可连接
+            <ImageIcon size={12} style={{ color: '#00f5ff' }} />
+          </div>
+          <span className="text-xs font-medium text-white flex-1 truncate">
+            {node.label || '输入节点'}
           </span>
-        )}
-      </div>
-    </BaseNode>
+        </div>
+
+        {/* 图片展示/上传区域 */}
+        <div
+          className="relative cursor-pointer"
+          style={{
+            width: NODE_WIDTH - 2,
+            height: NODE_WIDTH - 60, // 减去头部高度
+            backgroundColor: isDragOver ? 'rgba(0, 245, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)',
+            border: isDragOver ? '2px dashed rgba(0, 245, 255, 0.5)' : '2px dashed transparent',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={handleUploadClick}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {/* 上传中状态 */}
+          {isUploading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
+              <InlineLoading size={24} color="#00f5ff" />
+              <span className="text-xs" style={{ color: '#00f5ff' }}>
+                上传中...
+              </span>
+            </div>
+          )}
+
+          {/* 已有图片 */}
+          {hasImage && !isUploading && (
+            <>
+              <img
+                src={node.imageUrl}
+                alt="输入图片"
+                className="w-full h-full object-cover"
+              />
+              {/* 清除按钮 */}
+              <button
+                onClick={handleClearImage}
+                className="absolute top-2 right-2 p-1 rounded-md opacity-0 hover:opacity-100 transition-opacity"
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                }}
+                title="清除图片"
+              >
+                <X size={12} className="text-white" />
+              </button>
+              {/* 重新上传提示 */}
+              <div
+                className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <Upload size={20} style={{ color: '#00f5ff' }} />
+                  <span className="text-xs" style={{ color: '#00f5ff' }}>
+                    点击更换图片
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 空状态 - 上传提示 */}
+          {!hasImage && !isUploading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(0, 212, 170, 0.1))',
+                  border: '1px solid rgba(0, 245, 255, 0.2)',
+                }}
+              >
+                <Upload size={20} style={{ color: 'rgba(0, 245, 255, 0.5)' }} />
+              </div>
+              <div className="text-center">
+                <p className="text-xs" style={{ color: '#9ca3af' }}>
+                  点击或拖拽上传图片
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: '#6b7280' }}>
+                  支持 JPG、PNG、WebP
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 隐藏的文件输入 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleInputChange}
+            className="hidden"
+          />
+        </div>
+
+        {/* 底部状态栏 */}
+        <div
+          className="px-3 py-2 flex items-center justify-between"
+          style={{ borderTop: '1px solid rgba(30, 30, 46, 0.8)' }}
+        >
+          <span className="text-[10px]" style={{ color: '#6b7280' }}>
+            {hasImage ? '已上传图片' : '未上传图片'}
+          </span>
+          {hasImage && (
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded"
+              style={{
+                backgroundColor: 'rgba(0, 245, 255, 0.1)',
+                color: '#00f5ff',
+              }}
+            >
+              可连接
+            </span>
+          )}
+        </div>
+      </BaseNode>
+
+      {/* 右键菜单 - 使用 Portal 渲染到 body */}
+      {contextMenuPosition && ReactDOM.createPortal(
+        <div
+          className="fixed z-[9999]"
+          style={{
+            left: contextMenuPosition.x,
+            top: contextMenuPosition.y,
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div
+            className="rounded-lg overflow-hidden shadow-xl"
+            style={{
+              backgroundColor: 'rgba(18, 18, 26, 0.98)',
+              border: '1px solid rgba(0, 245, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              minWidth: '160px',
+            }}
+          >
+            <div className="py-1">
+              {/* 保存图像 */}
+              {hasImage && onSave && (
+                <button
+                  onClick={handleSaveFromMenu}
+                  className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+                >
+                  <Save size={14} style={{ color: '#00f5ff' }} />
+                  <span className="text-sm" style={{ color: '#e5e7eb' }}>
+                    保存图像
+                  </span>
+                </button>
+              )}
+              {/* 删除节点 */}
+              <button
+                onClick={handleDeleteFromMenu}
+                className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+              >
+                <X size={14} style={{ color: '#ef4444' }} />
+                <span className="text-sm" style={{ color: '#e5e7eb' }}>
+                  删除节点
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 

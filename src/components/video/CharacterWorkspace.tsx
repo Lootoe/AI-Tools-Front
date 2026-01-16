@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ReferenceImageUploader } from '@/components/ui/ReferenceImageUploader';
 import { CyberVideoPlayer } from './CyberVideoPlayer';
 import { useCharacterStore } from '@/stores/characterStore';
-import { useAssetStore } from '@/stores/assetStore';
+import { useRepositoryStore } from '@/stores/repositoryStore';
 import { useAuthStore } from '@/stores/authStore';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { generateCharacterVideo, registerSoraCharacter } from '@/services/characterApi';
@@ -336,7 +336,7 @@ const RegisterCharacterDialog: React.FC<{
 
 export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId }) => {
     const { characters, isLoading, loadCharacters, addCharacter, updateCharacter, deleteCharacter, refreshCharacter } = useCharacterStore();
-    const { assets, loadAssets } = useAssetStore();
+    const { assets: repositoryAssets, loadAssets: loadRepositoryAssets } = useRepositoryStore();
     const { updateBalance } = useAuthStore();
     const { showToast, ToastContainer } = useToast();
     const characterPrefs = usePreferencesStore((s) => s.character);
@@ -356,7 +356,12 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; characterId: string | null; characterName: string }>({ isOpen: false, characterId: null, characterName: '' });
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    useEffect(() => { if (scriptId) { loadCharacters(scriptId); loadAssets(scriptId); } }, [scriptId, loadCharacters, loadAssets]);
+    useEffect(() => {
+        if (scriptId) {
+            loadCharacters(scriptId);
+            loadRepositoryAssets(scriptId);
+        }
+    }, [scriptId, loadCharacters, loadRepositoryAssets]);
 
     useEffect(() => {
         const c = characters.find((c) => c.id === selectedCharacterId);
@@ -469,13 +474,13 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                             <button onClick={() => setIsAssetDialogOpen(false)} className="p-1 rounded-lg hover:bg-white/5"><X size={16} style={{ color: '#6b7280' }} /></button>
                         </div>
                         <div className="p-3 overflow-y-auto max-h-[50vh]">
-                            {assets.filter(a => a.designImageUrl).length === 0 ? (
+                            {repositoryAssets.filter(a => a.imageUrl).length === 0 ? (
                                 <div className="text-center py-8 text-sm" style={{ color: '#6b7280' }}>暂无可用资产图片</div>
                             ) : (
                                 <div className="grid grid-cols-4 gap-2">
-                                    {assets.filter(a => a.designImageUrl).map((asset) => (
-                                        <div key={asset.id} onClick={() => handleSelectAsset(asset.designImageUrl!)} className="cursor-pointer rounded-lg overflow-hidden hover:ring-2 hover:ring-cyan-400 transition-all">
-                                            <img src={asset.designImageUrl} alt={asset.name} className="w-full aspect-square object-cover" />
+                                    {repositoryAssets.filter(a => a.imageUrl).map((asset) => (
+                                        <div key={asset.id} onClick={() => handleSelectAsset(asset.imageUrl!)} className="cursor-pointer rounded-lg overflow-hidden hover:ring-2 hover:ring-cyan-400 transition-all">
+                                            <img src={asset.imageUrl} alt={asset.name} className="w-full aspect-square object-cover" />
                                             <div className="px-1 py-1 text-center"><span className="text-[10px] truncate" style={{ color: '#d1d5db' }}>{asset.name}</span></div>
                                         </div>
                                     ))}

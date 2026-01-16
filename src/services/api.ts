@@ -361,3 +361,91 @@ export async function captureVideoFrame(videoUrl: string, timestamp: number, fil
 
 
 // ============ 配置相关 ============
+
+// ============ 图片生成相关 ============
+
+// 资产设计稿生成响应
+export interface AssetDesignResponse {
+  success: boolean;
+  images: Array<{
+    url: string;
+    revisedPrompt?: string;
+  }>;
+  balance?: number;
+}
+
+// 生成资产设计稿（用于画布节点）
+export async function generateAssetDesign(
+  assetId: string,
+  scriptId: string,
+  description: string,
+  model?: string,
+  referenceImageUrls?: string[],
+  aspectRatio?: '1:1' | '4:3' | '16:9',
+  imageSize?: '1K' | '2K'
+): Promise<AssetDesignResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/images/asset-design`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ assetId, scriptId, description, model, referenceImageUrls, aspectRatio, imageSize }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || error.message || '生成失败');
+  }
+
+  return response.json();
+}
+
+// 分镜图生成响应
+export interface StoryboardImageResponse {
+  success: boolean;
+  images: Array<{
+    url: string;
+    revisedPrompt?: string;
+  }>;
+  balance?: number;
+}
+
+// 生成分镜图
+export async function generateStoryboardImage(
+  variantId: string,
+  scriptId: string,
+  description: string,
+  model: string,
+  referenceImageUrls?: string[],
+  aspectRatio?: '16:9' | '1:1' | '4:3',
+  imageSize?: '1K' | '2K'
+): Promise<StoryboardImageResponse> {
+  const token = getAuthToken();
+
+  const response = await fetch(`${BACKEND_URL}/api/images/storyboard-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      variantId,
+      scriptId,
+      description,
+      model,
+      referenceImageUrls,
+      aspectRatio,
+      imageSize,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || error.message || '生成失败');
+  }
+
+  return response.json();
+}

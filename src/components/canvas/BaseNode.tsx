@@ -34,6 +34,7 @@ export interface BaseNodeProps {
   onMoveEnd?: (position: Position) => void; // 拖拽结束时的位置更新（触发 API 保存）
   onStartConnect?: (nodeId: string, portType: 'output') => void;
   onEndConnect?: (nodeId: string, portType: 'input') => void;
+  onContextMenu?: (e: React.MouseEvent) => void; // 右键菜单事件
   children: React.ReactNode;
 }
 
@@ -51,6 +52,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   onMoveEnd,
   onStartConnect,
   onEndConnect,
+  onContextMenu,
   children,
 }) => {
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // 只响应左键
     if (e.button !== 0) return;
-    
+
     // 如果点击的是端口或删除按钮，不触发拖拽
     const target = e.target as HTMLElement;
     if (target.closest('.node-port') || target.closest('.node-delete-btn')) {
@@ -71,7 +73,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
 
     e.stopPropagation();
     onSelect();
-    
+
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
     setPositionStart({ x: position.x, y: position.y });
@@ -143,6 +145,16 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
     }
   }, [id, onEndConnect]);
 
+  // 处理右键菜单
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(); // 右键时也选中节点
+    if (onContextMenu) {
+      onContextMenu(e);
+    }
+  }, [onSelect, onContextMenu]);
+
   // 获取节点类型对应的颜色
   const getNodeColor = () => {
     switch (type) {
@@ -185,6 +197,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         cursor: isDragging ? 'grabbing' : 'grab',
       }}
       onMouseDown={handleMouseDown}
+      onContextMenu={handleContextMenu}
     >
       {/* 节点主体 */}
       <div

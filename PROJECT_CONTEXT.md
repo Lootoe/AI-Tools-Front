@@ -50,13 +50,24 @@
 
 > 更新于 2026-01-13：新增关联资产功能
 
-#### 1.3.5 资产工作区（AssetWorkspace）
-- **资产池**：左侧网格展示所有资产
-- **资产编辑器**：右侧编辑资产名称、描述、参考图
-- **设计稿生成**：AI 生成设计稿
-- **设计稿编辑**：基于已生成图片进行 AI 编辑
+#### 1.3.5 资产画布工作区（AssetCanvasWorkspace）
+- **画布**：无限画布，支持缩放、平移
+- **节点系统**：生成节点（AI 生成）、输入节点（上传图片）
+- **连线系统**：节点间连接，传递参考图
+- **右键菜单**：保存图像、删除节点
+- **保存到仓库**：生成的图片可保存到资产仓库
 
-#### 1.3.6 角色工作区（CharacterWorkspace）
+> 更新于 2026-01-16：替代旧的 AssetWorkspace，使用画布节点系统
+
+#### 1.3.6 资产仓库工作区（AssetRepositoryWorkspace）
+- **分类管理**：创建、编辑、删除分类
+- **资产网格**：展示所有已保存的资产
+- **资产预览**：查看资产详情
+- **关联使用**：分镜图和角色可关联仓库中的资产作为参考图
+
+> 更新于 2026-01-16：统一的资产存储和管理系统
+
+#### 1.3.7 角色工作区（CharacterWorkspace）
 - **角色身份卡片**：左上角展示角色认证状态
   - 已认证：显示 Sora2 头像、Username、Task ID、绿色对勾
   - 未认证：显示 UNREGISTERED 水印、注册按钮
@@ -95,16 +106,20 @@
     │   └── 分镜列表（底）
     ├── 分镜图工作区（Tab: storyboardImage）
     │   └── 结构同上，图片替代视频
-    ├── 资产工作区（Tab: asset）
-    │   ├── 资产池（左）
-    │   └── 资产编辑器（右）
+    ├── 资产画布工作区（Tab: assetCanvas）
+    │   ├── 画布工具栏（顶）
+    │   ├── 无限画布（中）
+    │   └── 节点系统（生成节点、输入节点）
+    ├── 资产仓库工作区（Tab: assetRepository）
+    │   ├── 分类列表（左）
+    │   └── 资产网格（右）
     └── 角色工作区（Tab: character）
         ├── 角色池（左）
         ├── 角色编辑器（中）
         └── 视频预览区（右）
 ```
 
-> 更新于 2026-01-12：新增角色工作区 Tab
+> 更新于 2026-01-16：资产系统重构，分离画布和仓库
 
 ### 1.5 交互规范
 
@@ -191,7 +206,8 @@ AI-Tools-Front/
 │   │   │   ├── ScriptCard.tsx
 │   │   │   ├── EpisodeWorkspace.tsx
 │   │   │   ├── ImageWorkspace.tsx
-│   │   │   ├── AssetWorkspace.tsx
+│   │   │   ├── AssetCanvasWorkspace.tsx
+│   │   │   ├── AssetRepositoryWorkspace.tsx
 │   │   │   ├── CharacterWorkspace.tsx
 │   │   │   ├── CyberAssetSidebar.tsx
 │   │   │   ├── StoryboardCard.tsx
@@ -578,10 +594,18 @@ deleteAsset(scriptId: string, assetId: string)
 - 图片生成触发
 - 图片副本管理
 
-**AssetWorkspace**
-- 资产列表（角色/场景/物品）
-- 资产设计稿生成
-- 参考图上传
+**AssetCanvasWorkspace**
+- 无限画布：缩放、平移、网格背景
+- 节点管理：创建、删除、移动、连接
+- 图片生成：AI 生成或上传
+- 保存到仓库：将生成的图片保存到资产仓库
+
+**AssetRepositoryWorkspace**
+- 分类管理：创建、编辑、删除分类
+- 资产展示：网格展示所有资产
+- 资产操作：查看、删除、关联使用
+
+> 更新于 2026-01-16：资产系统重构
 
 ### 8.3 核心 UI 组件
 
@@ -649,12 +673,14 @@ deleteAsset(scriptId: string, assetId: string)
 
 ### 9.2 图片生成流程
 ```
-1. 用户在 ImageWorkspace 或 AssetWorkspace 点击"生成"
-2. 调用相应的 addImageVariant() 或 updateAsset()
+1. 用户在 ImageWorkspace 或 AssetCanvasWorkspace 点击"生成"
+2. 调用相应的 addImageVariant() 或画布节点生成
 3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()
 4. 后端同步返回生成结果（图片生成较快）
 5. 更新本地状态，显示图片
 ```
+
+> 更新于 2026-01-16：统一使用 api.ts 中的图片生成函数
 
 ### 9.3 角色视频生成流程
 ```
@@ -781,3 +807,5 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选，新增全局偏好设置（分镜视频/分镜图/资产/角色的默认生成参数） |
 | 1.1.1 | 2026-01-14 | 分镜图生成、资产生成新增图片质量选择（1K/2K），上传组件默认限制改为 10MB |
 | 1.2.0 | 2026-01-15 | 删除提示词模板功能：移除 getPromptTemplates API、PromptTemplateConfig 类型、偏好设置中的 promptTemplateId、CyberVideoPlayer/CyberImageViewer 的模板选择器 |
+| 1.2.1 | 2026-01-16 | 资产画布节点新增右键菜单：支持保存图像（有图片时）和删除节点，适用于生成节点和输入节点 |
+| 1.3.0 | 2026-01-16 | 删除旧资产系统：移除 AssetWorkspace、assetStore、assetApi，统一使用资产仓库（AssetRepositoryWorkspace）和资产画布（AssetCanvasWorkspace） |
