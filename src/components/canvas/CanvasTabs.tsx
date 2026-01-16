@@ -74,7 +74,7 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
 
     return (
         <div
-            className="flex items-center gap-1 px-3 py-2 overflow-x-auto"
+            className="flex items-center gap-1 px-2 py-1 overflow-x-auto"
             style={{
                 backgroundColor: 'rgba(18, 18, 26, 0.8)',
                 borderBottom: '1px solid rgba(0, 245, 255, 0.1)',
@@ -90,7 +90,7 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
                         key={canvas.id}
                         onClick={() => !isEditing && onSwitch(canvas.id)}
                         onDoubleClick={(e) => handleStartEdit(canvas, e)}
-                        className="group relative flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all select-none"
+                        className="group relative flex items-center gap-1.5 px-2 py-1 cursor-pointer transition-all select-none"
                         style={{
                             backgroundColor: isActive
                                 ? 'rgba(0, 245, 255, 0.15)'
@@ -118,14 +118,14 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
                                         handleCancelEdit();
                                     }
                                 }}
-                                className="flex-1 bg-transparent outline-none text-sm"
+                                className="flex-1 bg-transparent outline-none text-xs"
                                 style={{ color: '#00f5ff' }}
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
                             <>
                                 {/* 标签名称 */}
-                                <span className="flex-1 text-sm font-medium truncate">
+                                <span className="flex-1 text-xs font-medium truncate">
                                     {canvas.name}
                                 </span>
 
@@ -135,7 +135,7 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-white/10 rounded"
                                     title="重命名"
                                 >
-                                    <Edit2 size={12} />
+                                    <Edit2 size={10} />
                                 </button>
 
                                 {/* 关闭按钮 */}
@@ -145,7 +145,7 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
                                         className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-500/20 rounded"
                                         title="删除画布"
                                     >
-                                        <X size={14} />
+                                        <X size={12} />
                                     </button>
                                 )}
                             </>
@@ -157,11 +157,11 @@ export const CanvasTabs: React.FC<CanvasTabsProps> = ({
             {/* 新建按钮 */}
             <button
                 onClick={onCreate}
-                className="flex items-center justify-center p-2 rounded-lg transition-all hover:bg-white/10"
+                className="flex items-center justify-center p-1 transition-all hover:bg-white/10"
                 style={{ color: '#00f5ff' }}
                 title="新建画布"
             >
-                <Plus size={18} />
+                <Plus size={14} />
             </button>
         </div>
     );
