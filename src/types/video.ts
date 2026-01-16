@@ -64,7 +64,7 @@ export interface Script {
 export type VideoPhase = 'storyboard' | 'video';
 
 // 资产 Tab 类型
-export type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
+export type AssetTabType = 'storyboard' | 'storyboardImage' | 'assetCanvas' | 'assetRepository' | 'character';
 
 // Sora2角色
 export interface Character {

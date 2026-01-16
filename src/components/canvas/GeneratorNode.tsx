@@ -1,0 +1,458 @@
+/**
+ * GeneratorNode - 生成节点组件
+ * 
+ * 实现功能：
+ * - 模型选择器（Nano Banana 2、豆包）
+ * - 参数配置（比例、质量）
+ * - 提示词输入框
+ * - 生成按钮和状态显示
+ * - 图片结果展示
+ * 
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
+ */
+import React, { useState, useCallback } from 'react';
+import { Sparkles, ChevronDown, AlertCircle, RefreshCw, Save } from 'lucide-react';
+import { BaseNode, NODE_WIDTH } from './BaseNode';
+import { InlineLoading } from '@/components/ui/Loading';
+import { CanvasNode, Position, NodeStatus } from '@/types/canvas';
+import CoinIcon from '@/img/coin.webp';
+
+// 模型选项
+export const IMAGE_MODELS = [
+  { value: 'nano-banana-2', label: 'Nano Banana 2', cost: 4 },
+  { value: 'doubao-seedream-3-0-t2i-250415', label: '豆包', cost: 2 },
+] as const;
+
+export type ImageModel = typeof IMAGE_MODELS[number]['value'];
+
+// 比例选项
+export const ASPECT_RATIOS = [
+  { value: '1:1', label: '1:1 方形' },
+  { value: '4:3', label: '4:3 标准' },
+  { value: '16:9', label: '16:9 横版' },
+] as const;
+
+export type AspectRatio = typeof ASPECT_RATIOS[number]['value'];
+
+// 图片质量选项
+export const IMAGE_SIZES = [
+  { value: '1K', label: '1K 标清' },
+  { value: '2K', label: '2K 高清' },
+] as const;
+
+export type ImageSize = typeof IMAGE_SIZES[number]['value'];
+
+export interface GeneratorNodeProps {
+  node: CanvasNode;
+  isSelected: boolean;
+  connectedInputUrls: string[];
+  onSelect: () => void;
+  onDelete: () => void;
+  onMove: (position: Position) => void;
+  onMoveEnd?: (position: Position) => void; // 拖拽结束时触发 API 保存
+  onUpdate: (updates: Partial<CanvasNode>) => void;
+  onGenerate: () => void;
+  onSave?: () => void;
+  onStartConnect?: (nodeId: string, portType: 'output') => void;
+  onEndConnect?: (nodeId: string, portType: 'input') => void;
+}
+
+export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
+  node,
+  isSelected,
+  connectedInputUrls,
+  onSelect,
+  onDelete,
+  onMove,
+  onMoveEnd,
+  onUpdate,
+  onGenerate,
+  onSave,
+  onStartConnect,
+  onEndConnect,
+}) => {
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [isRatioDropdownOpen, setIsRatioDropdownOpen] = useState(false);
+  const [isSizeDropdownOpen, setIsSizeDropdownOpen] = useState(false);
+
+  // 当前选中的模型
+  const currentModel = (node.model as ImageModel) || 'nano-banana-2';
+  const modelInfo = IMAGE_MODELS.find((m) => m.value === currentModel) || IMAGE_MODELS[0];
+
+  // 当前选中的比例
+  const currentRatio = (node.aspectRatio as AspectRatio) || '1:1';
+
+  // 当前选中的质量
+  const currentSize = (node.imageSize as ImageSize) || '1K';
+
+  // 节点状态
+  const isGenerating = node.status === 'generating';
+  const isFailed = node.status === 'failed';
+  const hasImage = !!node.imageUrl;
+
+  // 是否可以生成
+  const canGenerate = !isGenerating && node.prompt?.trim();
+
+  // 处理模型选择
+  const handleModelSelect = useCallback((model: ImageModel) => {
+    onUpdate({ model });
+    setIsModelDropdownOpen(false);
+  }, [onUpdate]);
+
+  // 处理比例选择
+  const handleRatioSelect = useCallback((ratio: AspectRatio) => {
+    onUpdate({ aspectRatio: ratio });
+    setIsRatioDropdownOpen(false);
+  }, [onUpdate]);
+
+  // 处理质量选择
+  const handleSizeSelect = useCallback((size: ImageSize) => {
+    onUpdate({ imageSize: size });
+    setIsSizeDropdownOpen(false);
+  }, [onUpdate]);
+
+  // 处理提示词变化
+  const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onUpdate({ prompt: e.target.value });
+  }, [onUpdate]);
+
+  // 处理生成按钮点击
+  const handleGenerate = useCallback(() => {
+    if (canGenerate) {
+      onGenerate();
+    }
+  }, [canGenerate, onGenerate]);
+
+  // 处理重试
+  const handleRetry = useCallback(() => {
+    onUpdate({ status: 'idle', failReason: undefined });
+  }, [onUpdate]);
+
+  return (
+    <BaseNode
+      id={node.id}
+      type="generator"
+      position={{ x: node.positionX, y: node.positionY }}
+      isSelected={isSelected}
+      hasInputPort={true}
+      hasOutputPort={true}
+      outputPortEnabled={true} // 始终允许连线，即使没有生成结果
+      onSelect={onSelect}
+      onDelete={onDelete}
+      onMove={(pos) => onMove(pos)}
+      onMoveEnd={onMoveEnd}
+      onStartConnect={onStartConnect}
+      onEndConnect={onEndConnect}
+    >
+      {/* 节点头部 */}
+      <div
+        className="px-3 py-2 flex items-center gap-2"
+        style={{
+          background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.15), rgba(255, 0, 255, 0.1))',
+          borderBottom: '1px solid rgba(191, 0, 255, 0.2)',
+        }}
+      >
+        <div
+          className="w-6 h-6 rounded-md flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.3), rgba(255, 0, 255, 0.2))',
+            border: '1px solid rgba(191, 0, 255, 0.4)',
+          }}
+        >
+          <Sparkles size={12} style={{ color: '#bf00ff' }} />
+        </div>
+        <span className="text-xs font-medium text-white flex-1 truncate">
+          {node.label || '生成节点'}
+        </span>
+      </div>
+
+      {/* 图片展示区域 */}
+      <div
+        className="relative"
+        style={{
+          width: NODE_WIDTH - 2,
+          height: NODE_WIDTH - 2,
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        {/* 生成中状态 */}
+        {isGenerating && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <InlineLoading size={24} color="#bf00ff" />
+            <span className="text-xs" style={{ color: '#bf00ff' }}>
+              {node.progress || '生成中...'}
+            </span>
+          </div>
+        )}
+
+        {/* 失败状态 */}
+        {isFailed && !hasImage && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
+            <AlertCircle size={24} style={{ color: '#ef4444' }} />
+            <span className="text-xs text-center" style={{ color: '#ef4444' }}>
+              {node.failReason || '生成失败'}
+            </span>
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+              }}
+            >
+              <RefreshCw size={10} />
+              重试
+            </button>
+          </div>
+        )}
+
+        {/* 已完成 - 显示图片 */}
+        {hasImage && !isGenerating && (
+          <img
+            src={node.imageUrl}
+            alt="生成结果"
+            className="w-full h-full object-cover"
+          />
+        )}
+
+        {/* 空状态 */}
+        {!hasImage && !isGenerating && !isFailed && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <Sparkles size={32} style={{ color: 'rgba(191, 0, 255, 0.3)' }} />
+            <span className="text-xs" style={{ color: '#6b7280' }}>
+              填写提示词后点击生成
+            </span>
+          </div>
+        )}
+
+        {/* 连接的参考图指示 */}
+        {connectedInputUrls.length > 0 && (
+          <div
+            className="absolute top-2 left-2 px-2 py-1 rounded text-[10px]"
+            style={{
+              backgroundColor: 'rgba(0, 245, 255, 0.2)',
+              border: '1px solid rgba(0, 245, 255, 0.3)',
+              color: '#00f5ff',
+            }}
+          >
+            {connectedInputUrls.length} 张参考图
+          </div>
+        )}
+
+        {/* 保存按钮 */}
+        {hasImage && !isGenerating && onSave && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSave();
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded-md transition-opacity opacity-0 hover:opacity-100"
+            style={{
+              backgroundColor: 'rgba(0, 245, 255, 0.9)',
+            }}
+            title="保存到资产仓库"
+          >
+            <Save size={12} className="text-white" />
+          </button>
+        )}
+      </div>
+
+      {/* 配置面板 */}
+      <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid rgba(30, 30, 46, 0.8)' }}>
+        {/* 模型和参数选择行 */}
+        <div className="flex items-center gap-2">
+          {/* 模型选择 */}
+          <div className="relative flex-1">
+            <button
+              onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              disabled={isGenerating}
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded text-[10px]"
+              style={{
+                backgroundColor: 'rgba(191, 0, 255, 0.1)',
+                border: '1px solid rgba(191, 0, 255, 0.2)',
+                color: '#bf00ff',
+                opacity: isGenerating ? 0.5 : 1,
+              }}
+            >
+              <span className="truncate">{modelInfo.label}</span>
+              <ChevronDown size={10} />
+            </button>
+            {isModelDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-20 rounded overflow-hidden"
+                  style={{
+                    backgroundColor: 'rgba(18, 18, 26, 0.98)',
+                    border: '1px solid rgba(191, 0, 255, 0.2)',
+                  }}
+                >
+                  {IMAGE_MODELS.map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => handleModelSelect(m.value)}
+                      className="w-full px-2 py-1.5 text-[10px] text-left"
+                      style={{
+                        color: currentModel === m.value ? '#bf00ff' : '#d1d5db',
+                        backgroundColor: currentModel === m.value ? 'rgba(191, 0, 255, 0.1)' : 'transparent',
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 比例选择 */}
+          <div className="relative">
+            <button
+              onClick={() => setIsRatioDropdownOpen(!isRatioDropdownOpen)}
+              disabled={isGenerating}
+              className="flex items-center gap-1 px-2 py-1.5 rounded text-[10px]"
+              style={{
+                backgroundColor: 'rgba(77, 124, 255, 0.1)',
+                border: '1px solid rgba(77, 124, 255, 0.2)',
+                color: '#4d7cff',
+                opacity: isGenerating ? 0.5 : 1,
+              }}
+            >
+              <span>{currentRatio}</span>
+              <ChevronDown size={10} />
+            </button>
+            {isRatioDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsRatioDropdownOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-20 rounded overflow-hidden min-w-[80px]"
+                  style={{
+                    backgroundColor: 'rgba(18, 18, 26, 0.98)',
+                    border: '1px solid rgba(77, 124, 255, 0.2)',
+                  }}
+                >
+                  {ASPECT_RATIOS.map((r) => (
+                    <button
+                      key={r.value}
+                      onClick={() => handleRatioSelect(r.value)}
+                      className="w-full px-2 py-1.5 text-[10px] text-left whitespace-nowrap"
+                      style={{
+                        color: currentRatio === r.value ? '#4d7cff' : '#d1d5db',
+                        backgroundColor: currentRatio === r.value ? 'rgba(77, 124, 255, 0.1)' : 'transparent',
+                      }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 质量选择 */}
+          <div className="relative">
+            <button
+              onClick={() => setIsSizeDropdownOpen(!isSizeDropdownOpen)}
+              disabled={isGenerating}
+              className="flex items-center gap-1 px-2 py-1.5 rounded text-[10px]"
+              style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.2)',
+                color: '#22c55e',
+                opacity: isGenerating ? 0.5 : 1,
+              }}
+            >
+              <span>{currentSize}</span>
+              <ChevronDown size={10} />
+            </button>
+            {isSizeDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsSizeDropdownOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-20 rounded overflow-hidden min-w-[80px]"
+                  style={{
+                    backgroundColor: 'rgba(18, 18, 26, 0.98)',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                  }}
+                >
+                  {IMAGE_SIZES.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => handleSizeSelect(s.value)}
+                      className="w-full px-2 py-1.5 text-[10px] text-left whitespace-nowrap"
+                      style={{
+                        color: currentSize === s.value ? '#22c55e' : '#d1d5db',
+                        backgroundColor: currentSize === s.value ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* 提示词输入 */}
+        <textarea
+          value={node.prompt || ''}
+          onChange={handlePromptChange}
+          placeholder="输入提示词描述..."
+          disabled={isGenerating}
+          className="w-full h-16 px-2 py-1.5 rounded text-xs resize-none"
+          style={{
+            backgroundColor: 'rgba(20, 20, 35, 0.8)',
+            border: '1px solid rgba(60, 60, 80, 0.5)',
+            color: '#e5e7eb',
+            opacity: isGenerating ? 0.5 : 1,
+          }}
+        />
+
+        {/* 生成按钮 */}
+        <button
+          onClick={handleGenerate}
+          disabled={!canGenerate}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-medium"
+          style={{
+            background: canGenerate
+              ? 'linear-gradient(135deg, rgba(191, 0, 255, 0.3), rgba(255, 0, 255, 0.2))'
+              : 'rgba(191, 0, 255, 0.1)',
+            border: '1px solid rgba(191, 0, 255, 0.4)',
+            color: '#bf00ff',
+            opacity: canGenerate ? 1 : 0.5,
+          }}
+        >
+          {isGenerating ? (
+            <>
+              <InlineLoading size={12} color="#bf00ff" />
+              <span>生成中...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles size={12} />
+              <span>生成</span>
+              <span className="flex items-center">
+                （<img src={CoinIcon} alt="" className="w-3 h-3" />{modelInfo.cost}）
+              </span>
+            </>
+          )}
+        </button>
+      </div>
+    </BaseNode>
+  );
+};
+
+/**
+ * 根据节点状态获取渲染内容类型
+ * 用于属性测试验证
+ */
+export function getNodeRenderType(status: NodeStatus, imageUrl?: string): 'loading' | 'image' | 'error' | 'empty' {
+  if (status === 'generating') return 'loading';
+  if (status === 'failed' && !imageUrl) return 'error';
+  if (imageUrl) return 'image';
+  return 'empty';
+}
+
+export default GeneratorNode;

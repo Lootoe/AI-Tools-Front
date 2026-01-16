@@ -656,4 +656,18 @@
         );
         backdrop-filter: blur(10px);
     }
+
+    /* 画布连接线流动动画 */
+    @keyframes edgeFlow {
+        0% {
+            stroke-dashoffset: 20;
+        }
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    .animate-flow {
+        animation: edgeFlow 1s linear infinite;
+    }
 }

@@ -5,7 +5,8 @@ import { useVideoStore } from '@/stores/videoStore';
 import { CyberAssetSidebar } from '@/components/video/CyberAssetSidebar';
 import { EpisodeWorkspace } from '@/components/video/EpisodeWorkspace';
 import { ImageWorkspace } from '@/components/video/ImageWorkspace';
-import { AssetWorkspace } from '@/components/video/AssetWorkspace';
+import { AssetCanvasWorkspace } from '@/components/video/AssetCanvasWorkspace';
+import { AssetRepositoryWorkspace } from '@/components/video/AssetRepositoryWorkspace';
 import { CharacterWorkspace } from '@/components/video/CharacterWorkspace';
 import { AppNavbar } from '@/components/layout/AppNavbar';
 import { AssetTabType } from '@/types/video';
@@ -145,8 +146,10 @@ export const ScriptEditorPage: React.FC = () => {
             onStoryboardImageChange={handleStoryboardChange}
           />
         );
-      case 'asset':
-        return <AssetWorkspace scriptId={script.id} />;
+      case 'assetCanvas':
+        return <AssetCanvasWorkspace scriptId={script.id} />;
+      case 'assetRepository':
+        return <AssetRepositoryWorkspace scriptId={script.id} />;
       case 'character':
         return <CharacterWorkspace scriptId={script.id} />;
       default:
