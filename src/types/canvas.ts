@@ -54,6 +54,7 @@ export interface CanvasEdge {
 export interface Canvas {
   id: string;
   scriptId: string;
+  name: string;           // 画布名称
   viewport: Viewport | null;
   nodes: CanvasNode[];
   edges: CanvasEdge[];

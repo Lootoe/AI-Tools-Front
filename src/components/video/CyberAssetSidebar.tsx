@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Package, Image, Layers, User, FolderOpen } from 'lucide-react';
+import { LayoutGrid, Package, Layers, User, FolderOpen } from 'lucide-react';
 import { AssetTabType } from '@/types/video';
 
 interface CyberAssetSidebarProps {

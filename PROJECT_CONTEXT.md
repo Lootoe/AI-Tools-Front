@@ -43,13 +43,16 @@
 > 更新于 2026-01-16：关联设计稿功能改为关联资产仓库，统一参考图来源
 
 #### 1.3.4 资产画布工作区（AssetCanvasWorkspace）
-- **画布**：无限画布，支持缩放、平移
+- **多画布管理**：支持创建多个画布，通过顶部标签页切换
+- **画布标签栏**：显示所有画布，支持新建、删除、重命名
+- **无限画布**：支持缩放、平移、网格背景
 - **节点系统**：生成节点（AI 生成）、输入节点（上传图片）
 - **连线系统**：节点间连接，传递参考图
 - **右键菜单**：保存图像、删除节点
 - **保存到仓库**：生成的图片可保存到资产仓库
 
 > 更新于 2026-01-16：替代旧的 AssetWorkspace，使用画布节点系统
+> 更新于 2026-01-16：新增多画布支持，每个剧本可创建多个独立画布
 
 #### 1.3.5 资产仓库工作区（AssetRepositoryWorkspace）
 - **分类管理**：创建、编辑、删除分类
@@ -460,7 +463,48 @@ interface CharacterState {
 
 > 更新于 2026-01-12：新增 characterStore
 
-### 5.5 preferencesStore（偏好设置）
+### 5.6 canvasStore（画布管理）
+```typescript
+interface CanvasState {
+  canvases: Canvas[];
+  currentCanvasId: string | null;
+  viewport: Viewport;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  selectedNodeId: string | null;
+  isLoading: boolean;
+  error: string | null;
+  currentScriptId: string | null;
+
+  // 画布管理
+  loadCanvases: (scriptId: string) => Promise<void>;
+  createCanvas: (scriptId: string, name?: string) => Promise<string>;
+  deleteCanvas: (scriptId: string, canvasId: string) => Promise<void>;
+  renameCanvas: (scriptId: string, canvasId: string, name: string) => Promise<void>;
+  switchCanvas: (canvasId: string) => void;
+
+  // 画布操作
+  setViewport: (viewport: Viewport) => Promise<void>;
+  resetViewport: () => Promise<void>;
+
+  // 节点操作
+  addNode: (...) => Promise<string>;
+  updateNode: (...) => Promise<void>;
+  deleteNode: (...) => Promise<void>;
+  selectNode: (nodeId: string | null) => void;
+
+  // 连接操作
+  addEdge: (...) => Promise<string>;
+  deleteEdge: (...) => Promise<void>;
+
+  // 辅助方法
+  getConnectedInputUrls: (nodeId: string) => string[];
+  getCurrentCanvas: () => Canvas | null;
+  clearCanvas: () => void;
+}
+```
+
+> 更新于 2026-01-16：新增多画布管理功能，支持创建、删除、重命名、切换画布
 ```typescript
 interface PreferencesState {
   video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15' };
@@ -549,7 +593,27 @@ uploadImage(file: File)
 getBalanceRecords(page: number, pageSize: number)
 ```
 
-### 7.4 assetApi.ts
+### 7.5 canvasApi.ts
+```typescript
+// 画布管理
+fetchCanvases(scriptId: string) // 获取所有画布
+fetchCanvas(scriptId: string, canvasId: string) // 获取单个画布
+createCanvas(scriptId: string, name: string) // 创建画布
+renameCanvas(scriptId: string, canvasId: string, name: string) // 重命名画布
+deleteCanvas(scriptId: string, canvasId: string) // 删除画布
+updateViewport(scriptId: string, canvasId: string, viewport: Viewport) // 更新视口
+
+// 节点操作
+createNode(scriptId: string, canvasId: string, data: CreateNodeRequest) // 创建节点
+updateNode(scriptId: string, canvasId: string, nodeId: string, updates: UpdateNodeRequest) // 更新节点
+deleteNode(scriptId: string, canvasId: string, nodeId: string) // 删除节点
+
+// 连接操作
+createEdge(scriptId: string, canvasId: string, data: CreateEdgeRequest) // 创建连接
+deleteEdge(scriptId: string, canvasId: string, edgeId: string) // 删除连接
+```
+
+> 更新于 2026-01-16：新增多画布管理 API，所有操作需要 canvasId 参数
 ```typescript
 fetchAssets(scriptId: string)
 createAsset(scriptId: string, data: {...})
@@ -597,10 +661,12 @@ deleteAsset(scriptId: string, assetId: string)
 - 视频生成触发
 
 **AssetCanvasWorkspace**
+- 画布标签栏：顶部显示所有画布，支持切换、新建、删除、重命名
 - 无限画布：缩放、平移、网格背景
 - 节点管理：创建、删除、移动、连接
 - 图片生成：AI 生成或上传
 - 保存到仓库：将生成的图片保存到资产仓库
+- 多画布支持：每个剧本可创建多个独立画布
 
 **AssetRepositoryWorkspace**
 - 分类管理：创建、编辑、删除分类
@@ -608,6 +674,7 @@ deleteAsset(scriptId: string, assetId: string)
 - 资产操作：查看、删除、关联使用
 
 > 更新于 2026-01-16：资产系统重构
+> 更新于 2026-01-16：AssetCanvasWorkspace 新增多画布支持，通过顶部标签栏管理
 
 ### 8.3 核心 UI 组件
 
@@ -640,6 +707,16 @@ deleteAsset(scriptId: string, assetId: string)
 - 描述编辑
 - 参考图管理
 - 视频/图片预览
+
+**CanvasTabs**
+- 画布标签栏
+- 显示所有画布标签
+- 点击切换画布
+- 双击重命名画布
+- 关闭按钮删除画布
+- "+"按钮创建新画布
+
+> 更新于 2026-01-16：新增画布标签栏组件
 
 **CyberAssetSidebar**
 - 资产 Tab 切换（分镜视频/资产画布/资产仓库/角色）
@@ -815,4 +892,4 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.4.0 | 2026-01-16 | 完全移除分镜图功能：删除 ImageWorkspace、ImageStoryboardGrid、ImageLeftPanel、ImageVariantPool 组件，移除分镜图 Tab，移除分镜图偏好设置，移除 types/stores/services 中的分镜图相关代码，简化工作流程 |
 | 1.4.1 | 2026-01-16 | 修复资产关联弹窗：支持显示所有分类的资产，新增分类 Tab 切换，弹窗尺寸从 3 列调整为 4 列 |
 | 1.4.2 | 2026-01-16 | 完成分镜图功能清理：删除 videoStore 中所有分镜图实现函数（addStoryboardImage、updateStoryboardImage、deleteStoryboardImage、clearStoryboardImages、reorderStoryboardImages、addImageVariant、updateImageVariant、deleteImageVariant、setActiveImageVariant、refreshImageVariant），删除 api.ts 中的 generateStoryboardImage 函数和 StoryboardImageResponse 接口，修复 videoStore 中重复的 getCurrentScript 方法定义 |
-| 1.5.0 | 2026-01-16 | 前后端分镜图功能完全清理完成：前端已删除所有 UI 组件、类型定义、Store 方法、API 方法；后端已删除 StoryboardImage 和 ImageVariant 数据模型、所有分镜图 CRUD API 路由（约 470 行代码）、分镜图生成 API，数据库 schema 已更新，工作流程简化为分镜视频 + 资产画布 + 资产仓库 + 角色 |
+| 1.5.1 | 2026-01-16 | 资产画布新增多画布支持：每个剧本可创建多个独立画布，通过顶部标签栏切换、新建、删除、重命名画布，优化画布管理体验 |

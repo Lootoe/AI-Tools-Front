@@ -15,6 +15,7 @@ import { InlineLoading } from '@/components/ui/Loading';
 import {
   InfiniteCanvas,
   CanvasToolbar,
+  CanvasTabs,
   GeneratorNode,
   InputNode,
   CanvasEdge,
@@ -63,13 +64,19 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
 
   // Canvas store
   const {
+    canvases,
+    currentCanvasId,
     viewport,
     nodes,
     edges,
     selectedNodeId,
     isLoading,
     error,
-    loadCanvas,
+    loadCanvases,
+    createCanvas,
+    deleteCanvas,
+    renameCanvas,
+    switchCanvas,
     setViewport,
     resetViewport,
     addNode,
@@ -128,10 +135,10 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
   // Load canvas data on mount
   useEffect(() => {
     if (scriptId) {
-      loadCanvas(scriptId);
+      loadCanvases(scriptId);
       loadCategories(scriptId);
     }
-  }, [scriptId, loadCanvas, loadCategories]);
+  }, [scriptId, loadCanvases, loadCategories]);
 
   // Show error toast
   useEffect(() => {
@@ -164,6 +171,37 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
       }
     };
   }, []);
+
+  // Handle create canvas
+  const handleCreateCanvas = useCallback(async () => {
+    try {
+      await createCanvas(scriptId);
+      showToast('画布已创建', 'success');
+    } catch {
+      showToast('创建画布失败', 'error');
+    }
+  }, [scriptId, createCanvas, showToast]);
+
+  // Handle delete canvas
+  const handleDeleteCanvas = useCallback(async (canvasId: string) => {
+    try {
+      await deleteCanvas(scriptId, canvasId);
+      showToast('画布已删除', 'success');
+    } catch (err) {
+      const error = err as Error;
+      showToast(error.message || '删除画布失败', 'error');
+    }
+  }, [scriptId, deleteCanvas, showToast]);
+
+  // Handle rename canvas
+  const handleRenameCanvas = useCallback(async (canvasId: string, name: string) => {
+    try {
+      await renameCanvas(scriptId, canvasId, name);
+      showToast('画布已重命名', 'success');
+    } catch {
+      showToast('重命名失败', 'error');
+    }
+  }, [scriptId, renameCanvas, showToast]);
 
   // Handle context menu open
   const handleContextMenu = useCallback((canvasPosition: Position) => {
@@ -512,6 +550,16 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden rounded-xl" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
+        {/* Canvas Tabs */}
+        <CanvasTabs
+          canvases={canvases}
+          currentCanvasId={currentCanvasId}
+          onSwitch={switchCanvas}
+          onCreate={handleCreateCanvas}
+          onDelete={handleDeleteCanvas}
+          onRename={handleRenameCanvas}
+        />
+
         {/* Toolbar */}
         <CanvasToolbar
           viewport={viewport}

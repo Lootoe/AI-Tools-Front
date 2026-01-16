@@ -198,18 +198,6 @@ export const useVideoStore = create<VideoState>((set, get) => ({
     }
   },
 
-  refreshScript: async (scriptId) => {
-    try {
-      const script = await api.fetchScript(scriptId);
-      normalizeScript(script);
-      set((state) => ({
-        scripts: updateScriptInList(state.scripts, scriptId, () => script),
-      }));
-    } catch (error) {
-      console.error('刷新剧本失败:', error);
-    }
-  },
-
   // ============ 剧集操作 ============
 
   addEpisode: async (scriptId, episode) => {

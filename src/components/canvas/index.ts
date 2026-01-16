@@ -31,3 +31,6 @@ export type { SaveAssetDialogProps } from './SaveAssetDialog';
 
 export { AssetGrid } from './AssetGrid';
 export type { AssetGridProps } from './AssetGrid';
+
+export { CanvasTabs } from './CanvasTabs';
+export type { default as CanvasTabsProps } from './CanvasTabs';
