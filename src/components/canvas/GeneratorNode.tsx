@@ -253,22 +253,30 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
       >
         {/* 节点头部 */}
         <div
-          className="px-3 py-2 flex items-center gap-2"
+          className="px-3 py-2.5 flex items-center gap-2 relative"
           style={{
-            background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.15), rgba(255, 0, 255, 0.1))',
-            borderBottom: '1px solid rgba(191, 0, 255, 0.2)',
+            background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.25), rgba(255, 0, 255, 0.15))',
+            borderBottom: '1px solid rgba(191, 0, 255, 0.3)',
           }}
         >
+          {/* 头部底部高光 */}
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center"
+            className="absolute bottom-0 left-0 right-0 h-px"
             style={{
-              background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.3), rgba(255, 0, 255, 0.2))',
-              border: '1px solid rgba(191, 0, 255, 0.4)',
+              background: 'linear-gradient(90deg, transparent, rgba(191, 0, 255, 0.4), transparent)',
+            }}
+          />
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center relative"
+            style={{
+              background: 'linear-gradient(135deg, rgba(191, 0, 255, 0.4), rgba(255, 0, 255, 0.3))',
+              border: '1px solid rgba(191, 0, 255, 0.5)',
+              boxShadow: '0 2px 8px rgba(191, 0, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             }}
           >
-            <Sparkles size={12} style={{ color: '#bf00ff' }} />
+            <Sparkles size={14} style={{ color: '#bf00ff', filter: 'drop-shadow(0 0 2px rgba(191, 0, 255, 0.8))' }} />
           </div>
-          <span className="text-xs font-medium text-white flex-1 truncate">
+          <span className="text-xs font-medium text-white flex-1 truncate" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)' }}>
             {node.label || '生成节点'}
           </span>
         </div>
@@ -279,7 +287,8 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
           style={{
             width: NODE_WIDTH - 2,
             height: NODE_WIDTH - 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3)',
           }}
         >
           {/* 生成中状态 */}
@@ -355,9 +364,10 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
                 e.stopPropagation();
                 onSave();
               }}
-              className="absolute top-2 right-2 p-1.5 rounded-md transition-opacity opacity-0 hover:opacity-100"
+              className="absolute top-2 right-2 p-1.5 rounded-md transition-all duration-200 opacity-0 hover:opacity-100 hover:scale-110"
               style={{
                 backgroundColor: 'rgba(0, 245, 255, 0.9)',
+                boxShadow: '0 2px 8px rgba(0, 245, 255, 0.4)',
               }}
               title="保存到资产仓库"
             >
@@ -367,7 +377,20 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
         </div>
 
         {/* 配置面板 */}
-        <div className="p-3 flex flex-col gap-2" style={{ borderTop: '1px solid rgba(30, 30, 46, 0.8)' }}>
+        <div
+          className="p-3 flex flex-col gap-2 relative"
+          style={{
+            borderTop: '1px solid rgba(30, 30, 46, 0.8)',
+            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent)',
+          }}
+        >
+          {/* 顶部分隔高光 */}
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(191, 0, 255, 0.2), transparent)',
+            }}
+          />
           {/* 模型和参数选择行 */}
           <div className="flex items-center gap-2">
             {/* 模型选择 */}
@@ -524,14 +547,16 @@ export const GeneratorNode: React.FC<GeneratorNodeProps> = ({
           <button
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-medium"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-[1.02]"
             style={{
               background: canGenerate
-                ? 'linear-gradient(135deg, rgba(191, 0, 255, 0.3), rgba(255, 0, 255, 0.2))'
+                ? 'linear-gradient(135deg, rgba(191, 0, 255, 0.4), rgba(255, 0, 255, 0.3))'
                 : 'rgba(191, 0, 255, 0.1)',
-              border: '1px solid rgba(191, 0, 255, 0.4)',
+              border: '1px solid rgba(191, 0, 255, 0.5)',
               color: '#bf00ff',
               opacity: canGenerate ? 1 : 0.5,
+              boxShadow: canGenerate ? '0 4px 12px rgba(191, 0, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)' : 'none',
+              textShadow: canGenerate ? '0 0 8px rgba(191, 0, 255, 0.5)' : 'none',
             }}
           >
             {isGenerating ? (

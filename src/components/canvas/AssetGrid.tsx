@@ -335,7 +335,7 @@ export const AssetGrid: React.FC<AssetGridProps> = ({ categoryId }) => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-6 gap-2">
             {assets.map((asset) => (
               <AssetCard
                 key={asset.id}

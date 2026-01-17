@@ -61,6 +61,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Position | null>(null);
   const [positionStart, setPositionStart] = useState<Position | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   // 处理节点拖拽开始
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -172,29 +173,39 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
     }
   }, [onSelect, onContextMenu]);
 
-  // 获取节点类型对应的颜色
+  // 获取节点类型对应的颜色和样式
   const getNodeColor = () => {
     switch (type) {
       case 'generator':
         return {
-          border: isSelected ? 'rgba(191, 0, 255, 0.6)' : 'rgba(191, 0, 255, 0.3)',
-          shadow: isSelected ? '0 0 20px rgba(191, 0, 255, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.4)',
-          headerBg: 'linear-gradient(135deg, rgba(191, 0, 255, 0.15), rgba(255, 0, 255, 0.1))',
+          border: isSelected ? 'rgba(191, 0, 255, 0.6)' : 'rgba(191, 0, 255, 0.4)',
+          borderGradient: 'linear-gradient(135deg, rgba(191, 0, 255, 0.3), rgba(255, 0, 255, 0.2))',
+          shadow: isHovered
+            ? '0 4px 24px rgba(191, 0, 255, 0.25), 0 2px 12px rgba(191, 0, 255, 0.2), 0 0 0 1px rgba(191, 0, 255, 0.15) inset'
+            : '0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(191, 0, 255, 0.1) inset',
+          headerBg: 'linear-gradient(135deg, rgba(191, 0, 255, 0.2), rgba(255, 0, 255, 0.15))',
           portColor: '#bf00ff',
+          glowColor: 'rgba(191, 0, 255, 0.15)',
         };
       case 'input':
         return {
-          border: isSelected ? 'rgba(0, 245, 255, 0.6)' : 'rgba(0, 245, 255, 0.3)',
-          shadow: isSelected ? '0 0 20px rgba(0, 245, 255, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.4)',
-          headerBg: 'linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(0, 212, 170, 0.1))',
+          border: isSelected ? 'rgba(0, 245, 255, 0.6)' : 'rgba(0, 245, 255, 0.4)',
+          borderGradient: 'linear-gradient(135deg, rgba(0, 245, 255, 0.3), rgba(0, 212, 170, 0.2))',
+          shadow: isHovered
+            ? '0 4px 24px rgba(0, 245, 255, 0.25), 0 2px 12px rgba(0, 245, 255, 0.2), 0 0 0 1px rgba(0, 245, 255, 0.15) inset'
+            : '0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 245, 255, 0.1) inset',
+          headerBg: 'linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 212, 170, 0.15))',
           portColor: '#00f5ff',
+          glowColor: 'rgba(0, 245, 255, 0.15)',
         };
       default:
         return {
           border: isSelected ? 'rgba(107, 114, 128, 0.6)' : 'rgba(107, 114, 128, 0.3)',
-          shadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+          borderGradient: 'rgba(107, 114, 128, 0.2)',
+          shadow: '0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)',
           headerBg: 'rgba(107, 114, 128, 0.1)',
           portColor: '#6b7280',
+          glowColor: 'rgba(107, 114, 128, 0.1)',
         };
     }
   };
@@ -214,29 +225,39 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
         cursor: isDragging ? 'grabbing' : 'grab',
       }}
       onMouseDown={handleMouseDown}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onContextMenu={handleContextMenu}
     >
       {/* 节点主体 */}
       <div
-        className="relative rounded-xl overflow-hidden"
+        className="relative rounded-xl overflow-hidden transition-all duration-300"
         style={{
-          backgroundColor: 'rgba(18, 18, 26, 0.95)',
+          backgroundColor: 'rgba(18, 18, 26, 0.98)',
           border: `1px solid ${colors.border}`,
           boxShadow: colors.shadow,
-          backdropFilter: 'blur(10px)',
+          backdropFilter: 'blur(12px)',
+          transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
         }}
       >
-        {/* 删除按钮 */}
-        <button
-          className="node-delete-btn absolute top-2 right-2 p-1 rounded-md opacity-0 hover:opacity-100 transition-opacity z-10"
+        {/* 渐变边框效果 */}
+        <div
+          className="absolute inset-0 rounded-xl pointer-events-none"
           style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.9)',
+            background: colors.borderGradient,
+            opacity: 0.3,
+            mixBlendMode: 'screen',
           }}
-          onClick={handleDelete}
-          title="删除节点"
-        >
-          <X size={12} className="text-white" />
-        </button>
+        />
+
+        {/* 顶部高光 */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${colors.glowColor}, transparent)`,
+            opacity: 0.6,
+          }}
+        />
 
         {/* 节点内容 */}
         {children}

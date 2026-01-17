@@ -226,7 +226,8 @@ AI-Tools-Front/
 │   │   ├── authStore.ts      # 用户认证状态
 │   │   ├── videoStore.ts     # 剧本/分镜状态
 │   │   ├── editingStore.ts   # 编辑状态
-│   │   ├── assetStore.ts     # 资产状态
+│   │   ├── canvasStore.ts    # 画布状态
+│   │   ├── repositoryStore.ts # 资产仓库状态
 │   │   └── characterStore.ts # 角色状态
 │   ├── services/             # API 服务
 │   │   ├── api.ts            # 视频/图片生成 API
@@ -330,19 +331,6 @@ interface ImageVariant {
 
 > 更新于 2026-01-14：StoryboardVariant 和 ImageVariant 新增 startedAt、finishedAt 字段
 
-// 资产
-interface Asset {
-  id: string;
-  scriptId: string;
-  name: string;
-  description: string;
-  designImageUrl?: string;
-  thumbnailUrl?: string;
-  referenceImageUrls?: string[];
-  status: 'pending' | 'generating' | 'completed' | 'failed';
-  createdAt: string;
-}
-
 // Sora2角色
 interface Character {
   id: string;
@@ -364,10 +352,41 @@ interface Character {
   updatedAt: string;
 }
 
+// 画布节点（CanvasNode）
+interface CanvasNode {
+  id: string;
+  canvasId: string;
+  type: 'generator' | 'input';
+  positionX: number;
+  positionY: number;
+  label?: string;
+  model?: string;
+  prompt?: string;
+  aspectRatio?: string;
+  imageSize?: string;
+  imageUrl?: string;
+  status: 'idle' | 'generating' | 'completed' | 'failed';
+  progress?: string;
+  failReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 已保存的资产（SavedAsset）
+interface SavedAsset {
+  id: string;
+  categoryId: string;
+  imageUrl: string;
+  sourceNodeId?: string;
+  name?: string;
+  createdAt: string;
+}
+
 // 资产 Tab 类型
-type AssetTabType = 'storyboard' | 'storyboardImage' | 'asset' | 'character';
+type AssetTabType = 'storyboard' | 'assetCanvas' | 'assetRepository' | 'character';
 
 > 更新于 2026-01-13：Character 类型新增 Sora2 角色注册字段
+> 更新于 2026-01-17：删除 Asset 类型，新增 CanvasNode 和 SavedAsset 类型说明
 ```
 
 ---
@@ -436,19 +455,7 @@ interface VideoState {
 }
 ```
 
-### 5.3 assetStore（资产管理）
-```typescript
-interface AssetState {
-  assets: Asset[];
-  isLoading: boolean;
-  loadAssets: (scriptId: string) => Promise<void>;
-  createAsset: (scriptId: string, data: {...}) => Promise<Asset>;
-  updateAsset: (scriptId: string, assetId: string, data: {...}) => Promise<void>;
-  deleteAsset: (scriptId: string, assetId: string) => Promise<void>;
-}
-```
-
-### 5.4 characterStore（角色管理）
+### 5.3 characterStore（角色管理）
 ```typescript
 interface CharacterState {
   characters: Character[];
@@ -463,7 +470,7 @@ interface CharacterState {
 
 > 更新于 2026-01-12：新增 characterStore
 
-### 5.6 canvasStore（画布管理）
+### 5.4 canvasStore（画布管理）
 ```typescript
 interface CanvasState {
   canvases: Canvas[];
@@ -505,22 +512,7 @@ interface CanvasState {
 ```
 
 > 更新于 2026-01-16：新增多画布管理功能，支持创建、删除、重命名、切换画布
-```typescript
-interface PreferencesState {
-  video: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15' };
-  storyboardImage: { aspectRatio: '16:9' | '1:1' | '4:3'; model: string; imageSize: '1K' | '2K' };
-  asset: { aspectRatio: '1:1' | '4:3' | '16:9'; model: string; imageSize: '1K' | '2K' };
-  character: { aspectRatio: '16:9' | '9:16'; duration: '10' | '15' };
-  setVideoPreferences: (prefs: Partial<VideoPreferences>) => void;
-  setStoryboardImagePreferences: (prefs: Partial<StoryboardImagePreferences>) => void;
-  setAssetPreferences: (prefs: Partial<AssetPreferences>) => void;
-  setCharacterPreferences: (prefs: Partial<CharacterPreferences>) => void;
-}
-```
-
-> 更新于 2026-01-14：新增偏好设置 Store，使用 localStorage 持久化
-> 更新于 2026-01-14：storyboardImage 和 asset 新增 imageSize 字段，支持图片质量设置（1K/2K）
-> 更新于 2026-01-15：移除所有 promptTemplateId 字段，删除提示词模板功能
+> 更新于 2026-01-17：移除 preferencesStore，删除偏好设置功能
 
 ---
 
@@ -583,8 +575,9 @@ generateStoryboardVideo(request: StoryboardToVideoRequest)
 remixVideo(taskId: string, request: RemixVideoRequest)
 
 // 图片生成
-generateAssetDesign(request: AssetDesignRequest)
-generateStoryboardImage(request: StoryboardImageRequest)
+generateAssetDesign(nodeId, scriptId, description, ...) // 画布节点图片生成
+
+> 更新于 2026-01-17：简化 generateAssetDesign 函数，第一个参数改为 nodeId（CanvasNode ID）
 
 // 图片上传
 uploadImage(file: File)
@@ -614,12 +607,19 @@ deleteEdge(scriptId: string, canvasId: string, edgeId: string) // 删除连接
 ```
 
 > 更新于 2026-01-16：新增多画布管理 API，所有操作需要 canvasId 参数
+
+### 7.4 repositoryApi.ts
 ```typescript
-fetchAssets(scriptId: string)
-createAsset(scriptId: string, data: {...})
-updateAsset(scriptId: string, assetId: string, data: {...})
-deleteAsset(scriptId: string, assetId: string)
+// 资产仓库管理
+fetchCategories(scriptId: string) // 获取所有分类
+createCategory(scriptId: string, name: string) // 创建分类
+deleteCategory(scriptId: string, categoryId: string) // 删除分类
+fetchAssets(scriptId: string, categoryId: string) // 获取分类下的资产
+saveAsset(scriptId: string, categoryId: string, imageUrl: string, name?: string, sourceNodeId?: string) // 保存资产
+deleteAsset(scriptId: string, assetId: string) // 删除资产
 ```
+
+> 更新于 2026-01-17：新增 repositoryApi 说明，管理资产仓库
 
 ---
 
@@ -648,9 +648,8 @@ deleteAsset(scriptId: string, assetId: string)
 - 套餐购买（10元/100代币、29元/300代币、68元/700代币）
 - 兑换码功能
 - 交易记录（支持分页和日期范围筛选、总消耗统计）
-- 偏好设置（分镜视频/资产/角色的默认生成参数）
 
-> 更新于 2026-01-16：移除分镜图偏好设置
+> 更新于 2026-01-17：完全移除偏好设置功能
 
 ### 8.2 工作区组件
 
@@ -752,14 +751,15 @@ deleteAsset(scriptId: string, assetId: string)
 
 ### 9.2 图片生成流程
 ```
-1. 用户在 ImageWorkspace 或 AssetCanvasWorkspace 点击"生成"
-2. 调用相应的 addImageVariant() 或画布节点生成
-3. 调用 api.generateAssetDesign() 或 api.generateStoryboardImage()
+1. 用户在 AssetCanvasWorkspace 点击"生成"
+2. 调用画布节点生成函数
+3. 调用 api.generateAssetDesign(nodeId, ...)
 4. 后端同步返回生成结果（图片生成较快）
 5. 更新本地状态，显示图片
 ```
 
 > 更新于 2026-01-16：统一使用 api.ts 中的图片生成函数
+> 更新于 2026-01-17：简化图片生成流程，专注于画布节点
 
 ### 9.3 角色视频生成流程
 ```
@@ -883,7 +883,7 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.0.6 | 2026-01-13 | 新增 Sora2 角色注册功能：支持多视频角色一致性，角色身份卡片显示认证状态 |
 | 1.0.7 | 2026-01-13 | 角色模块参考图上传改用公用 ReferenceImageUploader 组件，统一交互体验 |
 | 1.0.8 | 2026-01-13 | 分镜图工作区新增"关联资产"功能，支持从资产库选择设计稿作为参考图 |
-| 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选，新增全局偏好设置（分镜视频/分镜图/资产/角色的默认生成参数） |
+| 1.1.0 | 2026-01-14 | 用户中心重构：删除邀请码功能，新增套餐购买选项，余额记录支持分页和日期筛选 |
 | 1.1.1 | 2026-01-14 | 分镜图生成、资产生成新增图片质量选择（1K/2K），上传组件默认限制改为 10MB |
 | 1.2.0 | 2026-01-15 | 删除提示词模板功能：移除 getPromptTemplates API、PromptTemplateConfig 类型、偏好设置中的 promptTemplateId、CyberVideoPlayer/CyberImageViewer 的模板选择器 |
 | 1.2.1 | 2026-01-16 | 资产画布节点新增右键菜单：支持保存图像（有图片时）和删除节点，适用于生成节点和输入节点 |
@@ -893,3 +893,7 @@ VITE_BACKEND_URL=http://localhost:3000
 | 1.4.1 | 2026-01-16 | 修复资产关联弹窗：支持显示所有分类的资产，新增分类 Tab 切换，弹窗尺寸从 3 列调整为 4 列 |
 | 1.4.2 | 2026-01-16 | 完成分镜图功能清理：删除 videoStore 中所有分镜图实现函数（addStoryboardImage、updateStoryboardImage、deleteStoryboardImage、clearStoryboardImages、reorderStoryboardImages、addImageVariant、updateImageVariant、deleteImageVariant、setActiveImageVariant、refreshImageVariant），删除 api.ts 中的 generateStoryboardImage 函数和 StoryboardImageResponse 接口，修复 videoStore 中重复的 getCurrentScript 方法定义 |
 | 1.5.1 | 2026-01-16 | 资产画布新增多画布支持：每个剧本可创建多个独立画布，通过顶部标签栏切换、新建、删除、重命名画布，优化画布管理体验 |
+| 1.5.2 | 2026-01-17 | 画布节点视觉优化：增强立体感和层次感，添加多层阴影、渐变边框、内阴影、顶部高光等效果；移除节点顶部删除按钮，统一使用右键菜单删除；改为 hover 时发光效果，减小光效强度，提升交互体验 |
+| 1.6.0 | 2026-01-17 | 完全移除偏好设置功能：删除 preferencesStore.ts 文件、ProfilePage 中的偏好设置 Tab 和相关 UI 组件、EpisodeWorkspace 和 CharacterWorkspace 中的 preferencesStore 引用，改用硬编码默认值（16:9 比例、10秒时长），简化用户中心和工作区功能 |
+| 1.6.1 | 2026-01-17 | 简化图片生成 API：generateAssetDesign 函数第一个参数改为 nodeId（CanvasNode ID），移除 Asset 表支持，专注于画布节点图片生成；修复画布节点生成图片后无法保存到数据库的 bug |
+| 1.6.2 | 2026-01-17 | 彻底清理 Asset 遗留代码：删除 types/asset.ts 文件、LinkAssetImageDialog 中的 Asset 类型引用；更新文档删除 assetStore 说明，新增 repositoryApi 说明；调整状态管理和 API 服务层编号；系统现在只使用 CanvasNode（画布节点）和 SavedAsset（资产仓库）两种资产概念 |

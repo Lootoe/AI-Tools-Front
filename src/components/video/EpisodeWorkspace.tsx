@@ -3,7 +3,6 @@ import { Film, Sparkles } from 'lucide-react';
 import { useVideoStore } from '@/stores/videoStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useRepositoryStore } from '@/stores/repositoryStore';
-import { usePreferencesStore } from '@/stores/preferencesStore';
 import { EpisodePanel } from './EpisodePanel';
 import { StoryboardGrid } from './StoryboardGrid';
 import { CyberVideoPlayer } from './CyberVideoPlayer';
@@ -47,7 +46,6 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
   const { updateBalance } = useAuthStore();
   const { categories, loadCategories } = useRepositoryStore();
   const { showToast, ToastContainer } = useToast();
-  const videoPrefs = usePreferencesStore((s) => s.video);
 
   // 使用 URL 参数作为选中状态
   const selectedEpisodeId = urlEpisodeId || null;
@@ -58,9 +56,9 @@ export const EpisodeWorkspace: React.FC<EpisodeWorkspaceProps> = ({
   const [deleteConfirmVariantId, setDeleteConfirmVariantId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [localDescription, setLocalDescription] = useState('');
-  // API设置（使用偏好设置作为默认值）
-  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>(videoPrefs.aspectRatio);
-  const [localDuration, setLocalDuration] = useState<'10' | '15'>(videoPrefs.duration);
+  // API设置（使用默认值）
+  const [localAspectRatio, setLocalAspectRatio] = useState<'9:16' | '16:9'>('16:9');
+  const [localDuration, setLocalDuration] = useState<'10' | '15'>('10');
   // 参考图状态
   const [localReferenceImageUrl, setLocalReferenceImageUrl] = useState<string>('');
 

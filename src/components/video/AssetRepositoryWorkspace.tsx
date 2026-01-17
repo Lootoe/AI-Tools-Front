@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, Plus, Trash2, ChevronRight, ChevronDown, Package } from 'lucide-react';
+import { FolderOpen, Plus, Trash2, Package } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { InlineLoading } from '@/components/ui/Loading';
@@ -16,11 +16,9 @@ interface AssetRepositoryWorkspaceProps {
 const CategoryItem: React.FC<{
   category: AssetCategory;
   isSelected: boolean;
-  isExpanded: boolean;
   onSelect: () => void;
-  onToggleExpand: () => void;
   onDelete: () => void;
-}> = ({ category, isSelected, isExpanded, onSelect, onToggleExpand, onDelete }) => {
+}> = ({ category, isSelected, onSelect, onDelete }) => {
   return (
     <div
       className="group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-all"
@@ -31,21 +29,6 @@ const CategoryItem: React.FC<{
       }}
       onClick={onSelect}
     >
-      {/* 展开/折叠按钮 */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleExpand();
-        }}
-        className="p-0.5 rounded hover:bg-white/10 transition-colors"
-      >
-        {isExpanded ? (
-          <ChevronDown size={14} style={{ color: '#9ca3af' }} />
-        ) : (
-          <ChevronRight size={14} style={{ color: '#9ca3af' }} />
-        )}
-      </button>
-
       {/* 文件夹图标 */}
       <FolderOpen
         size={16}
@@ -106,7 +89,6 @@ export const AssetRepositoryWorkspace: React.FC<AssetRepositoryWorkspaceProps> =
   const { showToast, ToastContainer } = useToast();
 
   // 本地状态
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -121,26 +103,6 @@ export const AssetRepositoryWorkspace: React.FC<AssetRepositoryWorkspaceProps> =
       loadCategories(scriptId);
     }
   }, [scriptId, loadCategories]);
-
-  // 当选中分类变化时，自动展开并加载资产
-  useEffect(() => {
-    if (selectedCategoryId) {
-      setExpandedCategories((prev) => new Set([...prev, selectedCategoryId]));
-    }
-  }, [selectedCategoryId]);
-
-  // 切换分类展开/折叠
-  const handleToggleExpand = (categoryId: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(categoryId)) {
-        next.delete(categoryId);
-      } else {
-        next.add(categoryId);
-      }
-      return next;
-    });
-  };
 
   // 创建新分类
   const handleCreateCategory = async () => {
@@ -321,9 +283,7 @@ export const AssetRepositoryWorkspace: React.FC<AssetRepositoryWorkspaceProps> =
                     key={category.id}
                     category={category}
                     isSelected={selectedCategoryId === category.id}
-                    isExpanded={expandedCategories.has(category.id)}
                     onSelect={() => selectCategory(category.id)}
-                    onToggleExpand={() => handleToggleExpand(category.id)}
                     onDelete={() => handleDeleteClick(category)}
                   />
                 ))}

@@ -11,7 +11,6 @@ import { CyberVideoPlayer } from './CyberVideoPlayer';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useRepositoryStore } from '@/stores/repositoryStore';
 import { useAuthStore } from '@/stores/authStore';
-import { usePreferencesStore } from '@/stores/preferencesStore';
 import { generateCharacterVideo, registerSoraCharacter } from '@/services/characterApi';
 import { Character } from '@/types/video';
 
@@ -19,17 +18,15 @@ interface CharacterWorkspaceProps {
     scriptId: string;
 }
 
-// 角色 ID 卡片组件（用于角色池展示）
+// 角色 ID 卡片组件（用于角色池展示）- 简化版
 const CharacterIDCard: React.FC<{
     character: Character;
     isSelected: boolean;
     onSelect: () => void;
     onDelete: () => void;
-    onRegister?: () => void;
-}> = ({ character, isSelected, onSelect, onDelete, onRegister }) => {
+}> = ({ character, isSelected, onSelect, onDelete }) => {
     const isGenerating = character.status === 'generating' || character.status === 'queued';
     const isVerified = !!character.soraCharacterId;
-    const canRegister = character.videoUrl && character.taskId && !isGenerating;
     const [copied, setCopied] = useState(false);
 
     const handleCopyUsername = (e: React.MouseEvent) => {
@@ -67,18 +64,18 @@ const CharacterIDCard: React.FC<{
                 <Trash2 size={12} className="text-white" />
             </button>
 
-            <div className="p-2.5 flex gap-3 items-center">
+            <div className="p-2 flex flex-col gap-1.5 items-center">
                 {/* 头像区域 */}
                 <div className="relative flex-shrink-0">
                     <div
-                        className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center"
+                        className="w-16 h-16 rounded-lg overflow-hidden flex items-center justify-center"
                         style={{
                             backgroundColor: isVerified ? 'transparent' : 'rgba(75,85,99,0.3)',
                             border: `1.5px solid ${isVerified ? 'rgba(0,245,255,0.4)' : 'rgba(75,85,99,0.4)'}`,
                         }}
                     >
                         {isGenerating ? (
-                            <InlineLoading size={18} color="#bf00ff" />
+                            <InlineLoading size={16} color="#bf00ff" />
                         ) : isVerified && character.soraProfilePictureUrl ? (
                             <img src={character.soraProfilePictureUrl} alt={character.name} className="w-full h-full object-cover" />
                         ) : character.thumbnailUrl || character.referenceImageUrl ? (
@@ -102,75 +99,25 @@ const CharacterIDCard: React.FC<{
                 </div>
 
                 {/* 信息区域 */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                    <div className="text-xs font-medium text-white truncate">{character.name || '未命名'}</div>
+                <div className="w-full flex flex-col items-center gap-0.5">
+                    <div className="text-[11px] font-medium text-white truncate w-full text-center">{character.name || '未命名'}</div>
                     <div
                         className="flex items-center gap-1 group/copy cursor-pointer"
                         onClick={handleCopyUsername}
                         title={isVerified ? '点击复制' : ''}
                     >
-                        <span className="text-xs" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
+                        <span className="text-[10px]" style={{ color: isVerified ? '#00f5ff' : '#6b7280' }}>
                             {isVerified ? character.soraUsername : '—'}
                         </span>
                         {isVerified && (
                             copied ? (
-                                <CheckCircle2 size={10} style={{ color: '#10b981' }} />
+                                <CheckCircle2 size={8} style={{ color: '#10b981' }} />
                             ) : (
-                                <Copy size={10} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" style={{ color: '#00f5ff' }} />
+                                <Copy size={8} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" style={{ color: '#00f5ff' }} />
                             )
                         )}
                     </div>
-                    <div className="text-[10px] font-mono" style={{ color: '#9ca3af' }}>
-                        {character.taskId || '—'}
-                    </div>
                 </div>
-            </div>
-
-            {/* 底部状态栏 */}
-            <div
-                className="px-2.5 py-1.5 flex flex-col gap-1"
-                style={{
-                    backgroundColor: isVerified ? 'rgba(16,185,129,0.1)' : 'rgba(75,85,99,0.1)',
-                    borderTop: `1px solid ${isVerified ? 'rgba(16,185,129,0.2)' : 'rgba(75,85,99,0.2)'}`,
-                }}
-            >
-                <div className="flex items-center justify-between">
-                    {isVerified ? (
-                        <div className="flex items-center gap-1">
-                            <CheckCircle2 size={11} style={{ color: '#10b981' }} />
-                            <span className="text-[10px] font-medium" style={{ color: '#10b981' }}>Verified</span>
-                        </div>
-                    ) : (
-                        <span className="text-[11px]" style={{ color: character.status === 'failed' ? '#ef4444' : '#9ca3af' }}>
-                            {isGenerating ? '生成中...' : character.status === 'failed' ? '生成失败' : 'Unregistered'}
-                        </span>
-                    )}
-                    {/* 注册按钮 */}
-                    {canRegister && onRegister ? (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onRegister(); }}
-                            className="px-2 py-1 rounded flex items-center gap-1 text-[10px] font-medium transition-all hover:brightness-110"
-                            style={{
-                                background: isVerified
-                                    ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(0,180,200,0.15))'
-                                    : 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(0,180,200,0.15))',
-                                border: `1px solid ${isVerified ? 'rgba(16,185,129,0.4)' : 'rgba(0,245,255,0.4)'}`,
-                                color: isVerified ? '#10b981' : '#00f5ff',
-                            }}
-                        >
-                            <UserPlus size={10} />
-                            {isVerified ? '重新固定' : '固定角色'}
-                        </button>
-                    ) : (
-                        isSelected && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00f5ff' }} />
-                    )}
-                </div>
-                {/* 失败原因 */}
-                {character.status === 'failed' && character.failReason && (
-                    <div className="text-[9px] truncate" style={{ color: '#ef4444' }} title={character.failReason}>
-                        原因: {character.failReason}
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -339,15 +286,14 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
     const { assets: repositoryAssets, loadAssets: loadRepositoryAssets } = useRepositoryStore();
     const { updateBalance } = useAuthStore();
     const { showToast, ToastContainer } = useToast();
-    const characterPrefs = usePreferencesStore((s) => s.character);
 
     const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
-    const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>(characterPrefs.aspectRatio);
-    const [duration, setDuration] = useState<'10' | '15'>(characterPrefs.duration);
+    const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('16:9');
+    const [duration, setDuration] = useState<'10' | '15'>('10');
 
     const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
     const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
@@ -493,26 +439,26 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
 
             <div className="flex-1 flex gap-3 overflow-hidden">
                 {/* 左侧：角色池（ID卡形式） */}
-                <div className="w-[320px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
-                    <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
+                <div className="w-[420px] flex-shrink-0 flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: 'rgba(10,10,15,0.6)', border: '1px solid #1e1e2e' }}>
+                    <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
                         <div className="flex items-center gap-2">
-                            <User size={14} style={{ color: '#00f5ff' }} />
-                            <span className="text-xs font-medium text-white">角色身份</span>
+                            <User size={13} style={{ color: '#00f5ff' }} />
+                            <span className="text-[11px] font-medium text-white">角色身份</span>
                             <span className="text-[10px]" style={{ color: '#6b7280' }}>{characters.length}</span>
                         </div>
                         <button
                             onClick={handleCreateCharacter}
-                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] transition-all hover:brightness-110"
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] transition-all hover:brightness-110"
                             style={{ background: 'linear-gradient(135deg, rgba(0,245,255,0.1), rgba(191,0,255,0.1))', border: '1px solid rgba(0,245,255,0.3)', color: '#00f5ff' }}
                         >
-                            <Plus size={12} />新建角色
+                            <Plus size={11} />新建角色
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
                         {isLoading ? (
                             <div className="flex items-center justify-center py-8"><InlineLoading size={18} color="#00f5ff" /></div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-3 gap-1.5">
                                 {characters.map((c) => (
                                     <CharacterIDCard
                                         key={c.id}
@@ -520,7 +466,6 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                                         isSelected={selectedCharacterId === c.id}
                                         onSelect={() => setSelectedCharacterId(c.id)}
                                         onDelete={() => handleDeleteClick(c)}
-                                        onRegister={() => handleOpenRegisterDialog(c.id)}
                                     />
                                 ))}
                             </div>
@@ -535,6 +480,62 @@ export const CharacterWorkspace: React.FC<CharacterWorkspaceProps> = ({ scriptId
                         {selectedCharacter ? (
                             <>
                                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                                    {/* 角色详情卡片 */}
+                                    <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #1e1e2e' }}>
+                                        <div className="flex items-center gap-3">
+                                            {/* 认证状态 */}
+                                            {selectedCharacter.soraCharacterId ? (
+                                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(0,180,200,0.15))', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                                    <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+                                                    <span className="text-xs font-medium" style={{ color: '#10b981' }}>已认证</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(75,85,99,0.15)', border: '1px solid rgba(75,85,99,0.3)' }}>
+                                                    <span className="text-xs font-medium" style={{ color: '#9ca3af' }}>未认证</span>
+                                                </div>
+                                            )}
+                                            {/* Task ID */}
+                                            {selectedCharacter.taskId && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[10px]" style={{ color: '#6b7280' }}>Task ID:</span>
+                                                    <span className="text-[10px] font-mono px-2 py-1 rounded" style={{ color: '#00f5ff', backgroundColor: 'rgba(0,245,255,0.1)' }}>
+                                                        {selectedCharacter.taskId}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {/* 生成状态 */}
+                                            {isProcessing && (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: 'rgba(191,0,255,0.1)' }}>
+                                                    <InlineLoading size={12} color="#bf00ff" />
+                                                    <span className="text-[10px]" style={{ color: '#bf00ff' }}>生成中...</span>
+                                                </div>
+                                            )}
+                                            {/* 失败状态 */}
+                                            {selectedCharacter.status === 'failed' && (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
+                                                    <span className="text-[10px]" style={{ color: '#ef4444' }}>生成失败</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* 注册按钮 */}
+                                        {selectedCharacter.videoUrl && selectedCharacter.taskId && !isProcessing && (
+                                            <button
+                                                onClick={() => handleOpenRegisterDialog(selectedCharacter.id)}
+                                                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium transition-all hover:brightness-110"
+                                                style={{
+                                                    background: selectedCharacter.soraCharacterId
+                                                        ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(0,180,200,0.15))'
+                                                        : 'linear-gradient(135deg, rgba(0,245,255,0.15), rgba(0,180,200,0.15))',
+                                                    border: `1px solid ${selectedCharacter.soraCharacterId ? 'rgba(16,185,129,0.4)' : 'rgba(0,245,255,0.4)'}`,
+                                                    color: selectedCharacter.soraCharacterId ? '#10b981' : '#00f5ff',
+                                                }}
+                                            >
+                                                <UserPlus size={14} />
+                                                {selectedCharacter.soraCharacterId ? '重新固定' : '固定角色'}
+                                            </button>
+                                        )}
+                                    </div>
+
                                     <CyberVideoPlayer
                                         title="角色视频"
                                         videoUrl={isProcessing ? undefined : selectedCharacter.videoUrl}

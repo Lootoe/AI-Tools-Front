@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, Palette, Folder } from 'lucide-react';
-import { Asset } from '@/types/asset';
 import { SavedAsset, AssetCategory } from '@/types/canvas';
 import * as repositoryApi from '@/services/repositoryApi';
 
 interface LinkAssetImageDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    assets?: Asset[] | SavedAsset[];
+    assets?: SavedAsset[];
     categories?: AssetCategory[];
     scriptId?: string;
     onSelect: (imageUrl: string) => void;

@@ -130,13 +130,22 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
   // Selected edge for deletion
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
-  // Delete confirmation dialog state
+  // Delete node confirmation dialog state
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     nodeId: string | null;
   }>({
     isOpen: false,
     nodeId: null,
+  });
+
+  // Delete canvas confirmation dialog state
+  const [deleteCanvasConfirm, setDeleteCanvasConfirm] = useState<{
+    isOpen: boolean;
+    canvasId: string | null;
+  }>({
+    isOpen: false,
+    canvasId: null,
   });
 
   // Debounce timer ref for viewport changes
@@ -193,16 +202,28 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
     }
   }, [scriptId, createCanvas, showToast]);
 
-  // Handle delete canvas
-  const handleDeleteCanvas = useCallback(async (canvasId: string) => {
+  // Handle delete canvas - show confirmation dialog
+  const handleDeleteCanvas = useCallback((canvasId: string) => {
+    setDeleteCanvasConfirm({
+      isOpen: true,
+      canvasId,
+    });
+  }, []);
+
+  // Confirm canvas deletion
+  const confirmCanvasDelete = useCallback(async () => {
+    if (!deleteCanvasConfirm.canvasId) return;
+
     try {
-      await deleteCanvas(scriptId, canvasId);
+      await deleteCanvas(scriptId, deleteCanvasConfirm.canvasId);
       showToast('画布已删除', 'success');
     } catch (err) {
       const error = err as Error;
       showToast(error.message || '删除画布失败', 'error');
+    } finally {
+      setDeleteCanvasConfirm({ isOpen: false, canvasId: null });
     }
-  }, [scriptId, deleteCanvas, showToast]);
+  }, [deleteCanvasConfirm.canvasId, scriptId, deleteCanvas, showToast]);
 
   // Handle rename canvas
   const handleRenameCanvas = useCallback(async (canvasId: string, name: string) => {
@@ -324,9 +345,26 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
 
-    // 计算输出端口的实际位置作为连线起点
-    const nodeHeight = getNodeHeight(node.type);
-    const outputPortPos = getOutputPortPositionStatic(node.positionX, node.positionY, nodeHeight);
+    // 动态获取输出端口的实际位置
+    let outputPortPos: Position;
+    const portElement = document.querySelector(
+      `.node-port[data-node-id="${nodeId}"][data-port-type="output"]`
+    ) as HTMLElement;
+
+    if (portElement && containerRef.current) {
+      const portRect = portElement.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+
+      // 转换为画布坐标
+      outputPortPos = {
+        x: (portRect.left + portRect.width / 2 - containerRect.left - viewport.x) / viewport.zoom,
+        y: (portRect.top + portRect.height / 2 - containerRect.top - viewport.y) / viewport.zoom,
+      };
+    } else {
+      // 降级：使用旧的计算方法
+      const nodeHeight = getNodeHeight(node.type);
+      outputPortPos = getOutputPortPositionStatic(node.positionX, node.positionY, nodeHeight);
+    }
 
     setConnectionDrag({
       isActive: true,
@@ -335,7 +373,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
       sourcePosition: { x: node.positionX, y: node.positionY },
       currentPosition: outputPortPos,
     });
-  }, [nodes]);
+  }, [nodes, viewport]);
 
   // Handle end connection drag - 当拖到目标节点上时触发
   const handleEndConnect = useCallback(async (targetNodeId: string, _portType: 'input') => {
@@ -534,12 +572,39 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
 
 
   // Calculate temp connection path for drag
+  // Calculate temp connection path for drag
   const tempConnectionPath = useMemo(() => {
     if (!connectionDrag.isActive || !connectionDrag.sourcePosition || !connectionDrag.currentPosition) {
       return null;
     }
-    const sourceHeight = getNodeHeight(connectionDrag.sourceNodeType || undefined);
-    const sourcePort = getOutputPortPositionStatic(connectionDrag.sourcePosition.x, connectionDrag.sourcePosition.y, sourceHeight);
+
+    // 动态获取源节点输出端口的实际位置
+    let sourcePort: Position;
+    if (connectionDrag.sourceNodeId) {
+      const portElement = document.querySelector(
+        `.node-port[data-node-id="${connectionDrag.sourceNodeId}"][data-port-type="output"]`
+      ) as HTMLElement;
+
+      if (portElement && containerRef.current) {
+        const portRect = portElement.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
+
+        // 转换为画布坐标
+        sourcePort = {
+          x: (portRect.left + portRect.width / 2 - containerRect.left - viewport.x) / viewport.zoom,
+          y: (portRect.top + portRect.height / 2 - containerRect.top - viewport.y) / viewport.zoom,
+        };
+      } else {
+        // 降级：使用旧的计算方法
+        const sourceHeight = getNodeHeight(connectionDrag.sourceNodeType || undefined);
+        sourcePort = getOutputPortPositionStatic(connectionDrag.sourcePosition.x, connectionDrag.sourcePosition.y, sourceHeight);
+      }
+    } else {
+      // 降级：使用旧的计算方法
+      const sourceHeight = getNodeHeight(connectionDrag.sourceNodeType || undefined);
+      sourcePort = getOutputPortPositionStatic(connectionDrag.sourcePosition.x, connectionDrag.sourcePosition.y, sourceHeight);
+    }
+
     const dx = Math.abs(connectionDrag.currentPosition.x - sourcePort.x);
     const controlOffset = Math.max(50, dx * 0.4);
     const cp1x = sourcePort.x + controlOffset;
@@ -547,7 +612,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
     const cp2x = connectionDrag.currentPosition.x - controlOffset;
     const cp2y = connectionDrag.currentPosition.y;
     return `M ${sourcePort.x} ${sourcePort.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${connectionDrag.currentPosition.x} ${connectionDrag.currentPosition.y}`;
-  }, [connectionDrag]);
+  }, [connectionDrag, viewport]);
 
   // Handle keyboard events for node deletion
   useEffect(() => {
@@ -596,7 +661,7 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
         onClose={() => setSaveDialog({ isOpen: false, imageUrl: '', nodeId: null })}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Node Confirmation Dialog */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
         title="删除节点"
@@ -605,6 +670,17 @@ export const AssetCanvasWorkspace: React.FC<AssetCanvasWorkspaceProps> = ({
         cancelText="取消"
         onConfirm={confirmNodeDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, nodeId: null })}
+      />
+
+      {/* Delete Canvas Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteCanvasConfirm.isOpen}
+        title="删除画布"
+        message="确定要删除这个画布吗？画布中的所有节点和连线都将被删除，此操作无法撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        onConfirm={confirmCanvasDelete}
+        onCancel={() => setDeleteCanvasConfirm({ isOpen: false, canvasId: null })}
       />
 
       {/* Context Menu */}

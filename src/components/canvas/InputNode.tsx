@@ -219,22 +219,30 @@ export const InputNode: React.FC<InputNodeProps> = ({
       >
         {/* 节点头部 */}
         <div
-          className="px-3 py-2 flex items-center gap-2"
+          className="px-3 py-2.5 flex items-center gap-2 relative"
           style={{
-            background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.15), rgba(0, 212, 170, 0.1))',
-            borderBottom: '1px solid rgba(0, 245, 255, 0.2)',
+            background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.25), rgba(0, 212, 170, 0.15))',
+            borderBottom: '1px solid rgba(0, 245, 255, 0.3)',
           }}
         >
+          {/* 头部底部高光 */}
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center"
+            className="absolute bottom-0 left-0 right-0 h-px"
             style={{
-              background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.3), rgba(0, 212, 170, 0.2))',
-              border: '1px solid rgba(0, 245, 255, 0.4)',
+              background: 'linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.4), transparent)',
+            }}
+          />
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center relative"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 245, 255, 0.4), rgba(0, 212, 170, 0.3))',
+              border: '1px solid rgba(0, 245, 255, 0.5)',
+              boxShadow: '0 2px 8px rgba(0, 245, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             }}
           >
-            <ImageIcon size={12} style={{ color: '#00f5ff' }} />
+            <ImageIcon size={14} style={{ color: '#00f5ff', filter: 'drop-shadow(0 0 2px rgba(0, 245, 255, 0.8))' }} />
           </div>
-          <span className="text-xs font-medium text-white flex-1 truncate">
+          <span className="text-xs font-medium text-white flex-1 truncate" style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)' }}>
             {node.label || '输入节点'}
           </span>
         </div>
@@ -245,9 +253,12 @@ export const InputNode: React.FC<InputNodeProps> = ({
           style={{
             width: NODE_WIDTH - 2,
             height: NODE_WIDTH - 60, // 减去头部高度
-            backgroundColor: isDragOver ? 'rgba(0, 245, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)',
-            border: isDragOver ? '2px dashed rgba(0, 245, 255, 0.5)' : '2px dashed transparent',
+            backgroundColor: isDragOver ? 'rgba(0, 245, 255, 0.15)' : 'rgba(0, 0, 0, 0.4)',
+            border: isDragOver ? '2px dashed rgba(0, 245, 255, 0.6)' : '2px dashed transparent',
             transition: 'all 0.2s ease',
+            boxShadow: isDragOver
+              ? 'inset 0 0 20px rgba(0, 245, 255, 0.2), inset 0 2px 8px rgba(0, 0, 0, 0.3)'
+              : 'inset 0 2px 8px rgba(0, 0, 0, 0.3)',
           }}
           onClick={handleUploadClick}
           onDragEnter={handleDragEnter}
@@ -277,9 +288,10 @@ export const InputNode: React.FC<InputNodeProps> = ({
               {/* 清除按钮 */}
               <button
                 onClick={handleClearImage}
-                className="absolute top-2 right-2 p-1 rounded-md opacity-0 hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 hover:opacity-100 transition-all duration-200 hover:scale-110"
                 style={{
                   backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
                 }}
                 title="清除图片"
               >
@@ -335,18 +347,30 @@ export const InputNode: React.FC<InputNodeProps> = ({
 
         {/* 底部状态栏 */}
         <div
-          className="px-3 py-2 flex items-center justify-between"
-          style={{ borderTop: '1px solid rgba(30, 30, 46, 0.8)' }}
+          className="px-3 py-2 flex items-center justify-between relative"
+          style={{
+            borderTop: '1px solid rgba(30, 30, 46, 0.8)',
+            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.1), transparent)',
+          }}
         >
+          {/* 顶部分隔高光 */}
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.2), transparent)',
+            }}
+          />
           <span className="text-[10px]" style={{ color: '#6b7280' }}>
             {hasImage ? '已上传图片' : '未上传图片'}
           </span>
           {hasImage && (
             <span
-              className="text-[10px] px-1.5 py-0.5 rounded"
+              className="text-[10px] px-2 py-0.5 rounded"
               style={{
-                backgroundColor: 'rgba(0, 245, 255, 0.1)',
+                backgroundColor: 'rgba(0, 245, 255, 0.15)',
                 color: '#00f5ff',
+                border: '1px solid rgba(0, 245, 255, 0.3)',
+                boxShadow: '0 0 8px rgba(0, 245, 255, 0.2)',
               }}
             >
               可连接

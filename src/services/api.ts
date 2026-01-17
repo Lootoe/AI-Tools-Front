@@ -374,9 +374,9 @@ export interface AssetDesignResponse {
   balance?: number;
 }
 
-// 生成资产设计稿（用于画布节点）
+// 生成画布节点图片
 export async function generateAssetDesign(
-  assetId: string,
+  nodeId: string, // CanvasNode ID
   scriptId: string,
   description: string,
   model?: string,
@@ -392,7 +392,7 @@ export async function generateAssetDesign(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ assetId, scriptId, description, model, referenceImageUrls, aspectRatio, imageSize }),
+    body: JSON.stringify({ assetId: nodeId, scriptId, description, model, referenceImageUrls, aspectRatio, imageSize }),
   });
 
   if (!response.ok) {

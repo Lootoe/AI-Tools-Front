@@ -13,17 +13,13 @@ import {
   X,
   Gift,
   Ticket,
-  Settings,
-  Video,
-  Image,
-  Package,
-  User,
   CreditCard,
   History,
+  Video,
+  Image,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
-import { usePreferencesStore } from '@/stores/preferencesStore';
 import { getBalanceRecords, BalanceRecord } from '@/services/api';
 import CoinIcon from '@/img/coin.webp';
 
@@ -37,33 +33,11 @@ const PACKAGES = [
 const VIDEO_COST = 3;
 const IMAGE_COST = 4;
 
-const VIDEO_ASPECT_RATIOS = [
-  { value: '16:9', label: '16:9 横版' },
-  { value: '9:16', label: '9:16 竖版' },
-] as const;
-
-const VIDEO_DURATIONS = [
-  { value: '10', label: '10秒' },
-  { value: '15', label: '15秒' },
-] as const;
-
-const IMAGE_ASPECT_RATIOS = [
-  { value: '16:9', label: '16:9' },
-  { value: '1:1', label: '1:1' },
-  { value: '4:3', label: '4:3' },
-] as const;
-
-const IMAGE_MODELS = [
-  { value: 'nano-banana-2', label: 'Nano Banana 2' },
-  { value: 'doubao-seedream-3-0-t2i-250415', label: '豆包' },
-] as const;
-
-type TabType = 'recharge' | 'history' | 'preferences';
+type TabType = 'recharge' | 'history';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const preferences = usePreferencesStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('recharge');
   const [userInfo, setUserInfo] = useState({
@@ -148,25 +122,6 @@ export const ProfilePage: React.FC = () => {
 
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-  const SelectGroup: React.FC<{ label: string; value: string; options: readonly { value: string; label: string }[]; onChange: (v: string) => void }> = ({ label, value, options, onChange }) => (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="px-2 py-1 rounded text-xs outline-none cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}>
-        {options.map((opt) => <option key={opt.value} value={opt.value} style={{ background: '#1a1a24' }}>{opt.label}</option>)}
-      </select>
-    </div>
-  );
-
-  const PreferenceCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-    <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-center gap-2 mb-3 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        {icon}
-        <span className="text-sm font-medium text-white">{title}</span>
-      </div>
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-
   return (
     <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#0a0a0f' }}>
       {/* 左侧边栏 */}
@@ -203,9 +158,6 @@ export const ProfilePage: React.FC = () => {
           </button>
           <button onClick={() => setActiveTab('history')} className="w-full flex items-center gap-2 px-4 py-2 text-xs transition-all" style={{ background: activeTab === 'history' ? 'rgba(0,245,255,0.1)' : 'transparent', color: activeTab === 'history' ? '#00f5ff' : 'rgba(255,255,255,0.8)', borderLeft: activeTab === 'history' ? '2px solid #00f5ff' : '2px solid transparent' }}>
             <History size={14} /><span>历史记录</span>
-          </button>
-          <button onClick={() => setActiveTab('preferences')} className="w-full flex items-center gap-2 px-4 py-2 text-xs transition-all" style={{ background: activeTab === 'preferences' ? 'rgba(0,245,255,0.1)' : 'transparent', color: activeTab === 'preferences' ? '#00f5ff' : 'rgba(255,255,255,0.8)', borderLeft: activeTab === 'preferences' ? '2px solid #00f5ff' : '2px solid transparent' }}>
-            <Settings size={14} /><span>偏好设置</span>
           </button>
         </div>
 
@@ -394,25 +346,6 @@ export const ProfilePage: React.FC = () => {
                   <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-1.5 rounded transition-colors disabled:opacity-20 hover:bg-white/5" style={{ color: 'rgba(255,255,255,0.7)' }}><ChevronRight size={14} /></button>
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === 'preferences' && (
-            <div className="grid grid-cols-2 gap-4">
-              <PreferenceCard icon={<Video size={14} style={{ color: '#00f5ff' }} />} title="分镜视频">
-                <SelectGroup label="画面比例" value={preferences.video.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(v) => preferences.setVideoPreferences({ aspectRatio: v as '16:9' | '9:16' })} />
-                <SelectGroup label="视频时长" value={preferences.video.duration} options={VIDEO_DURATIONS} onChange={(v) => preferences.setVideoPreferences({ duration: v as '10' | '15' })} />
-              </PreferenceCard>
-
-              <PreferenceCard icon={<Package size={14} style={{ color: '#fbbf24' }} />} title="资产">
-                <SelectGroup label="画面比例" value={preferences.asset.aspectRatio} options={IMAGE_ASPECT_RATIOS} onChange={(v) => preferences.setAssetPreferences({ aspectRatio: v as '1:1' | '4:3' | '16:9' })} />
-                <SelectGroup label="模型" value={preferences.asset.model} options={IMAGE_MODELS} onChange={(v) => preferences.setAssetPreferences({ model: v })} />
-              </PreferenceCard>
-
-              <PreferenceCard icon={<User size={14} style={{ color: '#4ade80' }} />} title="角色视频">
-                <SelectGroup label="画面比例" value={preferences.character.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(v) => preferences.setCharacterPreferences({ aspectRatio: v as '16:9' | '9:16' })} />
-                <SelectGroup label="视频时长" value={preferences.character.duration} options={VIDEO_DURATIONS} onChange={(v) => preferences.setCharacterPreferences({ duration: v as '10' | '15' })} />
-              </PreferenceCard>
             </div>
           )}
         </div>
